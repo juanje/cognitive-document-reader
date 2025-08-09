@@ -1,0 +1,108 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cognitive-document-reader"
+dynamic = ["version"]
+authors = [{name = "Juanje Ojeda", email = "juanje@redhat.com"}]
+description = "Advanced document reading with human-like progressive understanding"
+readme = "README.md"
+license = {text = "MIT"}
+keywords = ["llm", "document-processing", "cognitive-reading", "summarization"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers", 
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0,<3.0",      # Data validation and settings
+    "aiohttp>=3.8,<4.0",       # Async HTTP client  
+    "click>=8.0,<9.0",         # CLI framework
+    "docling>=2.40,<3.0",      # Universal document parsing
+    "langdetect>=1.0,<2.0",    # Language detection
+    "python-dotenv>=1.0,<2.0", # .env file support
+]
+
+# Configure package discovery for src layout
+[tool.hatch.build.targets.wheel]
+packages = ["src/cognitive_reader"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0,<8.0",
+    "pytest-asyncio>=0.21,<1.0",
+    "ruff>=0.1,<1.0",
+    "mypy>=1.0,<2.0",
+]
+
+[project.scripts]
+cognitive-reader = "cognitive_reader.cli.main:cli"
+
+# Dynamic automatic versioning
+[tool.hatch.version]
+source = "vcs"
+tag-regex = "^v(?P<version>\\d+\\.\\d+\\.\\d+)$"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/cognitive_reader/_version.py"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0,<8.0",
+    "pytest-asyncio>=0.21,<1.0",
+    "ruff>=0.1,<1.0",
+    "mypy>=1.0,<2.0",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+
+[[tool.mypy.overrides]]
+module = "langdetect.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "docling.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "aiohttp.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "click.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pydantic.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
