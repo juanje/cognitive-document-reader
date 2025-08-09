@@ -1,0 +1,361 @@
+---
+description: Pydantic models and configuration standards for data validation and type safety
+globs: ["src/cognitive_reader/models/**/*.py", "**/*config*.py", "**/*model*.py"]
+alwaysApply: false
+---
+
+# Pydantic Models and Configuration Rules
+
+## 🏗️ Pydantic Philosophy
+
+Use **Pydantic v2+ for all data validation, configuration management, and type safety** throughout the project.
+
+## 📋 Model Standards
+
+### 1. Base Model Configuration
+```python
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List, Dict, Any
+from enum import Enum
+
+class BaseConfiguredModel(BaseModel):
+    """Base model with standard configuration."""
+    model_config = ConfigDict(
+        frozen=True,           # Immutable by default
+        validate_assignment=True,  # Validate on assignment
+        extra='forbid',        # Forbid extra fields
+        str_strip_whitespace=True,  # Strip whitespace
+        validate_default=True   # Validate default values
+    )
+```
+
+### 2. Configuration Models (CRITICAL)
+```python
+class ReadingConfig(BaseModel):
+    """Configuration model with environment loading."""
+    model_config = ConfigDict(
+        env_prefix='COGNITIVE_READER_',  # Environment variable prefix
+        case_sensitive=False,
+        extra='forbid'
+    )
+    
+    # LLM Configuration with validation
+    model_name: str = Field(
+        default="llama3.1:8b",
+        description="LLM model name",
+        examples=["llama3.1:8b", "deepseek-r1:8b"]
+    )
+    
+    temperature: float = Field(
+        default=0.1,
+        ge=0.0,
+        le=2.0,
+        description="LLM temperature for generation"
+    )
+    
+    # Development modes (AI agent friendly)
+    dry_run: bool = Field(
+        default=False,
+        description="Enable dry-run mode (no LLM calls)"
+    )
+    
+    mock_responses: bool = Field(
+        default=False,
+        description="Use simulated responses for testing"
+    )
+    
+    @classmethod
+    def from_env(cls) -> "ReadingConfig":
+        """Create configuration from environment variables."""
+        import os
+        return cls(
+            model_name=os.getenv("COGNITIVE_READER_MODEL", "llama3.1:8b"),
+            temperature=float(os.getenv("COGNITIVE_READER_TEMPERATURE", "0.1")),
+            dry_run=os.getenv("COGNITIVE_READER_DRY_RUN", "false").lower() == "true",
+            mock_responses=os.getenv("COGNITIVE_READER_MOCK_RESPONSES", "false").lower() == "true",
+        )
+```
+
+### 3. Data Models with Validation
+```python
+from datetime import datetime
+from uuid import uuid4
+
+class DocumentSection(BaseModel):
+    """Document section with hierarchy information."""
+    model_config = ConfigDict(frozen=True)
+    
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    title: str = Field(min_length=1, max_length=500)
+    content: str = Field(min_length=1)
+    level: int = Field(ge=1, le=10, description="Heading level (1-10)")
+    parent_id: Optional[str] = None
+    children_ids: List[str] = Field(default_factory=list)
+    order_index: int = Field(ge=0)
+    created_at: datetime = Field(default_factory=datetime.now)
+    
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        """Validate and clean title."""
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("Title cannot be empty")
+        return cleaned
+    
+    @field_validator('content')
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        """Validate content is not empty."""
+        if not v.strip():
+            raise ValueError("Content cannot be empty")
+        return v
+```
+
+### 4. Enum Usage Standards
+```python
+from enum import Enum
+
+class LanguageCode(str, Enum):
+    """Supported language codes."""
+    AUTO = "auto"
+    EN = "en"
+    ES = "es"
+    
+    def __str__(self) -> str:
+        return self.value
+
+class ProcessingStatus(str, Enum):
+    """Document processing status."""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    
+class OutputFormat(str, Enum):
+    """Supported output formats."""
+    MARKDOWN = "markdown"
+    JSON = "json"
+    SUMMARY = "summary"
+```
+
+## 🔧 Advanced Validation Patterns
+
+### 1. Custom Validators
+```python
+from pydantic import field_validator, model_validator
+import re
+
+class AdvancedConfig(BaseModel):
+    """Configuration with custom validation."""
+    
+    email: str = Field(description="Contact email")
+    url: str = Field(description="Base URL")
+    tags: List[str] = Field(default_factory=list)
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        """Validate email format."""
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(pattern, v):
+            raise ValueError("Invalid email format")
+        return v.lower()
+    
+    @field_validator('url')
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        """Validate URL format."""
+        if not v.startswith(('http://', 'https://')):
+            raise ValueError("URL must start with http:// or https://")
+        return v
+    
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v: List[str]) -> List[str]:
+        """Validate and normalize tags."""
+        return [tag.strip().lower() for tag in v if tag.strip()]
+    
+    @model_validator(mode='after')
+    def validate_model(self) -> 'AdvancedConfig':
+        """Cross-field validation."""
+        if 'production' in self.tags and 'localhost' in self.url:
+            raise ValueError("Production config cannot use localhost URL")
+        return self
+```
+
+### 2. Computed Properties
+```python
+from pydantic import computed_field
+
+class DocumentKnowledge(BaseModel):
+    """Complete document knowledge with computed properties."""
+    document_title: str
+    document_summary: str
+    sections: List[DocumentSection]
+    section_summaries: Dict[str, SectionSummary]
+    detected_language: LanguageCode
+    processing_metadata: Dict[str, Any] = Field(default_factory=dict)
+    
+    @computed_field
+    @property
+    def total_sections(self) -> int:
+        """Total number of sections."""
+        return len(self.sections)
+    
+    @computed_field
+    @property
+    def total_content_length(self) -> int:
+        """Total content length across all sections."""
+        return sum(len(section.content) for section in self.sections)
+    
+    @computed_field
+    @property
+    def sections_by_level(self) -> Dict[int, int]:
+        """Count of sections by level."""
+        counts = {}
+        for section in self.sections:
+            counts[section.level] = counts.get(section.level, 0) + 1
+        return counts
+```
+
+### 3. Serialization Control
+```python
+from pydantic import field_serializer, ConfigDict
+
+class SerializationConfig(BaseModel):
+    """Model with custom serialization."""
+    model_config = ConfigDict(
+        ser_json_inf_nan='strings',  # Serialize inf/nan as strings
+        ser_json_timedelta='float',  # Serialize timedelta as float seconds
+    )
+    
+    created_at: datetime
+    sensitive_data: str = Field(exclude=True)  # Exclude from serialization
+    internal_id: str = Field(alias='id')  # Use alias in serialization
+    
+    @field_serializer('created_at')
+    def serialize_datetime(self, value: datetime) -> str:
+        """Custom datetime serialization."""
+        return value.isoformat()
+    
+    def model_dump_safe(self) -> Dict[str, Any]:
+        """Safe serialization without sensitive data."""
+        return self.model_dump(exclude={'sensitive_data'})
+```
+
+## 🔄 Migration and Compatibility
+
+### 1. Version Compatibility
+```python
+from typing import Union
+from pydantic import Field, field_validator
+
+class VersionedConfig(BaseModel):
+    """Configuration with version compatibility."""
+    version: str = Field(default="1.0", description="Config version")
+    
+    # Support both old and new field names
+    model_name: str = Field(alias='llm_model')  # New name
+    
+    @field_validator('version')
+    @classmethod
+    def validate_version(cls, v: str) -> str:
+        """Validate configuration version."""
+        supported_versions = ['1.0', '1.1', '2.0']
+        if v not in supported_versions:
+            raise ValueError(f"Unsupported version {v}. Supported: {supported_versions}")
+        return v
+    
+    @classmethod
+    def migrate_from_v1(cls, old_config: Dict[str, Any]) -> 'VersionedConfig':
+        """Migrate from version 1.x configuration."""
+        # Handle field renames and transformations
+        if 'llm_model' in old_config:
+            old_config['model_name'] = old_config.pop('llm_model')
+        
+        old_config['version'] = '2.0'
+        return cls(**old_config)
+```
+
+## 🧪 Testing Pydantic Models
+
+### 1. Model Testing Patterns
+```python
+import pytest
+from pydantic import ValidationError
+
+def test_reading_config_validation():
+    """Test configuration validation."""
+    # Valid configuration
+    config = ReadingConfig(
+        model_name="llama3.1:8b",
+        temperature=0.1,
+        dry_run=True
+    )
+    assert config.model_name == "llama3.1:8b"
+    assert config.temperature == 0.1
+    assert config.dry_run is True
+
+def test_reading_config_invalid_temperature():
+    """Test invalid temperature validation."""
+    with pytest.raises(ValidationError) as exc_info:
+        ReadingConfig(temperature=5.0)  # Invalid: > 2.0
+    
+    assert "Input should be less than or equal to 2" in str(exc_info.value)
+
+def test_reading_config_from_env(monkeypatch):
+    """Test environment variable loading."""
+    monkeypatch.setenv("COGNITIVE_READER_MODEL", "custom-model")
+    monkeypatch.setenv("COGNITIVE_READER_TEMPERATURE", "0.5")
+    
+    config = ReadingConfig.from_env()
+    assert config.model_name == "custom-model"
+    assert config.temperature == 0.5
+```
+
+### 2. Serialization Testing
+```python
+def test_document_knowledge_serialization():
+    """Test serialization and deserialization."""
+    original = DocumentKnowledge(
+        document_title="Test Document",
+        document_summary="Test summary",
+        sections=[],
+        section_summaries={},
+        detected_language=LanguageCode.EN
+    )
+    
+    # Test JSON serialization
+    json_data = original.model_dump_json()
+    reconstructed = DocumentKnowledge.model_validate_json(json_data)
+    
+    assert reconstructed == original
+    assert reconstructed.document_title == "Test Document"
+```
+
+## 📊 Validation Performance
+
+### 1. Efficient Validation
+```python
+# Use model_validate for external data
+def process_external_data(data: Dict[str, Any]) -> ReadingConfig:
+    """Process and validate external configuration data."""
+    try:
+        return ReadingConfig.model_validate(data)
+    except ValidationError as e:
+        # Log validation errors with context
+        logger.error(f"Configuration validation failed: {e}")
+        raise ValueError(f"Invalid configuration: {e}")
+
+# Use model_construct for trusted internal data (faster)
+def create_internal_config(model_name: str, temperature: float) -> ReadingConfig:
+    """Create configuration from trusted internal data."""
+    return ReadingConfig.model_construct(
+        model_name=model_name,
+        temperature=temperature,
+        dry_run=False
+    )
+```
+
+**Remember: Pydantic models provide type safety, validation, and serialization. Use them for all configuration, data structures, and API boundaries. Always validate external data and provide clear error messages.**

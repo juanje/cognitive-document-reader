@@ -1,0 +1,149 @@
+---
+description: Main rules for Cognitive Document Reader project - Python library for human-like document understanding
+globs: ["**/*.py", "**/*.md", "**/*.toml", "**/*.yaml", "**/*.yml"]
+alwaysApply: true
+---
+
+# Cognitive Document Reader - Main Project Rules
+
+## 🎯 Project Overview
+
+You are working on **Cognitive Document Reader**, a Python library that simulates human-like document reading through progressive understanding and hierarchical synthesis. This project focuses on high-quality summaries for human reading and enriched metadata for AI projects.
+
+## 🔧 Technology Stack
+
+### Core Technologies
+- **Python Version:** 3.10+ (use modern Python features)
+- **Dependency Management:** `uv` (replaces Poetry, pip, venv)
+- **Code Quality:** `ruff` for linting and formatting (replaces black, isort, flake8)
+- **Type Checking:** `mypy` with strict type annotations
+- **Testing:** `pytest` with `pytest-asyncio`
+- **Documentation:** Google-style docstrings
+- **Async Programming:** Prefer `async`/`await` for I/O operations
+
+### Domain-Specific Libraries
+- **Document Parsing:** `docling` for universal document processing
+- **LLM Integration:** Focus on Ollama integration, consider LangChain for Phase 2+
+- **Data Validation:** `pydantic` v2+ for all configuration and data models
+- **Language Detection:** `langdetect`
+- **HTTP Client:** `aiohttp` for async HTTP operations
+- **CLI Framework:** `click`
+
+## 📋 Mandatory Code Standards
+
+### 1. Type Annotations (CRITICAL)
+- **ALL functions, methods, and class members MUST have type annotations**
+- Use the most specific types possible
+- Import from `typing` module when needed
+- Use `from __future__ import annotations` for forward references
+
+### 2. Documentation (CRITICAL)
+- **ALL public functions, methods, and classes MUST have Google-style docstrings**
+- Include purpose, parameters, return values, and exceptions
+- Add usage examples for complex functions
+
+### 3. Exception Handling (CRITICAL)
+- Use specific exception types, never bare `except:`
+- Create custom exception classes for domain-specific errors
+- Provide informative error messages without exposing sensitive data
+
+## 🏗️ Architecture Principles
+
+### 1. Single Responsibility Principle
+- Each module/class should have one clear responsibility
+- Keep functions focused and small (prefer <50 lines)
+- Extract complex logic into separate functions
+
+### 2. Composition Over Inheritance
+- Favor composition and dependency injection
+- Use protocols/interfaces for abstraction
+- Avoid deep inheritance hierarchies
+
+### 3. Explicit Over Implicit
+- Be explicit about dependencies and configurations
+- Avoid magic values or implicit behaviors
+- Use clear, descriptive variable and function names
+
+### 4. Async-First Design
+- Use `async`/`await` for all I/O operations
+- Design APIs to be async-compatible from the start
+- Use `asyncio` patterns correctly
+
+## ⚙️ Configuration Management
+
+### 1. Environment-Driven Configuration
+- ALL configuration via environment variables
+- No hardcoded values in code
+- Use Pydantic models for configuration validation
+- Support `.env` files for development
+
+### 2. Development-Friendly Features
+- Always include dry-run modes for AI agent development
+- Provide mock responses for testing
+- Include validation-only modes
+
+## 🧪 Testing Standards
+
+### 1. Test Coverage Goals
+- Target: 90% code coverage minimum
+- Focus on critical paths and error handling
+- Test both success and failure scenarios
+
+### 2. Test Organization
+- Use `pytest` with async support
+- Create fixtures for common test data
+- Mock external dependencies (LLM calls, file I/O)
+
+## 🚀 Development Workflow
+
+### 1. Conventional Commits
+Always use conventional commit format:
+```bash
+feat: add progressive reading functionality
+fix: resolve memory leak in document parser
+docs: update README with CLI examples
+refactor: extract prompt management to separate module
+test: add unit tests for hierarchical synthesis
+```
+
+### 2. Development Commands
+```bash
+# Setup development environment
+uv sync
+
+# Code quality checks
+uv run ruff check .
+uv run ruff format .
+uv run mypy src/
+
+# Testing
+uv run pytest
+uv run pytest --cov=cognitive_reader --cov-report=html
+
+# CLI testing
+uv run cognitive-reader --dry-run document.md
+```
+
+## 🤖 AI Agent Development Support
+
+### Always Include These Features
+- `dry_run` mode for cost-free testing
+- `mock_responses` for deterministic testing
+- `validate_config_only` for quick validation
+- Clear success/failure indicators
+
+## 📁 File Organization
+
+### Expected Directory Structure
+```
+src/cognitive_reader/
+├── __init__.py              # Public API exports
+├── core/                    # Core reading logic
+├── parsers/                 # Document parsing
+├── llm/                     # LLM integration
+├── models/                  # Pydantic data models
+├── utils/                   # Utility functions
+└── cli/                     # Command-line interface
+```
+
+**Remember: This is a professional-grade library focused on cognitive document reading. Prioritize code quality, type safety, and user experience. Every function should be well-documented, properly typed, and thoroughly tested.**

@@ -1,0 +1,362 @@
+---
+description: Testing standards and patterns for comprehensive, fast, and deterministic testing
+globs: ["tests/**/*.py", "**/*test*.py", "**/*_test.py", "test_*.py"]
+alwaysApply: false
+---
+
+# Testing Standards
+
+## 🧪 Testing Philosophy
+
+Focus on **comprehensive, fast, and deterministic testing** that supports both development and CI/CD workflows.
+
+## 📋 Testing Requirements
+
+### 1. Test Coverage Standards
+- **Target:** 90% code coverage minimum
+- **Priority:** Critical paths, error handling, edge cases
+- **Focus:** Both success and failure scenarios
+- **Speed:** Tests should run quickly for agile development
+
+### 2. Test Organization Structure
+```
+tests/
+├── conftest.py              # Shared fixtures and configuration
+├── fixtures/                # Test data and sample documents
+├── unit/                    # Unit tests by module
+│   ├── test_core/
+│   ├── test_parsers/
+│   ├── test_llm/
+│   └── test_models/
+└── integration/             # Integration tests
+    ├── test_cli.py
+    ├── test_document_processing.py
+    └── test_end_to_end.py
+```
+
+## 🔧 Required Testing Tools
+
+### Essential Imports and Setup
+```python
+import pytest
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+from cognitive_reader.models import ReadingConfig, DocumentKnowledge
+from cognitive_reader import CognitiveReader
+
+# Always use async fixtures for async code
+@pytest.fixture
+async def async_test_client():
+    """Async client for testing."""
+    config = ReadingConfig(dry_run=True, mock_responses=True)
+    return CognitiveReader(config)
+```
+
+### Standard Test Fixtures (MANDATORY)
+```python
+# conftest.py patterns
+@pytest.fixture
+def test_config():
+    """Standard test configuration with mocks enabled."""
+    return ReadingConfig(
+        model_name="test-model",
+        temperature=0.1,
+        dry_run=True,
+        mock_responses=True,
+        timeout_seconds=30  # Faster for tests
+    )
+
+@pytest.fixture
+def sample_markdown():
+    """Simple markdown content for testing."""
+    return """
+# Test Document
+
+## Introduction
+This is a test document for cognitive reading.
+
+## Main Content
+Here is the main content with some **important** points.
+
+### Subsection
+Additional details in a subsection.
+
+## Conclusion
+Final thoughts and summary.
+"""
+```
+
+## 🎯 Critical Testing Patterns
+
+### 1. Mock LLM Calls (CRITICAL - NEVER MAKE REAL CALLS)
+```python
+@pytest.fixture
+def mock_llm_client():
+    """Mock LLM client with predictable responses."""
+    mock = AsyncMock()
+    mock.generate_summary.return_value = "Test summary content"
+    mock.validate_configuration.return_value = True
+    return mock
+
+async def test_document_processing_with_mock(test_config, sample_markdown, mock_llm_client):
+    """Test document processing with mocked LLM calls."""
+    with patch('cognitive_reader.core.progressive_reader.LLMClient', return_value=mock_llm_client):
+        reader = CognitiveReader(test_config)
+        result = await reader.read_document_text(sample_markdown)
+        
+        assert result.document_title == "Test Document"
+        assert len(result.sections) >= 3
+        mock_llm_client.generate_summary.assert_called()
+```
+
+### 2. Async Test Patterns (MANDATORY)
+```python
+@pytest.mark.asyncio
+async def test_async_operation(test_config):
+    """Test async operation properly."""
+    reader = CognitiveReader(test_config)
+    result = await reader.validate_configuration()
+    assert result is True
+
+@pytest.mark.asyncio
+async def test_concurrent_processing():
+    """Test that concurrent operations work correctly."""
+    config = ReadingConfig(dry_run=True)
+    reader = CognitiveReader(config)
+    
+    tasks = [
+        reader.read_document_text("# Doc 1\nContent 1"),
+        reader.read_document_text("# Doc 2\nContent 2"),
+        reader.read_document_text("# Doc 3\nContent 3")
+    ]
+    
+    results = await asyncio.gather(*tasks)
+    assert len(results) == 3
+    assert all(r.document_title for r in results)
+```
+
+### 3. Error Testing Patterns (REQUIRED)
+```python
+async def test_file_not_found_error(test_config):
+    """Test proper error handling for missing files."""
+    reader = CognitiveReader(test_config)
+    
+    with pytest.raises(FileNotFoundError):
+        await reader.read_document("/nonexistent/file.md")
+
+async def test_invalid_configuration():
+    """Test validation of invalid configurations."""
+    with pytest.raises(ValueError):
+        ReadingConfig(temperature=5.0)  # Invalid temperature
+
+async def test_llm_timeout_handling(test_config):
+    """Test handling of LLM timeouts."""
+    with patch('cognitive_reader.llm.client.LLMClient.generate_summary') as mock_llm:
+        mock_llm.side_effect = asyncio.TimeoutError("LLM timeout")
+        
+        reader = CognitiveReader(test_config)
+        with pytest.raises(CognitiveReaderError):
+            await reader.read_document_text("# Test\nContent")
+```
+
+### 4. Configuration Testing (MANDATORY)
+```python
+def test_config_from_environment(monkeypatch):
+    """Test configuration loading from environment."""
+    monkeypatch.setenv("COGNITIVE_READER_MODEL", "custom-model")
+    monkeypatch.setenv("COGNITIVE_READER_TEMPERATURE", "0.5")
+    monkeypatch.setenv("COGNITIVE_READER_DRY_RUN", "true")
+    
+    config = ReadingConfig.from_env()
+    assert config.model_name == "custom-model"
+    assert config.temperature == 0.5
+    assert config.dry_run is True
+
+def test_config_validation():
+    """Test configuration validation."""
+    # Valid config
+    config = ReadingConfig(temperature=0.1, chunk_size=1000)
+    assert config.temperature == 0.1
+    
+    # Invalid configs should raise errors
+    with pytest.raises(ValueError):
+        ReadingConfig(temperature=-1.0)
+    
+    with pytest.raises(ValueError):
+        ReadingConfig(chunk_size=0)
+```
+
+## 🏃‍♂️ Performance Testing
+
+### Basic Performance Tests
+```python
+import time
+
+@pytest.mark.performance
+async def test_processing_speed(test_config, sample_markdown):
+    """Test that processing completes within reasonable time."""
+    reader = CognitiveReader(test_config)
+    
+    start_time = time.time()
+    await reader.read_document_text(sample_markdown)
+    processing_time = time.time() - start_time
+    
+    # In dry-run mode, should be very fast
+    assert processing_time < 2.0  # seconds
+
+@pytest.mark.performance  
+async def test_memory_usage():
+    """Test memory usage doesn't grow excessively."""
+    import psutil
+    import os
+    
+    process = psutil.Process(os.getpid())
+    initial_memory = process.memory_info().rss
+    
+    # Process multiple documents
+    config = ReadingConfig(dry_run=True)
+    reader = CognitiveReader(config)
+    
+    for i in range(10):
+        await reader.read_document_text(f"# Document {i}\nContent {i}")
+    
+    final_memory = process.memory_info().rss
+    memory_growth = final_memory - initial_memory
+    
+    # Memory growth should be reasonable (less than 50MB)
+    assert memory_growth < 50 * 1024 * 1024
+```
+
+## 🧪 Integration Testing
+
+### End-to-End Testing
+```python
+async def test_complete_document_workflow(test_config, tmp_path):
+    """Test complete document processing workflow."""
+    # Create temporary markdown file
+    test_file = tmp_path / "test_document.md"
+    test_file.write_text("""
+# Research Paper
+
+## Abstract
+This paper presents novel findings.
+
+## Introduction
+Background and motivation.
+
+## Methodology
+Detailed methodology.
+
+## Results
+Key findings and analysis.
+
+## Conclusion
+Summary and future work.
+""")
+    
+    # Process document
+    reader = CognitiveReader(test_config)
+    knowledge = await reader.read_document(str(test_file))
+    
+    # Verify structure
+    assert knowledge.document_title == "Research Paper"
+    assert len(knowledge.sections) >= 5
+    assert any(s.title == "Abstract" for s in knowledge.sections)
+    assert any(s.title == "Conclusion" for s in knowledge.sections)
+    
+    # Verify summaries exist
+    assert knowledge.document_summary
+    assert all(summary.summary for summary in knowledge.section_summaries.values())
+```
+
+### CLI Integration Testing
+```python
+from click.testing import CliRunner
+from cognitive_reader.cli.main import cli
+
+def test_cli_basic_usage(tmp_path):
+    """Test basic CLI functionality."""
+    # Create test file
+    test_file = tmp_path / "test.md"
+    test_file.write_text("# Test\n\nContent here.")
+    
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        str(test_file), 
+        "--dry-run",
+        "--output", "json"
+    ])
+    
+    assert result.exit_code == 0
+    assert "Test" in result.output
+```
+
+## ⚡ Test Optimization
+
+### Parameterized Tests
+```python
+@pytest.mark.parametrize("language,expected", [
+    ("en", "English"),
+    ("es", "Spanish"),
+    ("auto", "auto"),
+])
+def test_language_detection(language, expected):
+    """Test language detection with various inputs."""
+    config = ReadingConfig(document_language=language)
+    assert config.document_language == expected
+```
+
+### Test Markers
+```python
+# Mark slow tests
+@pytest.mark.slow
+async def test_large_document_processing():
+    """Test processing of large documents."""
+    pass
+
+# Skip slow tests in quick runs with: pytest -m "not slow" tests/
+```
+
+## 🚨 Testing Anti-Patterns (NEVER DO THESE)
+
+### ❌ DON'T DO THESE
+```python
+# DON'T: Make real LLM calls in tests
+async def test_bad_llm_call():
+    reader = CognitiveReader(ReadingConfig(dry_run=False))  # ❌ Real calls
+    await reader.read_document("test.md")  # ❌ Expensive and slow
+
+# DON'T: Test implementation details
+def test_bad_internal_details():
+    reader = CognitiveReader(test_config)
+    assert reader._internal_method() == "something"  # ❌ Testing internals
+
+# DON'T: Write flaky tests
+async def test_bad_timing():
+    await asyncio.sleep(0.1)  # ❌ Arbitrary timing
+    assert some_condition  # ❌ May fail randomly
+```
+
+### ✅ DO THESE INSTEAD
+```python
+# ✅ Mock external dependencies
+@patch('cognitive_reader.llm.client.LLMClient')
+async def test_good_mocking(mock_llm_class):
+    mock_llm_class.return_value.generate_summary.return_value = "test"
+    # Test behavior, not implementation
+
+# ✅ Test public interfaces
+async def test_good_public_api():
+    reader = CognitiveReader(test_config)
+    result = await reader.read_document_text("# Test\nContent")
+    assert isinstance(result, DocumentKnowledge)  # ✅ Test interface
+
+# ✅ Use deterministic assertions
+async def test_good_deterministic():
+    config = ReadingConfig(dry_run=True, mock_responses=True)
+    reader = CognitiveReader(config)
+    result = await reader.read_document_text("# Test\nContent")
+    assert result.document_title == "Test"  # ✅ Predictable result
+```
+
+**Remember: Tests should be fast, deterministic, and comprehensive. Mock all external dependencies, focus on public APIs, and ensure tests can run in any environment without external dependencies.**
