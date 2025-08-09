@@ -141,7 +141,57 @@ git add .  # Stages everything without review
 4. `git add -p other_file.py` - Stage partial changes if needed
 5. `git commit -m "type: descriptive message"`
 
-### 3. Development Commands
+### 3. Feature-Complete Commits Strategy
+
+**CRITICAL: Each feature should be implemented as a complete, atomic commit that includes ALL related changes.**
+
+When implementing multi-feature functionality, organize commits by **feature completeness**, not by **technical layer**:
+
+```bash
+# ✅ CORRECT: Feature-complete commits
+feat: implement partial results saving
+  - Config: save_partial_results + partial_results_dir fields
+  - Code: _save_partial_result method + integration in progressive_reader
+  - CLI: --save-partials + --partials-dir options
+  - Tests: comprehensive test coverage for partial saving
+  - Docs: user documentation and examples
+
+feat: implement section depth limiting  
+  - Config: max_section_depth field + environment variable
+  - Code: _filter_by_depth method + _apply_section_filters integration
+  - CLI: --max-depth option
+  - Tests: depth filtering test coverage
+  - Docs: depth limiting documentation + examples
+
+feat: implement section count limiting
+  - Config: max_sections field + environment variable
+  - Code: section count limiting in _apply_section_filters
+  - CLI: --max-sections option  
+  - Tests: section count limiting tests
+  - Docs: count limiting documentation + examples
+
+# ❌ WRONG: Technical layer commits
+feat: add all config fields for development features
+feat: implement all filtering logic
+feat: add all CLI options
+test: add all tests for development features
+docs: document all development features
+```
+
+**Benefits of Feature-Complete Commits:**
+- ✅ **Atomic features**: Each commit represents one complete, working feature
+- ✅ **Easy reversion**: Can revert specific features without breaking others
+- ✅ **Clear history**: Git log shows feature progression, not technical layers
+- ✅ **Better reviews**: Each commit can be reviewed as a complete functional unit
+- ✅ **Release management**: Easy to cherry-pick or exclude specific features
+
+**Implementation Workflow:**
+1. **Plan features**: Identify distinct, independent features to implement
+2. **Implement completely**: Code + tests + docs for ONE feature at a time
+3. **Commit atomically**: One commit per complete feature
+4. **Verify independence**: Each commit should work independently
+
+### 4. Development Commands
 ```bash
 # Setup development environment
 uv sync
