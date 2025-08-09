@@ -29,6 +29,10 @@ def test_config_defaults():
     assert config.dry_run is False
     assert config.mock_responses is False
     assert config.validate_config_only is False
+    assert config.save_partial_results is False
+    assert config.partial_results_dir == "./partial_results"
+    assert config.max_sections is None
+    assert config.max_section_depth is None
 
 
 def test_config_validation():
@@ -133,6 +137,18 @@ def test_config_development_mode():
     config = ReadingConfig(validate_config_only=True)
     assert config.is_development_mode() is True
 
+    # Save partial results mode
+    config = ReadingConfig(save_partial_results=True)
+    assert config.is_development_mode() is True
+
+    # Max sections limit mode
+    config = ReadingConfig(max_sections=5)
+    assert config.is_development_mode() is True
+
+    # Max depth limit mode
+    config = ReadingConfig(max_section_depth=2)
+    assert config.is_development_mode() is True
+
     # Multiple modes
     config = ReadingConfig(dry_run=True, mock_responses=True)
     assert config.is_development_mode() is True
@@ -212,3 +228,45 @@ def test_config_new_env_vars():
         assert config.quality_model == "qwen3:8b"
         assert config.fast_mode is True
         assert config.active_model == "llama3.1:8b"
+
+
+def test_config_development_features_env():
+    """Test development features environment variables."""
+    env_vars = {
+        "COGNITIVE_READER_SAVE_PARTIALS": "true",
+        "COGNITIVE_READER_PARTIALS_DIR": "/custom/path",
+        "COGNITIVE_READER_MAX_SECTIONS": "10",
+        "COGNITIVE_READER_MAX_DEPTH": "3",
+    }
+
+    with mock.patch.dict(os.environ, env_vars):
+        config = ReadingConfig.from_env()
+
+        assert config.save_partial_results is True
+        assert config.partial_results_dir == "/custom/path"
+        assert config.max_sections == 10
+        assert config.max_section_depth == 3
+        assert config.is_development_mode() is True
+
+
+def test_config_optional_integer_fields():
+    """Test optional integer fields handling."""
+    # Test None values (default)
+    config = ReadingConfig()
+    assert config.max_sections is None
+    assert config.max_section_depth is None
+
+    # Test explicit values
+    config = ReadingConfig(max_sections=5, max_section_depth=2)
+    assert config.max_sections == 5
+    assert config.max_section_depth == 2
+
+    # Test environment variable with empty string
+    with mock.patch.dict(os.environ, {"COGNITIVE_READER_MAX_SECTIONS": ""}):
+        config = ReadingConfig.from_env()
+        assert config.max_sections is None
+
+    # Test environment variable with valid integer
+    with mock.patch.dict(os.environ, {"COGNITIVE_READER_MAX_SECTIONS": "15"}):
+        config = ReadingConfig.from_env()
+        assert config.max_sections == 15

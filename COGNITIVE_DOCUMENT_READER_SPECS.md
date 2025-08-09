@@ -930,6 +930,151 @@ async def test_reasonable_processing_time(test_config, sample_markdown):
 
 ---
 
+## 🛠️ Development & Testing Features
+
+### Overview
+
+The Cognitive Document Reader includes specialized features for development, testing, and debugging workflows. These features enable rapid prototyping, quality evaluation, and controlled testing with large documents.
+
+### Partial Results Saving
+
+**Purpose**: Save intermediate processing results for debugging and evaluation without waiting for complete document processing.
+
+**Implementation**:
+- Section-by-section JSON files with zero-padded numbering
+- Comprehensive metadata including progress, context, and configuration
+- Graceful error handling - failures don't crash main process
+- Configurable output directory
+
+**Configuration**:
+```bash
+COGNITIVE_READER_SAVE_PARTIALS=true
+COGNITIVE_READER_PARTIALS_DIR=./debug_output
+```
+
+**CLI Usage**:
+```bash
+cognitive-reader document.md --save-partials --partials-dir ./analysis
+```
+
+**Partial Result Structure**:
+```json
+{
+  "progress": {
+    "section_index": 3,
+    "total_sections": 15,
+    "progress_percentage": 20.0
+  },
+  "section": {
+    "id": "section_003",
+    "title": "Implementation Details",
+    "level": 2,
+    "content_preview": "First 300 characters..."
+  },
+  "summary": {
+    "summary": "Generated section summary",
+    "key_concepts": ["concept1", "concept2"],
+    "confidence_score": 0.95
+  },
+  "context": {
+    "accumulated_context_length": 1250,
+    "accumulated_context_preview": "Previous context..."
+  },
+  "config": {
+    "model_used": "qwen3:8b",
+    "fast_mode": false,
+    "temperature": 0.1
+  }
+}
+```
+
+### Section Filtering
+
+**Purpose**: Control processing scope for testing with large documents and avoiding deep hierarchical analysis.
+
+#### Maximum Sections Limit
+
+Process only the first N sections for rapid testing:
+
+**Configuration**:
+```bash
+COGNITIVE_READER_MAX_SECTIONS=10
+```
+
+**CLI Usage**:
+```bash
+cognitive-reader large_document.md --max-sections 5
+```
+
+#### Maximum Depth Limit
+
+Limit analysis to specific hierarchy levels to avoid excessive depth:
+
+**Configuration**:
+```bash
+COGNITIVE_READER_MAX_DEPTH=2  # Only levels 0, 1, 2
+```
+
+**CLI Usage**:
+```bash
+cognitive-reader complex_doc.md --max-depth 2
+```
+
+### Development Workflow Integration
+
+**Combined Usage Examples**:
+```bash
+# Quick testing: fast mode + limited sections + save progress
+cognitive-reader research_paper.pdf --fast-mode --max-sections 10 --save-partials
+
+# Deep analysis preview: limit depth but save partials for evaluation
+cognitive-reader technical_manual.md --max-depth 2 --save-partials --partials-dir ./analysis
+
+# Configuration testing: dry run with all development features
+cognitive-reader document.md --dry-run --save-partials --max-sections 5
+```
+
+**Python API Usage**:
+```python
+from cognitive_reader.models import ReadingConfig
+
+# Development configuration
+dev_config = ReadingConfig(
+    save_partial_results=True,
+    partial_results_dir="./debug",
+    max_sections=10,
+    max_section_depth=2,
+    fast_mode=True  # Use fast model for quick iteration
+)
+
+reader = CognitiveReader(dev_config)
+knowledge = await reader.read_document("large_document.pdf")
+```
+
+### Use Cases
+
+**Rapid Prototyping**:
+- Test with first few sections of large documents
+- Quick feedback on prompt effectiveness
+- Fast iteration cycles during development
+
+**Quality Evaluation**:
+- Evaluate summary quality without full processing
+- Compare different model configurations
+- Analyze context accumulation patterns
+
+**Debugging**:
+- Identify specific sections causing processing issues
+- Trace context evolution through document
+- Monitor memory and performance patterns
+
+**Performance Testing**:
+- Controlled scope testing with large documents
+- Benchmark processing speed at different depths
+- Memory usage analysis with limited sections
+
+---
+
 ## 📈 Success Metrics
 
 ### Technical Metrics (MVP)

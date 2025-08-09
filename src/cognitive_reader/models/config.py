@@ -77,6 +77,24 @@ class ReadingConfig(BaseModel):
         default=False, description="Only validate configuration, no processing"
     )
 
+    # Development and Testing Features
+    save_partial_results: bool = Field(
+        default=False,
+        description="Save section summaries as they are processed for debugging",
+    )
+    partial_results_dir: str = Field(
+        default="./partial_results",
+        description="Directory to save partial results and debug information",
+    )
+    max_sections: int | None = Field(
+        default=None,
+        description="Maximum number of sections to process (for testing with large docs)",
+    )
+    max_section_depth: int | None = Field(
+        default=None,
+        description="Maximum section depth level to analyze (avoid deep hierarchies)",
+    )
+
     # Environment variable mappings
     _env_mapping: ClassVar[dict[str, str]] = {
         "fast_model": "COGNITIVE_READER_FAST_MODEL",
@@ -92,6 +110,10 @@ class ReadingConfig(BaseModel):
         "dry_run": "COGNITIVE_READER_DRY_RUN",
         "mock_responses": "COGNITIVE_READER_MOCK_RESPONSES",
         "validate_config_only": "COGNITIVE_READER_VALIDATE_CONFIG_ONLY",
+        "save_partial_results": "COGNITIVE_READER_SAVE_PARTIALS",
+        "partial_results_dir": "COGNITIVE_READER_PARTIALS_DIR",
+        "max_sections": "COGNITIVE_READER_MAX_SECTIONS",
+        "max_section_depth": "COGNITIVE_READER_MAX_DEPTH",
     }
 
     @property
@@ -143,10 +165,14 @@ class ReadingConfig(BaseModel):
                     "max_retries",
                 }:
                     kwargs[field_name] = int(env_value)
+                elif field_name in {"max_sections", "max_section_depth"}:
+                    # Handle optional integer fields
+                    kwargs[field_name] = int(env_value) if env_value.strip() else None
                 elif field_name in {
                     "dry_run",
                     "mock_responses",
                     "validate_config_only",
+                    "save_partial_results",
                 }:
                     kwargs[field_name] = env_value.lower() in ("true", "1", "yes", "on")
                 elif field_name == "document_language":
@@ -171,6 +197,13 @@ class ReadingConfig(BaseModel):
         """Check if any development mode is enabled.
 
         Returns:
-            bool: True if dry_run, mock_responses, or validate_config_only is enabled.
+            bool: True if any development or testing mode is enabled.
         """
-        return self.dry_run or self.mock_responses or self.validate_config_only
+        return (
+            self.dry_run
+            or self.mock_responses
+            or self.validate_config_only
+            or self.save_partial_results
+            or self.max_sections is not None
+            or self.max_section_depth is not None
+        )

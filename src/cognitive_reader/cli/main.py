@@ -67,6 +67,24 @@ logger = logging.getLogger(__name__)
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all output except results")
+@click.option(
+    "--save-partials", is_flag=True, help="Save partial results as sections are processed"
+)
+@click.option(
+    "--partials-dir",
+    type=click.Path(path_type=Path),
+    help="Directory to save partial results (default: ./partial_results)",
+)
+@click.option(
+    "--max-sections",
+    type=int,
+    help="Maximum number of sections to process (for testing with large docs)",
+)
+@click.option(
+    "--max-depth",
+    type=int,
+    help="Maximum section depth level to analyze (avoid deep hierarchies)",
+)
 @click.version_option()
 def cli(
     document: Path | None,
@@ -81,6 +99,10 @@ def cli(
     output_file: Path | None,
     verbose: bool,
     quiet: bool,
+    save_partials: bool,
+    partials_dir: Path | None,
+    max_sections: int | None,
+    max_depth: int | None,
 ) -> None:
     """Cognitive Document Reader - Human-like document understanding.
 
@@ -102,6 +124,15 @@ def cli(
         # Development modes
         cognitive-reader document.md --dry-run
         cognitive-reader --validate-config
+
+        # Testing with large documents (process only first 5 sections)
+        cognitive-reader large_doc.md --max-sections 5 --save-partials
+
+        # Limit analysis depth and save partials to custom directory
+        cognitive-reader complex_doc.md --max-depth 2 --partials-dir ./debug_output
+
+        # Fast mode with limited sections for quick testing
+        cognitive-reader document.md --fast-mode --max-sections 3 --save-partials
     """
     # Configure logging based on verbosity
     if quiet:
@@ -125,6 +156,10 @@ def cli(
                 output_file=output_file,
                 verbose=verbose,
                 quiet=quiet,
+                save_partials=save_partials,
+                partials_dir=partials_dir,
+                max_sections=max_sections,
+                max_depth=max_depth,
             )
         )
     except KeyboardInterrupt:
@@ -154,6 +189,10 @@ async def _async_main(
     output_file: Path | None,
     verbose: bool,
     quiet: bool,
+    save_partials: bool,
+    partials_dir: Path | None,
+    max_sections: int | None,
+    max_depth: int | None,
 ) -> None:
     """Async main function for CLI operations."""
 
@@ -166,6 +205,10 @@ async def _async_main(
         dry_run=dry_run,
         mock_responses=mock_responses,
         validate_config=validate_config,
+        save_partials=save_partials,
+        partials_dir=partials_dir,
+        max_sections=max_sections,
+        max_depth=max_depth,
     )
 
     # Initialize reader
@@ -200,7 +243,15 @@ async def _async_main(
                 dev_modes.append("dry-run")
             if config.mock_responses:
                 dev_modes.append("mock-responses")
+            if config.save_partial_results:
+                dev_modes.append("save-partials")
+            if config.max_sections:
+                dev_modes.append(f"max-sections={config.max_sections}")
+            if config.max_section_depth:
+                dev_modes.append(f"max-depth={config.max_section_depth}")
             click.echo(f"Development mode: {', '.join(dev_modes)}")
+            if config.save_partial_results:
+                click.echo(f"Partial results will be saved to: {config.partial_results_dir}")
 
     # Process the document
     knowledge = await reader.read_document(document)
@@ -234,6 +285,10 @@ def _build_config(
     dry_run: bool,
     mock_responses: bool,
     validate_config: bool,
+    save_partials: bool,
+    partials_dir: Path | None,
+    max_sections: int | None,
+    max_depth: int | None,
 ) -> ReadingConfig:
     """Build configuration from CLI options and environment."""
 
@@ -256,6 +311,15 @@ def _build_config(
     config_dict["dry_run"] = dry_run
     config_dict["mock_responses"] = mock_responses
     config_dict["validate_config_only"] = validate_config
+
+    # Development and testing features
+    config_dict["save_partial_results"] = save_partials
+    if partials_dir is not None:
+        config_dict["partial_results_dir"] = str(partials_dir)
+    if max_sections is not None:
+        config_dict["max_sections"] = max_sections
+    if max_depth is not None:
+        config_dict["max_section_depth"] = max_depth
 
     # Create configuration
     base_config = ReadingConfig.from_env()

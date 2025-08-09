@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -191,10 +192,15 @@ class CognitiveReader:
         # Sort sections by order_index to maintain document flow
         ordered_sections = sorted(sections, key=lambda s: s.order_index)
 
+        # Apply development filters if configured
+        filtered_sections = self._apply_section_filters(ordered_sections)
+
         # Filter to content sections only (sections without children)
-        content_sections = [s for s in ordered_sections if not s.children_ids]
+        content_sections = [s for s in filtered_sections if not s.children_ids]
 
         logger.info(f"Processing {len(content_sections)} content sections")
+        if self.config.max_sections or self.config.max_section_depth:
+            logger.info(f"Filters applied - Original: {len(ordered_sections)}, Filtered: {len(filtered_sections)}")
 
         async with LLMClient(self.config) as llm_client:
             for i, section in enumerate(content_sections):
@@ -209,6 +215,16 @@ class CognitiveReader:
 
                 if summary:
                     section_summaries[section.id] = summary
+
+                    # Save partial result if configured
+                    if self.config.save_partial_results:
+                        await self._save_partial_result(
+                            section_index=i + 1,
+                            total_sections=len(content_sections),
+                            section=section,
+                            summary=summary,
+                            accumulated_context=accumulated_context,
+                        )
 
                     # Update accumulated context for next sections
                     accumulated_context = self._update_accumulated_context(
@@ -357,6 +373,124 @@ class CognitiveReader:
             combined_context = truncated_context
 
         return combined_context
+
+    def _apply_section_filters(
+        self, sections: list[DocumentSection]
+    ) -> list[DocumentSection]:
+        """Apply development filters to sections for testing and debugging.
+
+        Args:
+            sections: Ordered list of document sections.
+
+        Returns:
+            Filtered list of sections based on configuration.
+        """
+        filtered_sections = sections
+
+        # Apply depth filter if configured
+        if self.config.max_section_depth is not None:
+            filtered_sections = self._filter_by_depth(
+                filtered_sections, self.config.max_section_depth
+            )
+            logger.info(
+                f"Depth filter applied (max depth: {self.config.max_section_depth}): "
+                f"{len(sections)} -> {len(filtered_sections)} sections"
+            )
+
+        # Apply section count limit if configured
+        if self.config.max_sections is not None:
+            original_count = len(filtered_sections)
+            filtered_sections = filtered_sections[: self.config.max_sections]
+            logger.info(
+                f"Section count limit applied (max: {self.config.max_sections}): "
+                f"{original_count} -> {len(filtered_sections)} sections"
+            )
+
+        return filtered_sections
+
+    def _filter_by_depth(
+        self, sections: list[DocumentSection], max_depth: int
+    ) -> list[DocumentSection]:
+        """Filter sections by maximum depth level.
+
+        Args:
+            sections: List of document sections.
+            max_depth: Maximum depth level to include (0-based).
+
+        Returns:
+            Filtered list of sections within the depth limit.
+        """
+        return [section for section in sections if section.level <= max_depth]
+
+    async def _save_partial_result(
+        self,
+        section_index: int,
+        total_sections: int,
+        section: DocumentSection,
+        summary: SectionSummary,
+        accumulated_context: str,
+    ) -> None:
+        """Save partial processing result for debugging and evaluation.
+
+        Args:
+            section_index: Current section number (1-based).
+            total_sections: Total number of sections being processed.
+            section: The processed section.
+            summary: Generated summary for the section.
+            accumulated_context: Current accumulated context.
+        """
+        try:
+            # Create output directory if it doesn't exist
+            output_dir = Path(self.config.partial_results_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create partial result data
+            partial_result = {
+                "progress": {
+                    "section_index": section_index,
+                    "total_sections": total_sections,
+                    "progress_percentage": round((section_index / total_sections) * 100, 1),
+                },
+                "section": {
+                    "id": section.id,
+                    "title": section.title,
+                    "level": section.level,
+                    "order_index": section.order_index,
+                    "content_preview": section.content[:300] + "..."
+                    if len(section.content) > 300
+                    else section.content,
+                },
+                "summary": {
+                    "title": summary.title,
+                    "summary": summary.summary,
+                    "key_concepts": summary.key_concepts,
+                    "confidence_score": summary.confidence_score,
+                },
+                "context": {
+                    "accumulated_context_length": len(accumulated_context),
+                    "accumulated_context_preview": accumulated_context[:200] + "..."
+                    if len(accumulated_context) > 200
+                    else accumulated_context,
+                },
+                "config": {
+                    "model_used": self.config.active_model,
+                    "fast_mode": self.config.fast_mode,
+                    "temperature": self.config.temperature,
+                },
+            }
+
+            # Save to JSON file with zero-padded numbering
+            filename = f"partial_{section_index:03d}_of_{total_sections:03d}.json"
+            output_file = output_dir / filename
+
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(partial_result, f, indent=2, ensure_ascii=False)
+
+            logger.debug(f"Partial result saved: {output_file}")
+
+        except Exception as e:
+            # Don't fail the main process if partial saving fails
+            logger.warning(f"Failed to save partial result for section {section_index}: {e}")
 
     def _detect_document_language(
         self, sections: list[DocumentSection]

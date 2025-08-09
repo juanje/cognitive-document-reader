@@ -53,3 +53,7 @@ Thumbs.db
 examples/output/
 temp/
 *.log
+
+# Development features
+partial_results/
+debug_output/

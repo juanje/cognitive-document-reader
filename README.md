@@ -123,6 +123,12 @@ COGNITIVE_READER_MAX_RETRIES=3
 # Development Modes
 COGNITIVE_READER_DRY_RUN=false
 COGNITIVE_READER_MOCK_RESPONSES=false
+
+# Development & Testing Features
+COGNITIVE_READER_SAVE_PARTIALS=false
+COGNITIVE_READER_PARTIALS_DIR=./partial_results
+COGNITIVE_READER_MAX_SECTIONS=             # No limit by default
+COGNITIVE_READER_MAX_DEPTH=                # No limit by default
 ```
 
 ### Python Configuration
@@ -142,6 +148,15 @@ config = ReadingConfig(
 
 # Fast mode - uses llama3.1:8b for quicker processing
 fast_config = config.enable_fast_mode()
+
+# Development & testing configuration
+dev_config = ReadingConfig(
+    save_partial_results=True,     # Save section-by-section results
+    partial_results_dir="./debug", # Custom output directory
+    max_sections=10,               # Process only first 10 sections
+    max_section_depth=2,           # Limit to depth level 2
+    fast_mode=True                 # Use fast model for quick testing
+)
 
 # Custom models
 custom_config = ReadingConfig(
@@ -330,6 +345,60 @@ cognitive-reader document.md --model custom-model
 - Context window management
 - Retry logic with exponential backoff
 - Development modes for cost-free testing
+
+## 🛠️ Development & Testing Features
+
+### Partial Results Saving
+
+Save intermediate results as sections are processed for debugging and evaluation:
+
+```bash
+# Save partial results for debugging
+cognitive-reader document.md --save-partials
+
+# Custom output directory
+cognitive-reader document.md --save-partials --partials-dir ./debug_output
+```
+
+**Partial results include:**
+- Section-by-section processing progress
+- Generated summaries and key concepts
+- Accumulated context evolution
+- Model configuration and performance metadata
+
+### Section Limiting
+
+Control processing scope for testing with large documents:
+
+```bash
+# Process only first 5 sections
+cognitive-reader large_document.md --max-sections 5
+
+# Limit analysis to depth level 2 (avoid deep hierarchies)
+cognitive-reader complex_doc.md --max-depth 2
+
+# Combined: fast testing with partials
+cognitive-reader document.md --fast-mode --max-sections 3 --save-partials
+```
+
+### Development Workflow Examples
+
+```bash
+# Quick testing: fast mode + limited sections + save progress
+cognitive-reader research_paper.pdf --fast-mode --max-sections 10 --save-partials
+
+# Deep analysis preview: limit depth but save partials for evaluation
+cognitive-reader technical_manual.md --max-depth 2 --save-partials --partials-dir ./analysis
+
+# Configuration testing: dry run with all development features
+cognitive-reader document.md --dry-run --save-partials --max-sections 5
+```
+
+**Perfect for:**
+- 🚀 **Rapid prototyping** with large documents
+- 🔍 **Quality evaluation** of summaries without full processing
+- 🐛 **Debugging** processing issues at specific sections
+- ⚡ **Performance testing** with controlled scope
 
 ## 📊 Output Formats
 
