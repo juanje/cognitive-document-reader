@@ -177,29 +177,29 @@ Ilustración de cómo funcionaría el procesamiento de dos pasadas:
 
 #### 🔄 **Primera Pasada**:
 ```
-Capítulo 1: "El Problema del Sedentarismo"
-└── Resumen inicial: "El sedentarismo causa problemas de salud"
+Sección 1: "Introducción al sedentarismo"
+└── Resumen inicial: "Introducción a los problemas del sedentarismo y conceptos básicos"
 
-Capítulo 2: "Resistencia a la Insulina"  
-└── Actualiza Resumen Libro: "El sedentarismo causa resistencia insulínica específicamente"
-└── Actualiza Cap.1: "El sedentarismo causa resistencia insulínica (ver Cap.2)"
+Sección 2: "Problemas comunes: limitaciones de la movilidad, dolor y estrés"
+└── Actualiza Resumen Libro: "El sedentarismo causa problemas específicos de movilidad, dolor y estrés"
+└── Actualiza Secc.1: "Introducción al sedentarismo con consecuencias específicas de salud (ver Sección 2)"
 
-Capítulo 3: "Los 3 Pasos del Método"
-└── Actualiza Resumen Libro: "Método de 3 pasos para combatir resistencia insulínica"  
-└── Actualiza Cap.1: "El problema que resuelve el método de 3 pasos"
-└── Actualiza Cap.2: "Resistencia insulínica que se combate con método específico"
+Sección 3: "3 pasos para salir del sedentarismo"
+└── Actualiza Resumen Libro: "Método de 3 pasos (caminar más, sentarse en el suelo, colgarse) para combatir sedentarismo"
+└── Actualiza Secc.1: "Introducción que lleva a la solución específica de 3 pasos"
+└── Actualiza Secc.2: "Problemas que el método de 3 pasos aborda específicamente"
 ```
 
 #### 🔍 **Segunda Pasada**:
 ```
-Releer Cap.1 con contexto completo:
-└── Enriquece: "El sedentarismo no es solo inactividad, es la causa raíz del patrón metabólico que el método de 3 pasos interrumpe"
+Releer Sección 1 con contexto completo:
+└── Enriquece: "La introducción establece las bases para entender por qué los 3 pasos específicos (caminar, sentarse en suelo, colgarse) abordan las causas raíz"
 
-Releer Cap.2 con metodología conocida:
-└── Enriquece: "La resistencia insulínica es el mecanismo específico que conecta sedentarismo con los problemas que los 3 pasos revierten"
+Releer Sección 2 con metodología conocida:
+└── Enriquece: "Los problemas de movilidad, dolor y estrés son abordados específicamente por los tres patrones de movimiento: caminar, posiciones en el suelo, y colgarse"
 
 Síntesis Final:
-└── "El libro presenta un marco coherente donde sedentarismo → resistencia insulínica → problemas de salud, interrumpible mediante metodología específica de 3 pasos"
+└── "El libro presenta un marco coherente donde sedentarismo → limitaciones de movimiento específicas → problemas de salud, resueltos mediante tres intervenciones de movimiento específicas"
 ```
 
 **Resultado**: Un Knowledge Graph donde cada concepto está contextualizadamente conectado con todos los demás según la lógica específica del autor.
@@ -236,13 +236,13 @@ la coherencia del enfoque específico del autor.
 
 #### 3. **Navegación de Conocimiento**
 ```
-Concepto: "Resistencia a la insulina"
+Concepto: "Movilidad"
 
 Contexto deseado:
-- Definición según el libro
-- Relación con otros conceptos del método
-- Posición en la estructura argumental
-- Referencias cruzadas a secciones relevantes
+- Definición según el libro (dentro de "Problemas comunes")
+- Relación con los 3 pasos específicos (caminar, sentarse en suelo, colgarse)
+- Posición en la estructura argumental (problema → solución)
+- Referencias cruzadas a secciones relevantes (introducción, pasos específicos)
 ```
 
 ---

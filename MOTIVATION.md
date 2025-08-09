@@ -177,29 +177,29 @@ Illustration of how the two-pass processing would work:
 
 #### 🔄 **First Pass**:
 ```
-Chapter 1: "The Problem of Sedentarism"
-└── Initial summary: "Sedentarism causes health problems"
+Section 1: "Introducción al sedentarismo"
+└── Initial summary: "Introduction to sedentarism problems and basic concepts"
 
-Chapter 2: "Insulin Resistance"
-└── Updates Book Summary: "Sedentarism specifically causes insulin resistance"
-└── Updates Ch.1: "Sedentarism causes insulin resistance (see Ch.2)"
+Section 2: "Problemas comunes: limitaciones de la movilidad, dolor y estrés"
+└── Updates Book Summary: "Sedentarism causes specific mobility, pain and stress problems"
+└── Updates Section 1: "Sedentarism introduction with specific health consequences (see Section 2)"
 
-Chapter 3: "The 3 Steps of the Method"
-└── Updates Book Summary: "3-step method to combat insulin resistance"
-└── Updates Ch.1: "The problem that the 3-step method solves"
-└── Updates Ch.2: "Insulin resistance combated with specific method"
+Section 3: "3 pasos para salir del sedentarismo" 
+└── Updates Book Summary: "Three-step method (walk more, sit on floor, hang) to combat sedentarism"
+└── Updates Section 1: "Introduction that leads to the specific 3-step solution"
+└── Updates Section 2: "Problems that the 3-step method specifically addresses"
 ```
 
 #### 🔍 **Second Pass**:
 ```
-Re-read Ch.1 with complete context:
-└── Enriches: "Sedentarism is not just inactivity, it's the root cause of the metabolic pattern that the 3-step method interrupts"
+Re-read Section 1 with complete context:
+└── Enriches: "Introduction establishes foundation for understanding why the specific 3 steps (walking, floor sitting, hanging) address the root causes"
 
-Re-read Ch.2 with known methodology:
-└── Enriches: "Insulin resistance is the specific mechanism that connects sedentarism with the problems that the 3 steps reverse"
+Re-read Section 2 with known methodology:
+└── Enriches: "Mobility, pain and stress problems are specifically addressed by the three movement patterns: walking, floor positions, and hanging"
 
 Final Synthesis:
-└── "The book presents a coherent framework where sedentarism → insulin resistance → health problems, interruptible through specific 3-step methodology"
+└── "The book presents a coherent framework where sedentarism → specific movement limitations → health problems, solved through three specific movement interventions"
 ```
 
 **Result**: A Knowledge Graph where each concept is contextually connected with all others according to the author's specific logic.
@@ -236,13 +236,13 @@ the coherence of the author's specific approach.
 
 #### 3. **Knowledge Navigation**
 ```
-Concept: "Insulin resistance"
+Concept: "Mobility"
 
 Desired context:
-- Definition according to the book
-- Relationship with other method concepts
-- Position in the argumentative structure
-- Cross-references to relevant sections
+- Definition according to the book (within "Common problems")
+- Relationship with the 3 specific steps (walking more, floor sitting, hanging)
+- Position in the argumentative structure (problem → solution)
+- Cross-references to relevant sections (introduction, specific steps)
 ```
 
 ---
