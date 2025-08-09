@@ -103,7 +103,7 @@ Implementar lo **absolutamente mínimo** para demostrar lectura cognitiva vs. ch
 **Organización de Directorios:**
 ```
 cognitive-document-reader/
-├── src/cognitive_reader/          # Paquete principal de código fuente
+├── src/cognitive_reader/         # Paquete principal de código fuente
 │   ├── __init__.py               # Exportaciones API pública
 │   ├── models/                   # Modelos de datos Pydantic
 │   ├── core/                     # Lógica principal de lectura cognitiva  
@@ -113,12 +113,12 @@ cognitive-document-reader/
 │   └── cli/                      # Interfaz de línea de comandos
 ├── tests/                        # Suite de tests
 │   ├── unit/                     # Tests unitarios
-│   ├── integration/             # Tests de integración
-│   └── fixtures/                # Datos de prueba y fixtures
+│   ├── integration/              # Tests de integración
+│   └── fixtures/                 # Datos de prueba y fixtures
 ├── examples/                     # Ejemplos de uso y demos
-├── pyproject.toml               # Configuración de proyecto (formato uv)
-├── README.md                    # Documentación en inglés
-└── .env.example                 # Plantilla de configuración de entorno
+├── pyproject.toml                # Configuración de proyecto (formato uv)
+├── README.md                     # Documentación en inglés
+└── .env.example                  # Plantilla de configuración de entorno
 ```
 
 **Convenciones de Nomenclatura de Archivos:**
@@ -158,12 +158,26 @@ A diferencia de los procesadores de documentos tradicionales que fragmentan cont
 2. **Resúmenes evolutivos** que se actualizan cuando se encuentra nueva información
 3. **Refinamiento jerárquico** donde subsecciones actualizan secciones padre
 4. **Detección de conceptos emergentes** cuando las ideas se vuelven claras con contexto
+5. **Procesamiento rápido** usando modelo veloz para simular "primera lectura rápida" humana
 
 #### 🔍 **Segunda Pasada: Enriquecimiento Contextual**
 1. **Re-lectura informada** con comprensión completa del documento
 2. **Identificación de conexiones profundas** entre conceptos previamente separados
 3. **Mejora de relaciones** que solo se vuelve visible con contexto completo
 4. **Síntesis final** integrando todo el conocimiento coherentemente
+5. **Procesamiento de calidad** usando modelo cuidadoso para simular "análisis reflexivo" humano
+
+### 🧠 **Estrategia de Modelo Dual: Simulando Patrones de Lectura Humana**
+
+La lectura humana naturalmente involucra dos enfoques cognitivos diferentes:
+- **Escaneo rápido**: Vista general rápida para captar la idea general (primera pasada)
+- **Análisis cuidadoso**: Comprensión detallada con contexto completo (segunda pasada)
+
+La **configuración de modelo dual** refleja esto:
+- **Modelo rápido (primera pasada)**: Optimizado para velocidad, comprensión básica, detección rápida de refinamiento
+- **Modelo de calidad (segunda pasada)**: Optimizado para profundidad, comprensión matizada, enriquecimiento sofisticado
+
+Este enfoque **mejora tanto el rendimiento como la precisión** al ajustar los recursos computacionales a los requisitos cognitivos.
 
 ---
 
@@ -183,8 +197,7 @@ A diferencia de los procesadores de documentos tradicionales que fragmentan cont
 
 ### **Objetivo Principal**: Demostrar lectura cognitiva vs. chunks fragmentados con complejidad mínima
 
-**MVP Anterior (v1)**: Procesamiento secuencial con síntesis básica  
-**Nuevo MVP (v2)**: Lectura cognitiva de dos pasadas **mínima** para probar el concepto
+**Objetivo MVP**: Lectura cognitiva de dos pasadas **mínima** para probar el concepto con implementación limpia y enfocada
 
 ### ✅ **Características Principales MVP v2** (Mínimo Absoluto)
 
@@ -239,7 +252,7 @@ class LanguageCode(str, Enum):
     ES = "es"      # Español
 
 class DocumentSection(BaseModel):
-    """Sección de documento con estructura jerárquica (sin cambios desde v1)"""
+    """Sección de documento con estructura jerárquica"""
     model_config = ConfigDict(frozen=True)
     
     id: str                                    # Identificador único de sección
@@ -287,21 +300,27 @@ class CognitiveKnowledge(BaseModel):
 class CognitiveConfig(BaseModel):
     """Configuración para lectura cognitiva de documentos"""
     
-    # Configuración LLM (compatible con v1)
-    model_name: str = Field(default="qwen3:8b", description="Nombre del modelo LLM")
+    # Configuración LLM
+    model_name: str = Field(default="qwen3:8b", description="Nombre del modelo LLM por defecto (usado cuando no se configuran modelos duales)")
     temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="Temperatura LLM")
     
-    # Procesamiento de Documentos (compatible con v1)
+    # Configuración de Modelo Dual - Simula patrones de lectura humana
+    first_pass_model: Optional[str] = Field(default=None, description="Modelo rápido para primera pasada (lectura rápida)")
+    second_pass_model: Optional[str] = Field(default=None, description="Modelo de calidad para segunda pasada (análisis cuidadoso)")
+    first_pass_temperature: Optional[float] = Field(default=None, ge=0.0, le=2.0, description="Temperatura para primera pasada")
+    second_pass_temperature: Optional[float] = Field(default=None, ge=0.0, le=2.0, description="Temperatura para segunda pasada")
+    
+    # Procesamiento de Documentos
     chunk_size: int = Field(default=1000, gt=100, description="Tamaño de chunk de texto para procesamiento")
     chunk_overlap: int = Field(default=200, ge=0, description="Solapamiento entre chunks")
     context_window: int = Field(default=4096, gt=0, description="Límite de ventana de contexto LLM")
     
-    # Configuraciones de Rendimiento (compatible con v1)
+    # Configuraciones de Rendimiento
     timeout_seconds: int = Field(default=120, gt=0, description="Timeout de request")
     max_retries: int = Field(default=3, ge=0, description="Máximo intentos de retry")
     document_language: LanguageCode = Field(default=LanguageCode.AUTO, description="Idioma del documento")
     
-    # Características Cognitivas (nuevo en v2)
+    # Características Cognitivas
     enable_second_pass: bool = Field(default=True, description="Habilitar enriquecimiento de segunda pasada")
     enable_refinement: bool = Field(default=True, description="Habilitar refinamiento de primera pasada")
     refinement_threshold: float = Field(
@@ -311,7 +330,7 @@ class CognitiveConfig(BaseModel):
         description="Umbral para disparar refinamiento (0.0=nunca, 1.0=siempre)"
     )
     
-    # Características de Desarrollo (compatible con v1)
+    # Características de Desarrollo
     dry_run: bool = Field(default=False, description="Ejecutar sin llamadas LLM")
     mock_responses: bool = Field(default=False, description="Usar respuestas mock")
     
@@ -324,6 +343,12 @@ class CognitiveConfig(BaseModel):
             # Configuraciones LLM
             model_name=os.getenv("COGNITIVE_READER_MODEL", "qwen3:8b"),
             temperature=float(os.getenv("COGNITIVE_READER_TEMPERATURE", "0.1")),
+            
+            # Configuraciones de modelo dual (simula patrones de lectura humana)
+            first_pass_model=os.getenv("COGNITIVE_READER_FIRST_PASS_MODEL"),  # None si no está configurado
+            second_pass_model=os.getenv("COGNITIVE_READER_SECOND_PASS_MODEL"),  # None si no está configurado
+            first_pass_temperature=float(os.getenv("COGNITIVE_READER_FIRST_PASS_TEMPERATURE", "0.3")) if os.getenv("COGNITIVE_READER_FIRST_PASS_TEMPERATURE") else None,
+            second_pass_temperature=float(os.getenv("COGNITIVE_READER_SECOND_PASS_TEMPERATURE", "0.1")) if os.getenv("COGNITIVE_READER_SECOND_PASS_TEMPERATURE") else None,
             
             # Configuraciones de procesamiento
             chunk_size=int(os.getenv("COGNITIVE_READER_CHUNK_SIZE", "1000")),
@@ -348,8 +373,14 @@ class CognitiveConfig(BaseModel):
 # Referencia de Variables de Entorno
 COGNITIVE_READER_ENV_VARS = {
     # Configuración LLM
-    "COGNITIVE_READER_MODEL": "Nombre del modelo LLM (default: qwen3:8b)",
-    "COGNITIVE_READER_TEMPERATURE": "Temperatura LLM 0.0-2.0 (default: 0.1)",
+    "COGNITIVE_READER_MODEL": "Nombre del modelo LLM por defecto (default: qwen3:8b)",
+    "COGNITIVE_READER_TEMPERATURE": "Temperatura LLM por defecto 0.0-2.0 (default: 0.1)",
+    
+    # Configuración de Modelo Dual (Simula Patrones de Lectura Humana)
+    "COGNITIVE_READER_FIRST_PASS_MODEL": "Modelo rápido para primera pasada de lectura rápida (opcional)",
+    "COGNITIVE_READER_SECOND_PASS_MODEL": "Modelo de calidad para segunda pasada de análisis cuidadoso (opcional)",
+    "COGNITIVE_READER_FIRST_PASS_TEMPERATURE": "Temperatura para modelo de primera pasada (default: 0.3 si modelo configurado)",
+    "COGNITIVE_READER_SECOND_PASS_TEMPERATURE": "Temperatura para modelo de segunda pasada (default: 0.1 si modelo configurado)",
     
     # Configuración de Procesamiento  
     "COGNITIVE_READER_CHUNK_SIZE": "Tamaño de chunk de texto (default: 1000)",
@@ -372,21 +403,22 @@ COGNITIVE_READER_ENV_VARS = {
 
 ### 📚 **Requisitos de API**
 
-**Compatibilidad de Interfaz**:
-- Debe mantener la misma interfaz primaria que v1: `read_document(file_path, config) -> Knowledge`
-- Debe soportar los mismos patrones de configuración que v1 vía variables de entorno
-- Debe proporcionar compatibilidad hacia atrás cuando las características cognitivas están deshabilitadas
+**Interfaz Principal**:
+- Interfaz principal: `read_document(file_path, config) -> CognitiveKnowledge`
+- Soporte de configuración via variables de entorno
+- API simple y limpia enfocada en características cognitivas
 
-**Nuevas Opciones de Configuración**:
+**Opciones de Configuración**:
 - `enable_second_pass`: Boolean para habilitar/deshabilitar enriquecimiento de segunda pasada
 - `enable_refinement`: Boolean para habilitar/deshabilitar refinamiento de primera pasada  
 - `refinement_threshold`: Float (0.0-1.0) para controlar sensibilidad de refinamiento
+- Configuración de modelo dual para procesamiento rápido/calidad
 
-**Datos de Retorno Mejorados**:
-- Debe incluir estadísticas de procesamiento cognitivo (refinamientos hechos, enriquecimientos hechos)
-- Debe indicar qué secciones fueron procesadas con características cognitivas
-- Debe preservar todos los datos de retorno v1 para compatibilidad
-- Debe distinguir claramente entre enfoque de procesamiento cognitivo vs secuencial
+**Datos de Retorno**:
+- Estadísticas completas de procesamiento cognitivo (refinamientos hechos, enriquecimientos hechos)
+- Indicación clara de qué secciones fueron procesadas con características cognitivas
+- Metadatos de procesamiento incluyendo modelos usados para cada pasada
+- Seguimiento de evolución cognitiva e historial de refinamiento
 
 ---
 
@@ -737,25 +769,27 @@ $ cognitive-reader libro.md
 
 ---
 
-## 📈 Métricas de Éxito v2 (Mínimas)
+## 📈 Métricas de Éxito (Objetivos MVP)
 
 ### **Objetivos de Prueba de Concepto**
-- ✅ **Demostrar diferencia cognitiva**: Diferencia clara entre salida secuencial v1 y cognitiva v2
+- ✅ **Demostrar diferencia cognitiva**: Diferencia clara entre lectura cognitiva y procesamiento fragmentado tradicional
 - ✅ **Validación de refinamiento**: Mostrar ejemplos donde comprensión mejoró durante primera pasada  
 - ✅ **Validación de enriquecimiento**: Mostrar ejemplos donde segunda pasada añadió valor
 - ✅ **Test "3 pasos"**: Procesar exitosamente capítulos de muestra con enfoque cognitivo
+- ✅ **Validación de modelo dual**: Demostrar beneficios de estrategia modelo rápido/calidad
 
 ### **Requisitos Técnicos**
-- ✅ **Compatibilidad de API**: Misma API simple que v1 (cambios mínimos que rompan compatibilidad)
-- ✅ **Aceptabilidad de rendimiento**: <2x tiempo de procesamiento vs v1 para características cognitivas
-- ✅ **Eficiencia de memoria**: Sin aumento significativo de memoria para procesamiento básico de dos pasadas
-- ✅ **Amigable para desarrollo**: Opciones dry-run y configuración funcionan correctamente
+- ✅ **API limpia**: Interfaz simple y enfocada para lectura cognitiva
+- ✅ **Optimización de rendimiento**: Estrategia efectiva de modelo dual para balance velocidad/calidad
+- ✅ **Eficiencia de memoria**: Procesamiento eficiente con múltiples configuraciones de modelo
+- ✅ **Amigable para desarrollo**: Opciones comprehensivas de dry-run y configuración
 
 ### **Indicadores de Calidad**
 - ✅ **Refinamientos coherentes**: Refinamientos deben mejorar calidad de resumen
 - ✅ **Enriquecimientos valiosos**: Segunda pasada debe añadir contexto significativo
 - ✅ **Preservación de voz del autor**: Mantener fidelidad al contenido original
 - ✅ **Seguimiento claro de evolución**: Comparaciones simples antes/después muestran valor
+- ✅ **Efectividad de modelos**: Modelo rápido habilita velocidad, modelo de calidad mejora profundidad
 
 ---
 

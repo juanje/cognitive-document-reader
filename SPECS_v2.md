@@ -24,11 +24,12 @@ As detailed in `MOTIVATION.md`, human reading of complex documents involves:
 This process is **essential** for the project's core goal: generating high-quality datasets for the "3 pasos contra el sedentarismo" book that preserve the author's voice and methodology.
 
 ### **v2.0 Solution**
-Implement the **absolute minimum** to demonstrate cognitive reading vs. fragmented chunks:
+Implement **cognitive reading from scratch** with the absolute minimum to demonstrate cognitive reading vs. fragmented chunks:
 - ✅ Two-pass reading (progressive + simple enrichment)
 - ✅ Basic summary refinement when understanding significantly changes
 - ✅ Accumulated context instead of isolated chunks
 - ✅ Simple second-pass enrichment with global context
+- ✅ Clean, simple architecture focused on cognitive features
 
 **Everything else** (emergence detection, complex refinement tracking, knowledge graphs) remains in future phases.
 
@@ -103,7 +104,7 @@ Implement the **absolute minimum** to demonstrate cognitive reading vs. fragment
 **Directory Organization:**
 ```
 cognitive-document-reader/
-├── src/cognitive_reader/          # Main source code package
+├── src/cognitive_reader/         # Main source code package
 │   ├── __init__.py               # Public API exports
 │   ├── models/                   # Pydantic data models
 │   ├── core/                     # Core cognitive reading logic  
@@ -113,12 +114,12 @@ cognitive-document-reader/
 │   └── cli/                      # Command-line interface
 ├── tests/                        # Test suite
 │   ├── unit/                     # Unit tests
-│   ├── integration/             # Integration tests
-│   └── fixtures/                # Test data and fixtures
+│   ├── integration/              # Integration tests
+│   └── fixtures/                 # Test data and fixtures
 ├── examples/                     # Usage examples and demos
-├── pyproject.toml               # Project configuration (uv format)
-├── README.md                    # English documentation
-└── .env.example                 # Environment configuration template
+├── pyproject.toml                # Project configuration (uv format)
+├── README.md                     # English documentation
+└── .env.example                  # Environment configuration template
 ```
 
 **File Naming Conventions:**
@@ -158,12 +159,26 @@ Unlike traditional document processors that fragment content, **Cognitive Docume
 2. **Evolutionary summaries** that update as new information is encountered
 3. **Hierarchical refinement** where subsections update parent sections
 4. **Emergent concept detection** as ideas become clear with context
+5. **Fast processing** using rapid model to simulate human "quick first read"
 
 #### 🔍 **Second Pass: Contextual Enrichment**
 1. **Informed re-reading** with complete document understanding
 2. **Deep connection identification** between previously separate concepts
 3. **Relationship enhancement** that only becomes visible with full context
 4. **Final synthesis** integrating all knowledge coherently
+5. **Quality processing** using careful model to simulate human "thoughtful analysis"
+
+### 🧠 **Dual Model Strategy: Simulating Human Reading Patterns**
+
+Human reading naturally involves two different cognitive approaches:
+- **Rapid scan**: Quick overview to get the general idea (first pass)
+- **Careful analysis**: Detailed understanding with full context (second pass)
+
+The **dual model configuration** mirrors this:
+- **Fast model (first pass)**: Optimized for speed, basic comprehension, rapid refinement detection
+- **Quality model (second pass)**: Optimized for depth, nuanced understanding, sophisticated enrichment
+
+This approach **improves both performance and accuracy** by matching computational resources to cognitive requirements.
 
 ---
 
@@ -183,8 +198,7 @@ Unlike traditional document processors that fragment content, **Cognitive Docume
 
 ### **Core Goal**: Demonstrate cognitive reading vs. fragmented chunks with minimum complexity
 
-**Previous MVP (v1)**: Sequential processing with basic synthesis  
-**New MVP (v2)**: **Minimal** two-pass cognitive reading to prove the concept
+**MVP Goal**: **Minimal** two-pass cognitive reading to prove the concept with clean, focused implementation
 
 ### ✅ **MVP v2 Core Features** (Absolute Minimum)
 
@@ -206,7 +220,7 @@ Unlike traditional document processors that fragment content, **Cognitive Docume
 #### 4. **Minimal Output** (Prove Concept)
    - **Basic JSON**: Include which summaries got refined and why
    - **Simple Markdown**: Show evolution annotations where refinement occurred
-   - **Comparison**: Clearly show difference from v1 sequential output
+   - **Clear demonstration**: Show difference from traditional fragmented processing
 
 #### 5. **Development Essentials** (For Testing)
    - **Dry-run mode**: Test without LLM costs
@@ -239,7 +253,7 @@ class LanguageCode(str, Enum):
     ES = "es"      # Spanish
 
 class DocumentSection(BaseModel):
-    """Document section with hierarchical structure (unchanged from v1)"""
+    """Document section with hierarchical structure"""
     model_config = ConfigDict(frozen=True)
     
     id: str                                    # Unique section identifier
@@ -287,21 +301,27 @@ class CognitiveKnowledge(BaseModel):
 class CognitiveConfig(BaseModel):
     """Configuration for cognitive document reading"""
     
-    # LLM Configuration (compatible with v1)
-    model_name: str = Field(default="qwen3:8b", description="LLM model name")
+    # LLM Configuration
+    model_name: str = Field(default="qwen3:8b", description="Default LLM model name (used when dual models not configured)")
     temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="LLM temperature")
     
-    # Document Processing (compatible with v1)
+    # Dual Model Configuration - Simulates human reading patterns
+    first_pass_model: Optional[str] = Field(default=None, description="Fast model for first pass (rapid reading)")
+    second_pass_model: Optional[str] = Field(default=None, description="Quality model for second pass (careful analysis)")
+    first_pass_temperature: Optional[float] = Field(default=None, ge=0.0, le=2.0, description="Temperature for first pass")
+    second_pass_temperature: Optional[float] = Field(default=None, ge=0.0, le=2.0, description="Temperature for second pass")
+    
+    # Document Processing
     chunk_size: int = Field(default=1000, gt=100, description="Text chunk size for processing")
     chunk_overlap: int = Field(default=200, ge=0, description="Overlap between chunks")
     context_window: int = Field(default=4096, gt=0, description="LLM context window limit")
     
-    # Performance Settings (compatible with v1)
+    # Performance Settings
     timeout_seconds: int = Field(default=120, gt=0, description="Request timeout")
     max_retries: int = Field(default=3, ge=0, description="Maximum retry attempts")
     document_language: LanguageCode = Field(default=LanguageCode.AUTO, description="Document language")
     
-    # Cognitive Features (new in v2)
+    # Cognitive Features
     enable_second_pass: bool = Field(default=True, description="Enable second pass enrichment")
     enable_refinement: bool = Field(default=True, description="Enable first pass refinement")
     refinement_threshold: float = Field(
@@ -311,7 +331,7 @@ class CognitiveConfig(BaseModel):
         description="Threshold for triggering refinement (0.0=never, 1.0=always)"
     )
     
-    # Development Features (compatible with v1)
+    # Development Features
     dry_run: bool = Field(default=False, description="Run without LLM calls")
     mock_responses: bool = Field(default=False, description="Use mock responses")
     
@@ -324,6 +344,12 @@ class CognitiveConfig(BaseModel):
             # LLM settings
             model_name=os.getenv("COGNITIVE_READER_MODEL", "qwen3:8b"),
             temperature=float(os.getenv("COGNITIVE_READER_TEMPERATURE", "0.1")),
+            
+            # Dual model settings (simulates human reading patterns)
+            first_pass_model=os.getenv("COGNITIVE_READER_FIRST_PASS_MODEL"),  # None if not set
+            second_pass_model=os.getenv("COGNITIVE_READER_SECOND_PASS_MODEL"),  # None if not set
+            first_pass_temperature=float(os.getenv("COGNITIVE_READER_FIRST_PASS_TEMPERATURE", "0.3")) if os.getenv("COGNITIVE_READER_FIRST_PASS_TEMPERATURE") else None,
+            second_pass_temperature=float(os.getenv("COGNITIVE_READER_SECOND_PASS_TEMPERATURE", "0.1")) if os.getenv("COGNITIVE_READER_SECOND_PASS_TEMPERATURE") else None,
             
             # Processing settings
             chunk_size=int(os.getenv("COGNITIVE_READER_CHUNK_SIZE", "1000")),
@@ -348,8 +374,14 @@ class CognitiveConfig(BaseModel):
 # Environment Variables Reference
 COGNITIVE_READER_ENV_VARS = {
     # LLM Configuration
-    "COGNITIVE_READER_MODEL": "LLM model name (default: qwen3:8b)",
-    "COGNITIVE_READER_TEMPERATURE": "LLM temperature 0.0-2.0 (default: 0.1)",
+    "COGNITIVE_READER_MODEL": "Default LLM model name (default: qwen3:8b)",
+    "COGNITIVE_READER_TEMPERATURE": "Default LLM temperature 0.0-2.0 (default: 0.1)",
+    
+    # Dual Model Configuration (Simulates Human Reading Patterns)
+    "COGNITIVE_READER_FIRST_PASS_MODEL": "Fast model for first pass rapid reading (optional)",
+    "COGNITIVE_READER_SECOND_PASS_MODEL": "Quality model for second pass careful analysis (optional)",
+    "COGNITIVE_READER_FIRST_PASS_TEMPERATURE": "Temperature for first pass model (default: 0.3 if model set)",
+    "COGNITIVE_READER_SECOND_PASS_TEMPERATURE": "Temperature for second pass model (default: 0.1 if model set)",
     
     # Processing Configuration  
     "COGNITIVE_READER_CHUNK_SIZE": "Text chunk size (default: 1000)",
@@ -372,21 +404,22 @@ COGNITIVE_READER_ENV_VARS = {
 
 ### 📚 **API Requirements**
 
-**Interface Compatibility**:
-- Must maintain same primary interface as v1: `read_document(file_path, config) -> Knowledge`
-- Must support same configuration patterns as v1 via environment variables
-- Must provide backward compatibility when cognitive features are disabled
+**Primary Interface**:
+- Main interface: `read_document(file_path, config) -> CognitiveKnowledge`
+- Environment variable configuration support
+- Simple, clean API focused on cognitive features
 
-**New Configuration Options**:
+**Configuration Options**:
 - `enable_second_pass`: Boolean to enable/disable second pass enrichment
 - `enable_refinement`: Boolean to enable/disable first pass refinement  
 - `refinement_threshold`: Float (0.0-1.0) to control refinement sensitivity
+- Dual model configuration for fast/quality processing
 
-**Enhanced Return Data**:
-- Must include cognitive processing statistics (refinements made, enrichments made)
-- Must indicate which sections were processed with cognitive features
-- Must preserve all v1 return data for compatibility
-- Must clearly distinguish cognitive vs sequential processing approach
+**Return Data**:
+- Complete cognitive processing statistics (refinements made, enrichments made)
+- Clear indication of which sections were processed with cognitive features
+- Processing metadata including models used for each pass
+- Cognitive evolution tracking and refinement history
 
 ---
 
@@ -396,10 +429,10 @@ COGNITIVE_READER_ENV_VARS = {
 
 ```
 CognitiveReader (Main Engine)
-├── StructureDetector (unchanged from v1)
-├── ProgressiveReader (enhanced with refinement capability)
-├── ContextualEnricher (new component for second pass)
-└── CognitiveSynthesizer (enhanced with cognitive metadata)
+├── StructureDetector (document parsing and structure detection)
+├── ProgressiveReader (first pass with refinement capability)
+├── ContextualEnricher (second pass with global context)
+└── CognitiveSynthesizer (final synthesis with cognitive metadata)
 ```
 
 ### **Component Responsibilities**
@@ -409,61 +442,65 @@ CognitiveReader (Main Engine)
 
 **Responsibilities**:
 - Orchestrate complete two-pass reading workflow
-- Manage configuration for cognitive features (refinement, second pass)
+- Manage configuration for cognitive features (refinement, second pass, dual models)
 - Coordinate between first pass and second pass processing
-- Provide same API interface as v1 for compatibility
+- Select appropriate models for each pass (fast/quality)
 - Track and report cognitive processing metrics
 
 **Interface Requirements**:
-- `read_document(file_path, config) -> CognitiveKnowledge`: Primary interface (same as v1)
-- Must support both cognitive (two-pass) and sequential (v1-compatible) modes
-- Must provide cognitive processing statistics in results
+- `read_document(file_path, config) -> CognitiveKnowledge`: Primary interface
+- Clean, focused API for cognitive reading
+- Comprehensive cognitive processing statistics in results
 
-#### **ProgressiveReader** (Enhanced)
+#### **ProgressiveReader**
 **Purpose**: Execute first pass with progressive reading and refinement capability
 
 **Responsibilities**:
-- Process sections sequentially with accumulated context (same as v1)
+- Process sections sequentially with accumulated context
+- Use fast model (if configured) for rapid first-pass processing
 - Detect when new context significantly changes understanding of previous sections
 - Update previous section summaries when refinement is needed
 - Track refinement events and reasons
 - Maintain context accumulation across section processing
 
 **Requirements**:
-- Must be configurable to enable/disable refinement capability
-- Must maintain v1 compatibility when refinement is disabled
-- Must provide refinement threshold configuration
-- Must track which sections were refined and why
+- Configurable refinement capability (enable/disable)
+- Fast model selection for performance optimization
+- Refinement threshold configuration
+- Complete tracking of which sections were refined and why
 
-#### **ContextualEnricher** (New Component)
+#### **ContextualEnricher**
 **Purpose**: Execute second pass enrichment with global document context
 
 **Responsibilities**:
 - Re-read sections with complete document understanding
+- Use quality model (if configured) for sophisticated second-pass analysis
 - Identify opportunities for enrichment with global context
 - Generate enhanced summaries that incorporate full document perspective
 - Distinguish between meaningful enrichments and trivial changes
 - Preserve first pass refinements while adding second pass insights
 
 **Requirements**:
-- Must be configurable to enable/disable second pass processing
-- Must work with results from ProgressiveReader first pass
-- Must track enrichment events and added value
-- Must maintain processing efficiency
+- Configurable to enable/disable second pass processing
+- Quality model selection for enhanced analysis
+- Integration with ProgressiveReader first pass results
+- Track enrichment events and added value
+- Maintain processing efficiency
 
-#### **CognitiveSynthesizer** (Enhanced)
+#### **CognitiveSynthesizer**
 **Purpose**: Generate final document synthesis with cognitive processing awareness
 
 **Responsibilities**:
-- Create hierarchical document synthesis (same as v1)
+- Create hierarchical document synthesis
 - Incorporate cognitive processing metadata into final results
 - Note which sections underwent refinement or enrichment
-- Generate cognitive processing summary for output
+- Track which models were used for each processing step
+- Generate comprehensive cognitive processing summary for output
 
 **Requirements**:
-- Must maintain v1 synthesis quality and approach
-- Must clearly indicate cognitive processing events in output
-- Must provide summary of cognitive processing benefits
+- Clear indication of all cognitive processing events in output
+- Complete summary of cognitive processing benefits and evolution
+- Model usage statistics and performance metrics
 
 ---
 
@@ -474,7 +511,7 @@ CognitiveReader (Main Engine)
 ```
 Document Input
     ↓
-Structure Detection (same as v1)
+Structure Detection
     ↓
 ┌─────────────────┐
 │   FIRST PASS    │
@@ -503,36 +540,39 @@ Cognitive Knowledge Output
 
 **Functional Requirements:**
 - **Progressive Reading**: Process sections sequentially with accumulated context from previous sections
+- **Fast Model Usage**: Use fast model (if configured) for rapid processing
 - **Context Accumulation**: Build comprehensive context as reading progresses
 - **Refinement Detection**: Identify when new information significantly changes understanding of previous sections
 - **Summary Updates**: Update previous section summaries when understanding evolves
 - **Refinement Tracking**: Record which summaries were refined and why
 
 **Technical Requirements:**
-- Must maintain backward compatibility with v1 progressive reading
+- Fast model selection and management for performance optimization
 - Refinement threshold configurable via `refinement_threshold` parameter
 - Refinement can be disabled via `enable_refinement` configuration
-- Must track number of refinements made for metrics
+- Complete tracking of refinements made for metrics and analysis
 
 ### **Second Pass Requirements**
 
 **Functional Requirements:**
 - **Global Context Re-reading**: Re-process each section with complete document context
+- **Quality Model Usage**: Use quality model (if configured) for sophisticated analysis
 - **Enrichment Detection**: Identify cases where global context adds meaningful insights
 - **Summary Enhancement**: Improve summaries with insights only available after complete reading
 - **Integration**: Combine first pass and second pass results coherently
 
 **Technical Requirements:**
+- Quality model selection and management for enhanced analysis
 - Second pass can be disabled via `enable_second_pass` configuration
-- Must detect and track meaningful enrichments vs trivial changes
-- Should preserve refinements from first pass while adding enrichments
-- Must maintain processing performance within acceptable bounds
+- Intelligent detection and tracking of meaningful enrichments vs trivial changes
+- Preservation of refinements from first pass while adding enrichments
+- Optimized processing performance with dual model strategy
 
 ---
 
 ## 📊 Simple Output Formats v2
 
-### **Basic Cognitive JSON** (Minimal difference from v1)
+### **Basic Cognitive JSON**
 
 ```json
 {
@@ -648,113 +688,117 @@ $ cognitive-reader book.md
 - **Dry-run mode**: Enable testing without LLM API calls
 - **Component isolation**: Ability to test first pass and second pass independently
 - **Cognitive feature toggles**: Enable/disable refinement and second pass separately
-- **Performance comparison**: Compare cognitive vs sequential processing results
+- **Model testing**: Test dual model configurations independently
 - **Processing metrics**: Clear reporting of cognitive processing statistics
 
 **Configuration Requirements**:
 - All cognitive features must be configurable via environment variables
-- Must support incremental feature testing (enable only refinement, or only second pass)
-- Must provide development-friendly defaults for testing
-- Must maintain v1 compatibility when cognitive features are disabled
+- Support incremental feature testing (enable only refinement, or only second pass)
+- Development-friendly defaults for testing
+- Comprehensive model configuration testing (single vs dual models)
 
 ### **Testing Strategy**
 
 **Functional Testing Requirements**:
 - **Refinement validation**: Verify refinements improve understanding quality
 - **Enrichment validation**: Verify second pass adds meaningful context
-- **Compatibility testing**: Ensure v1 mode produces equivalent results to v1
-- **Cognitive benefit demonstration**: Show clear difference between approaches
+- **Dual model testing**: Validate fast model for first pass, quality model for second pass
+- **Cognitive benefit demonstration**: Show clear difference vs. traditional fragmented approaches
 
 **Performance Testing Requirements**:
-- **Processing time**: Two-pass processing should be <2x sequential processing time
-- **Memory usage**: No significant memory increase for basic cognitive features
-- **LLM call optimization**: Efficient context reuse across passes
+- **Dual model performance**: Optimize performance with fast/quality model strategy
+- **Memory usage**: Efficient memory management with different model configurations
+- **LLM call optimization**: Efficient context reuse across passes and models
 - **Scalability**: Performance must remain acceptable for documents up to 300 pages
 
 **Quality Assurance Requirements**:
 - **Author voice preservation**: Cognitive processing must maintain content fidelity
 - **Coherence validation**: Refinements and enrichments must improve coherence
-- **Regression testing**: Ensure cognitive features don't break existing functionality
+- **Model selection validation**: Ensure appropriate model selection for each cognitive task
 - **Edge case handling**: Handle documents where refinement/enrichment provide minimal value
 
 ---
 
-## 🎯 Development Phases: v1 → v2
+## 🎯 Development Phases
 
-### **Phase 1: Data Model Enhancement (Weeks 1-2)**
+### **Phase 1: Data Model Foundation**
 
 **Objectives**:
-- Extend existing data models to support cognitive processing metadata
-- Maintain full backward compatibility with v1
-- Add configuration options for cognitive features
+- Implement cognitive processing data models
+- Create dual model configuration system
+- Establish clean API for cognitive features
 
 **Deliverables**:
-- Enhanced `SectionSummary` model with cognitive tracking
-- Updated `CognitiveKnowledge` model with processing statistics
-- Extended `CognitiveConfig` with cognitive feature toggles
-- Backward compatibility validation
+- Complete `SectionSummary` model with cognitive tracking
+- `CognitiveKnowledge` model with processing statistics
+- `CognitiveConfig` with cognitive feature toggles and dual model support
+- Clean API design focused on cognitive reading
 
-### **Phase 2: First Pass Cognitive Features (Weeks 3-4)**
+### **Phase 2: First Pass Cognitive Features**
 
 **Objectives**:
 - Implement refinement capability in progressive reading
-- Add refinement detection and summary updating
-- Maintain v1 compatibility mode
+- Add fast model support for rapid first-pass processing
+- Implement refinement detection and summary updating
 
 **Deliverables**:
-- Enhanced `ProgressiveReader` with refinement capability
+- `ProgressiveReader` with refinement capability
+- Fast model integration and selection
 - Refinement detection algorithm implementation
 - Refinement threshold configuration
 - Unit testing for refinement features
 
-### **Phase 3: Second Pass Implementation (Weeks 5-6)**
+### **Phase 3: Second Pass Implementation**
 
 **Objectives**:
 - Implement global context enrichment capability
-- Add second pass processing to main reading workflow
+- Add quality model support for sophisticated second-pass analysis
 - Integrate first pass and second pass results
 
 **Deliverables**:
 - `ContextualEnricher` component implementation
+- Quality model integration and selection
 - Second pass integration in main reading workflow
 - Enrichment detection and tracking
 - Complete two-pass flow testing
 
-### **Phase 4: Integration & Validation (Weeks 7-8)**
+### **Phase 4: Integration & Validation**
 
 **Objectives**:
 - Validate cognitive processing benefits with real documents
-- Performance testing and optimization
+- Performance testing and optimization with dual model strategy
 - Documentation and example creation
 
 **Deliverables**:
-- Updated output formats with cognitive metadata
-- Performance benchmarking vs v1
+- Updated output formats with cognitive metadata and model usage statistics
+- Performance benchmarking with dual model configurations
 - "3 pasos contra el sedentarismo" validation testing
 - User documentation and examples
 - MVP v2.0 release
 
 ---
 
-## 📈 Success Metrics v2 (Minimal)
+## 📈 Success Metrics (MVP Goals)
 
 ### **Proof of Concept Goals**
-- ✅ **Demonstrate cognitive difference**: Clear difference between v1 sequential and v2 cognitive output
+- ✅ **Demonstrate cognitive difference**: Clear difference between cognitive reading and traditional fragmented processing
 - ✅ **Refinement validation**: Show examples where understanding improved during first pass  
 - ✅ **Enrichment validation**: Show examples where second pass added value
 - ✅ **"3 pasos" test**: Successfully process sample chapters with cognitive approach
+- ✅ **Dual model validation**: Demonstrate benefits of fast/quality model strategy
 
 ### **Technical Requirements**
-- ✅ **API compatibility**: Same simple API as v1 (minimal breaking changes)
-- ✅ **Performance acceptability**: <2x processing time vs v1 for cognitive features
-- ✅ **Memory efficiency**: No significant memory increase for basic two-pass processing
-- ✅ **Development friendly**: Dry-run and configuration options work correctly
+- ✅ **Clean API**: Simple, focused interface for cognitive reading
+- ✅ **Performance optimization**: Effective dual model strategy for speed/quality balance
+- ✅ **Memory efficiency**: Efficient processing with multiple model configurations
+- ✅ **Development friendly**: Comprehensive dry-run and configuration options
 
 ### **Quality Indicators**
 - ✅ **Coherent refinements**: Refinements should improve summary quality
 - ✅ **Valuable enrichments**: Second pass should add meaningful context
 - ✅ **Author voice preservation**: Maintain fidelity to original content
 - ✅ **Clear evolution tracking**: Simple before/after comparisons show value
+- ✅ **Model effectiveness**: Fast model enables speed, quality model enhances depth
 
 ---
 
