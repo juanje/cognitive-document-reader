@@ -617,11 +617,17 @@ Based on successful experience from `extract-to-train`, using values that have d
   - `_accumulate_context(section_summary, context)`: Build progressive context
 
 #### StructureDetector  
-- **Responsibility**: Detects hierarchical structure using docling
+- **Responsibility**: Detects hierarchical structure using docling and cleans section titles
 - **Key Methods**:
   - `detect_structure(document)`: Extracts hierarchical sections
   - `_build_section_tree(elements)`: Builds tree from flat structure
   - `_identify_section_types(sections)`: Classifies content vs container sections
+  - `_create_section(text, level, type)`: Creates sections with cleaned titles
+
+**Text Cleaning Features**:
+- **Automatic Internal Link Removal**: Strips markdown internal links (`{#anchor}`) from section titles
+- **Smart Pattern Matching**: Handles complex anchor patterns with dashes, underscores, and numbers
+- **Content Preservation**: Maintains clean, readable titles for better summary quality
 
 #### Synthesizer
 - **Responsibility**: Hierarchical synthesis from deepest to shallowest
@@ -649,6 +655,26 @@ Based on successful experience from `extract-to-train`, using values that have d
   - **Future Support**: PDF, DOCX, HTML via docling
   - **Structure Detection**: Hierarchical structure extraction
   - **Content Extraction**: Clean text with metadata preservation
+
+#### Text Processing Utilities
+- **Responsibility**: Clean and optimize text for cognitive analysis
+- **Features**:
+  - **Markdown Internal Link Cleaning**: Automatically removes `{#anchor}` patterns from section titles
+  - **Pattern Recognition**: Handles complex anchor patterns (dashes, underscores, numbers)
+  - **Content Focus**: Ensures summaries focus on content rather than markdown artifacts
+
+**Supported Patterns**:
+```markdown
+# Before cleaning
+## Introduction {#intro}
+## De nómadas a sedentarios {#de-nómadas-a-sedentarios}
+## Section 1.2 {#section-1_2-example}
+
+# After cleaning
+## Introduction
+## De nómadas a sedentarios
+## Section 1.2
+```
 
 ---
 

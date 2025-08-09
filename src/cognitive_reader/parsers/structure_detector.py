@@ -6,6 +6,7 @@ import uuid
 from typing import Any
 
 from ..models.document import DocumentSection
+from ..utils.text_cleaning import clean_section_title
 
 
 class StructureDetector:
@@ -79,11 +80,12 @@ class StructureDetector:
 
         # Extract title - for headers it's the text, for content use first line
         if element_type.startswith("heading"):
-            title = text
+            title = clean_section_title(text)
             content = text
         else:
             lines = text.split("\n")
-            title = lines[0][:100] + "..." if len(lines[0]) > 100 else lines[0]
+            raw_title = lines[0][:100] + "..." if len(lines[0]) > 100 else lines[0]
+            title = clean_section_title(raw_title)
             content = text
 
         return DocumentSection(
