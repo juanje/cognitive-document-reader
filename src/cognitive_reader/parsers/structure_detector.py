@@ -81,12 +81,12 @@ class StructureDetector:
         # Extract title - for headers it's the text, for content use first line
         if element_type.startswith("heading"):
             title = clean_section_title(text)
-            content = text
+            content = clean_section_title(text)  # Clean content too for LLM processing
         else:
             lines = text.split("\n")
             raw_title = lines[0][:100] + "..." if len(lines[0]) > 100 else lines[0]
             title = clean_section_title(raw_title)
-            content = text
+            content = clean_section_title(text)  # Clean content too for LLM processing
 
         return DocumentSection(
             id=section_id,

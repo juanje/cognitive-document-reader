@@ -130,3 +130,103 @@ class TestCleanSectionTitle:
         title = "**Bold Title** {#bold} with *emphasis*"
         expected = "**Bold Title** with *emphasis*"
         assert clean_section_title(title) == expected
+
+
+class TestStructureDetectorIntegration:
+    """Test integration of text cleaning with StructureDetector."""
+
+    def test_heading_content_cleaning(self) -> None:
+        """Test that both title and content are cleaned for headings."""
+        from cognitive_reader.parsers.structure_detector import StructureDetector
+        
+        detector = StructureDetector()
+        
+        # Mock document elements with internal links
+        elements = [
+            {
+                "type": "heading_1",
+                "text": "## Introduction {#introduction}",
+                "level": 1
+            }
+        ]
+        
+        sections = detector.detect_structure(elements)
+        
+        assert len(sections) == 1
+        section = sections[0]
+        
+        # Both title and content should be cleaned
+        assert section.title == "## Introduction"
+        assert section.content == "## Introduction"
+        assert "{#introduction}" not in section.title
+        assert "{#introduction}" not in section.content
+
+    def test_paragraph_content_cleaning(self) -> None:
+        """Test that both title and content are cleaned for paragraph sections."""
+        from cognitive_reader.parsers.structure_detector import StructureDetector
+        
+        detector = StructureDetector()
+        
+        # Mock paragraph content with internal links (needs to be >= 50 chars)
+        content_with_links = "Short title {#short}. This is some content that also has {#another-link} in the middle. And more text here {#final-link} to meet minimum length requirement."
+        
+        elements = [
+            {
+                "type": "paragraph",
+                "text": content_with_links,
+                "level": 1
+            }
+        ]
+        
+        sections = detector.detect_structure(elements)
+        
+        assert len(sections) == 1
+        section = sections[0]
+        
+        # Title should be cleaned version of first line
+        assert section.title.startswith("Short title .")
+        assert "{#short}" not in section.title
+        assert "{#another-link}" not in section.title
+        assert "{#final-link}" not in section.title
+        
+        # Content should be completely cleaned
+        assert "{#another-link}" not in section.content
+        assert "{#final-link}" not in section.content
+        assert "{#short}" not in section.content
+        
+        # Verify that the content still makes sense
+        assert "Short title" in section.content
+        assert "This is some content" in section.content
+
+    def test_complex_link_patterns_in_content(self) -> None:
+        """Test cleaning of complex link patterns in content."""
+        from cognitive_reader.parsers.structure_detector import StructureDetector
+        
+        detector = StructureDetector()
+        
+        # Use heading_2 type to trigger section creation
+        complex_content = "## Advanced Topics {#advanced-topics-section} with content about {#link-with-dashes}, {#link_with_underscores}, and {#link123numbers} patterns."
+        
+        elements = [
+            {
+                "type": "heading_2", 
+                "text": complex_content,
+                "level": 2
+            }
+        ]
+        
+        sections = detector.detect_structure(elements)
+        
+        assert len(sections) == 1
+        section = sections[0]
+        
+        # All link patterns should be removed from both title and content
+        # Note: clean_section_title collapses whitespace, so multiple spaces become single spaces
+        expected_clean = "## Advanced Topics with content about , , and patterns."
+        
+        assert section.title == expected_clean
+        assert section.content == expected_clean
+        
+        # Verify no link patterns remain
+        assert "{#" not in section.title
+        assert "{#" not in section.content
