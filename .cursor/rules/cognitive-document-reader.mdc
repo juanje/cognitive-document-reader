@@ -106,7 +106,42 @@ refactor: extract prompt management to separate module
 test: add unit tests for hierarchical synthesis
 ```
 
-### 2. Development Commands
+### 2. Git Staging Best Practices
+
+**NEVER use `git add .` for commits.** Always add files explicitly for atomic, controlled commits:
+
+```bash
+# ✅ CORRECT: Add specific files
+git add src/cognitive_reader/models/config.py
+git add tests/unit/test_config.py
+git commit -m "feat: add dual model configuration system"
+
+# ✅ CORRECT: Add specific changes within a file
+git add -p src/cognitive_reader/llm/client.py  # Choose which changes to stage
+git commit -m "fix: update model selection logic"
+
+# ✅ CORRECT: Add multiple related files
+git add src/cognitive_reader/cli/main.py src/cognitive_reader/models/config.py
+git commit -m "feat: add --fast-mode CLI flag with config support"
+
+# ❌ WRONG: Blind staging
+git add .  # Stages everything without review
+```
+
+**Benefits of explicit staging:**
+- ✅ **Atomic commits**: Each commit contains only related changes
+- ✅ **Code review**: Review each change before staging
+- ✅ **Clean history**: Easier to track, revert, and understand changes
+- ✅ **Professional workflow**: Industry standard for production code
+
+**Workflow:**
+1. `git status` - See what changed
+2. `git diff` - Review changes before staging
+3. `git add specific_file.py` - Stage only what belongs in this commit
+4. `git add -p other_file.py` - Stage partial changes if needed
+5. `git commit -m "type: descriptive message"`
+
+### 3. Development Commands
 ```bash
 # Setup development environment
 uv sync
