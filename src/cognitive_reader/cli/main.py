@@ -45,6 +45,9 @@ logger = logging.getLogger(__name__)
     "--model", "-m", type=str, help="LLM model to use (overrides environment config)"
 )
 @click.option(
+    "--fast-mode", is_flag=True, help="Use fast model for quicker processing"
+)
+@click.option(
     "--temperature", "-t", type=float, help="Temperature for LLM generation (0.0-2.0)"
 )
 @click.option(
@@ -70,6 +73,7 @@ def cli(
     output: str,
     language: str,
     model: str | None,
+    fast_mode: bool,
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
@@ -93,7 +97,7 @@ def cli(
         cognitive-reader document.md --output json -f analysis.json
 
         # Spanish document with specific model
-        cognitive-reader documento.md --language es --model llama3.1:8b
+        cognitive-reader documento.md --language es --model qwen3:8b
 
         # Development modes
         cognitive-reader document.md --dry-run
@@ -113,6 +117,7 @@ def cli(
                 output=output,
                 language=language,
                 model=model,
+                fast_mode=fast_mode,
                 temperature=temperature,
                 dry_run=dry_run,
                 mock_responses=mock_responses,
@@ -141,6 +146,7 @@ async def _async_main(
     output: str,
     language: str,
     model: str | None,
+    fast_mode: bool,
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
@@ -155,6 +161,7 @@ async def _async_main(
     config = _build_config(
         language=language,
         model=model,
+        fast_mode=fast_mode,
         temperature=temperature,
         dry_run=dry_run,
         mock_responses=mock_responses,
@@ -222,6 +229,7 @@ async def _async_main(
 def _build_config(
     language: str,
     model: str | None,
+    fast_mode: bool,
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
@@ -234,7 +242,11 @@ def _build_config(
 
     # Override with CLI options
     if model:
-        config_dict["model_name"] = model
+        # Legacy support: if --model is specified, use it for both fast and quality
+        config_dict["fast_model"] = model
+        config_dict["quality_model"] = model
+    if fast_mode:
+        config_dict["fast_mode"] = fast_mode
     if temperature is not None:
         config_dict["temperature"] = temperature
     if language != "auto":

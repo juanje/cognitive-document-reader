@@ -319,7 +319,7 @@ from cognitive_reader.models import ReadingConfig
 
 # Basic usage
 config = ReadingConfig(
-    model_name="llama3.1:8b",
+    model_name="qwen3:8b",  # Best performance, fallback: "llama3.1:8b"
     temperature=0.1,
     language="auto"
 )
@@ -376,7 +376,7 @@ class DocumentKnowledge(BaseModel):
 class ReadingConfig(BaseModel):
     """Simplified reading configuration for MVP - focus on essentials"""
     # LLM Configuration (proven models)
-    model_name: str = Field(default="llama3.1:8b")  # Proven best for instruction following
+    model_name: str = Field(default="qwen3:8b")  # Best results, llama3.1:8b as fallback
     temperature: float = Field(default=0.1, ge=0.0, le=2.0)  # Low for consistent summaries
     
     # Document Processing (essential settings)
@@ -400,7 +400,7 @@ class ReadingConfig(BaseModel):
         """Create config from environment variables with fallback to defaults"""
         import os
         return cls(
-            model_name=os.getenv("COGNITIVE_READER_MODEL", "llama3.1:8b"),
+            model_name=os.getenv("COGNITIVE_READER_MODEL", "qwen3:8b"),
             temperature=float(os.getenv("COGNITIVE_READER_TEMPERATURE", "0.1")),
             chunk_size=int(os.getenv("COGNITIVE_READER_CHUNK_SIZE", "1000")),
             chunk_overlap=int(os.getenv("COGNITIVE_READER_CHUNK_OVERLAP", "200")),
@@ -578,7 +578,8 @@ learning_path = navigator.create_learning_path(["concept1", "concept2"])
 Based on successful experience from `extract-to-train`, using values that have demonstrated **excellent production performance**:
 
 **🤖 Optimized Models:**
-- **llama3.1:8b**: Proven best for instruction following and summary generation
+- **qwen3:8b**: Best results for cognitive reading tasks
+- **llama3.1:8b**: Reliable fallback option for instruction following
 - **deepseek-r1:8b**: Superior for analysis and quality validation  
 - **Temperature 0.1**: Optimal for consistent and faithful summaries
 
@@ -759,7 +760,7 @@ uv build
 
 ```bash
 # .env - MVP Essential Configuration
-COGNITIVE_READER_MODEL=llama3.1:8b          # Proven best for instruction following
+COGNITIVE_READER_MODEL=qwen3:8b          # Best performance for cognitive reading
 COGNITIVE_READER_TEMPERATURE=0.1             # Low for consistent summaries
 COGNITIVE_READER_LANGUAGE=auto
 
@@ -842,7 +843,7 @@ async def test_basic_reading(test_config, sample_markdown):
 def test_environment_config():
     """Test configuration from environment variables."""
     config = ReadingConfig.from_env()
-    assert config.model_name == "llama3.1:8b"  # default
+    assert config.model_name == "qwen3:8b"  # default
 ```
 
 #### Integration Tests (MVP)

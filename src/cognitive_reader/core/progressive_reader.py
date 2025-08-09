@@ -35,7 +35,7 @@ class CognitiveReader:
         self.synthesizer = Synthesizer(self.config)
         self.language_detector = LanguageDetector()
 
-        logger.info(f"CognitiveReader initialized with model: {self.config.model_name}")
+        logger.info(f"CognitiveReader initialized with model: {self.config.active_model} (fast_mode: {self.config.fast_mode})")
         if self.config.is_development_mode():
             logger.info("Development mode enabled - no real LLM calls will be made")
 

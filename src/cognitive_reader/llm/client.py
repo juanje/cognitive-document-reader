@@ -170,7 +170,7 @@ class LLMClient:
             )
 
         payload = {
-            "model": self.config.model_name,
+            "model": self.config.active_model,
             "prompt": prompt,
             "stream": False,
             "options": {
@@ -318,12 +318,12 @@ class LLMClient:
 
                     # Check if configured model is available
                     model_available = any(
-                        self.config.model_name in model for model in models
+                        self.config.active_model in model for model in models
                     )
 
                     if not model_available:
                         logger.warning(
-                            f"Model {self.config.model_name} not found in Ollama. Available models: {models}"
+                            f"Model {self.config.active_model} not found in Ollama. Available models: {models}"
                         )
 
                     return model_available

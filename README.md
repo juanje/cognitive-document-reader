@@ -101,10 +101,15 @@ Configure via environment variables or Python:
 ### Environment Variables
 
 ```bash
-# LLM Configuration
-COGNITIVE_READER_MODEL=llama3.1:8b
+# LLM Configuration - Dual Model System
+COGNITIVE_READER_FAST_MODEL=llama3.1:8b       # Fast processing model 
+COGNITIVE_READER_QUALITY_MODEL=qwen3:8b       # High-quality analysis model
+COGNITIVE_READER_FAST_MODE=false              # false=quality, true=fast
 COGNITIVE_READER_TEMPERATURE=0.1
 COGNITIVE_READER_LANGUAGE=auto
+
+# Legacy support (sets both models to same value)
+# COGNITIVE_READER_MODEL=your-model
 
 # Document Processing
 COGNITIVE_READER_CHUNK_SIZE=1000
@@ -126,12 +131,24 @@ COGNITIVE_READER_MOCK_RESPONSES=false
 from cognitive_reader.models import ReadingConfig
 from cognitive_reader.models.knowledge import LanguageCode
 
+# Quality mode (default) - uses qwen3:8b
 config = ReadingConfig(
-    model_name="llama3.1:8b",
+    fast_mode=False,  # Use quality model for best results
     temperature=0.1,
     chunk_size=1000,
     document_language=LanguageCode.AUTO,
     dry_run=False  # Set to True for development
+)
+
+# Fast mode - uses llama3.1:8b for quicker processing
+fast_config = config.enable_fast_mode()
+
+# Custom models
+custom_config = ReadingConfig(
+    fast_model="llama3.1:8b",      # Your preferred fast model
+    quality_model="qwen3:8b",      # Your preferred quality model
+    fast_mode=True,                # Start in fast mode
+    temperature=0.1
 )
 ```
 
@@ -279,9 +296,32 @@ The parser uses an intelligent fallback approach:
 
 ## ⚙️ LLM Integration
 
-### Supported Models
+### Dual Model System
 
-- **Ollama**: Primary integration (llama3.1:8b recommended)
+**Quality Mode (Default):** `qwen3:8b`
+- Best results for deep document analysis
+- Reasoning-capable model with thinking mode
+- Ideal for: complex documents, research papers, detailed analysis
+
+**Fast Mode:** `llama3.1:8b` 
+- Faster processing for quick tasks
+- Direct response model without reasoning overhead
+- Ideal for: development, simple documents, quick previews
+
+**Usage:**
+```bash
+# Quality mode (default)
+cognitive-reader document.md
+
+# Fast mode
+cognitive-reader document.md --fast-mode
+
+# Custom model (legacy support)
+cognitive-reader document.md --model custom-model
+```
+
+**Supported Providers:**
+- **Ollama**: Primary integration (qwen3:8b + llama3.1:8b recommended)
 - **Future**: OpenAI, Anthropic, and other providers
 
 ### Optimization Features

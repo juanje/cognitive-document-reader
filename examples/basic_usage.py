@@ -83,9 +83,9 @@ async def configuration_example():
     """Example showing different configuration options."""
     print("\n=== Configuration Example ===")
 
-    # Custom configuration
+    # Custom configuration - Quality mode (default)
     config = ReadingConfig(
-        model_name="llama3.1:8b",
+        fast_mode=False,  # Use quality model (qwen3:8b) for best results
         temperature=0.1,
         chunk_size=800,
         chunk_overlap=160,
@@ -93,6 +93,10 @@ async def configuration_example():
         dry_run=True,  # Development mode
         mock_responses=True,
     )
+
+    # Switch to fast mode for quicker processing
+    _fast_config = config.enable_fast_mode()  # Uses llama3.1:8b
+    print(f"Fast config would use: {_fast_config.active_model}")
 
     reader = CognitiveReader(config)
 
@@ -103,6 +107,66 @@ async def configuration_example():
     # Check dependencies
     deps_ok = reader.check_dependencies()
     print(f"Dependencies OK: {deps_ok}")
+
+
+async def dual_mode_example():
+    """Example demonstrating fast mode vs quality mode."""
+    print("\n=== Dual Mode Example ===")
+
+    test_text = """
+# Technical Document
+
+## Overview
+This is a complex technical document that requires analysis.
+
+## Key Concepts
+- Advanced algorithms
+- Performance optimization
+- Scalability considerations
+"""
+
+    # Quality mode (default) - best results
+    quality_config = ReadingConfig(
+        fast_mode=False,  # Uses qwen3:8b
+        dry_run=True,
+        mock_responses=True,
+    )
+
+    # Fast mode - quicker processing
+    fast_config = ReadingConfig(
+        fast_mode=True,   # Uses llama3.1:8b
+        dry_run=True,
+        mock_responses=True,
+    )
+
+    print(f"Quality config uses: {quality_config.active_model}")
+    print(f"Fast config uses: {fast_config.active_model}")
+
+    # Process with quality mode
+    print("\n📊 Processing with quality mode (detailed analysis)...")
+    quality_reader = CognitiveReader(quality_config)
+    quality_result = await quality_reader.read_document_text(test_text, "Technical Document")
+
+    # Process with fast mode
+    print("\n⚡ Processing with fast mode (quick analysis)...")
+    fast_reader = CognitiveReader(fast_config)
+    fast_result = await fast_reader.read_document_text(test_text, "Technical Document")
+
+    print(f"\nQuality mode - Model used: {quality_result.processing_metadata.get('model_used')}")
+    print(f"Fast mode - Model used: {fast_result.processing_metadata.get('model_used')}")
+
+    # Mode switching example
+    print("\n🔄 Mode switching example:")
+    base_config = ReadingConfig(dry_run=True, mock_responses=True)
+    print(f"Base config: {base_config.active_model} (fast_mode: {base_config.fast_mode})")
+
+    fast_version = base_config.enable_fast_mode()
+    print(f"Fast version: {fast_version.active_model} (fast_mode: {fast_version.fast_mode})")
+
+    quality_version = fast_version.enable_quality_mode()
+    print(f"Quality version: {quality_version.active_model} (fast_mode: {quality_version.fast_mode})")
+
+    print("Dual mode example completed.")
 
 
 async def spanish_example():
@@ -222,6 +286,7 @@ async def main():
 
     await basic_example()
     await configuration_example()
+    await dual_mode_example()
     await spanish_example()
     await file_processing_example()
 

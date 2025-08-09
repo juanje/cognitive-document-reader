@@ -17,10 +17,18 @@ class ReadingConfig(BaseModel):
     document reader with sensible defaults optimized for production use.
     """
 
-    # LLM Configuration (proven models)
-    model_name: str = Field(
+    # LLM Configuration (dual model system for speed vs quality)
+    fast_model: str = Field(
         default="llama3.1:8b",
-        description="LLM model name - llama3.1:8b proven best for instruction following",
+        description="Fast model for quick processing and development",
+    )
+    quality_model: str = Field(
+        default="qwen3:8b",
+        description="High-quality model for deep analysis (slower, reasoning mode)",
+    )
+    fast_mode: bool = Field(
+        default=False,
+        description="Use fast model for quicker responses, quality model otherwise",
     )
     temperature: float = Field(
         default=0.1,
@@ -71,7 +79,9 @@ class ReadingConfig(BaseModel):
 
     # Environment variable mappings
     _env_mapping: ClassVar[dict[str, str]] = {
-        "model_name": "COGNITIVE_READER_MODEL",
+        "fast_model": "COGNITIVE_READER_FAST_MODEL",
+        "quality_model": "COGNITIVE_READER_QUALITY_MODEL",
+        "fast_mode": "COGNITIVE_READER_FAST_MODE",
         "temperature": "COGNITIVE_READER_TEMPERATURE",
         "chunk_size": "COGNITIVE_READER_CHUNK_SIZE",
         "chunk_overlap": "COGNITIVE_READER_CHUNK_OVERLAP",
@@ -83,6 +93,31 @@ class ReadingConfig(BaseModel):
         "mock_responses": "COGNITIVE_READER_MOCK_RESPONSES",
         "validate_config_only": "COGNITIVE_READER_VALIDATE_CONFIG_ONLY",
     }
+
+    @property
+    def active_model(self) -> str:
+        """Get the currently active model based on fast_mode setting.
+
+        Returns:
+            str: fast_model if fast_mode is True, quality_model otherwise
+        """
+        return self.fast_model if self.fast_mode else self.quality_model
+
+    def enable_fast_mode(self) -> ReadingConfig:
+        """Enable fast mode for quicker processing.
+
+        Returns:
+            ReadingConfig: New config instance with fast_mode enabled
+        """
+        return self.model_copy(update={"fast_mode": True})
+
+    def enable_quality_mode(self) -> ReadingConfig:
+        """Enable quality mode for deep analysis.
+
+        Returns:
+            ReadingConfig: New config instance with fast_mode disabled
+        """
+        return self.model_copy(update={"fast_mode": False})
 
     @classmethod
     def from_env(cls) -> ReadingConfig:
@@ -116,8 +151,19 @@ class ReadingConfig(BaseModel):
                     kwargs[field_name] = env_value.lower() in ("true", "1", "yes", "on")
                 elif field_name == "document_language":
                     kwargs[field_name] = LanguageCode(env_value)
+                elif field_name == "fast_mode":
+                    kwargs[field_name] = env_value.lower() in ("true", "1", "yes", "on")
                 else:
                     kwargs[field_name] = env_value
+
+        # Backward compatibility: support legacy COGNITIVE_READER_MODEL
+        legacy_model = os.getenv("COGNITIVE_READER_MODEL")
+        if legacy_model is not None:
+            # If legacy model is set but new fields aren't, use legacy for both
+            if "fast_model" not in kwargs:
+                kwargs["fast_model"] = legacy_model
+            if "quality_model" not in kwargs:
+                kwargs["quality_model"] = legacy_model
 
         return cls(**kwargs)
 

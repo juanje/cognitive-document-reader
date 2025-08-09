@@ -67,7 +67,7 @@ class Synthesizer:
             "total_summaries": len(all_summaries),
             "synthesis_method": "hierarchical_bottom_up",
             "language": detected_language.value,
-            "model_used": self.config.model_name,
+            "model_used": self.config.active_model,
             "dry_run": self.config.dry_run,
         }
 
