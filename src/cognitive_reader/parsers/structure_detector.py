@@ -94,6 +94,7 @@ class StructureDetector:
             content=content,
             level=level,
             order_index=self._section_counter,
+            is_heading=element_type.startswith("heading"),
         )
 
     def _update_hierarchy(

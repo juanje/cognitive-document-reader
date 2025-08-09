@@ -31,6 +31,9 @@ class DocumentSection(BaseModel):
         default_factory=list, description="List of child section IDs"
     )
     order_index: int = Field(ge=0, description="Order of appearance in document")
+    is_heading: bool = Field(
+        default=False, description="True if this section represents a real heading (H1, H2, etc.)"
+    )
 
 
 class SectionSummary(BaseModel):

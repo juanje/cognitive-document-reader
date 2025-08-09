@@ -676,6 +676,54 @@ Based on successful experience from `extract-to-train`, using values that have d
 ## Section 1.2
 ```
 
+#### Structure Formatting Utilities
+- **Responsibility**: Display and analyze document structure for debugging and overview
+- **Features**:
+  - **Text Formatting**: Indented hierarchical structure for human reading
+  - **JSON Formatting**: Structured data with statistics for integration
+  - **Compact Formatting**: Single-line summary for verbose logs
+  - **Structure Validation**: Integrity checks for structure detection debugging
+  - **Statistical Analysis**: Section counts, depth analysis, hierarchy validation
+  - **Depth Filtering**: Limit structure display to specific hierarchy levels (1-based)
+  - **Headings-Only Mode**: Show only real headings (H1, H2, etc.), filter out paragraph content
+
+**CLI Integration**:
+```bash
+# Show only document structure
+cognitive-reader document.md --structure-only
+
+# Show structure limited to specific depth (first 2 hierarchy levels)
+cognitive-reader document.md --structure-only --max-depth 2
+
+# Show structure in JSON format
+cognitive-reader document.md --structure-only --output json
+
+# Verbose mode shows structure preview before processing
+cognitive-reader document.md --verbose
+
+# Verbose mode with limited depth preview
+cognitive-reader document.md --verbose --max-depth 2
+```
+
+**Example Output**:
+```text
+Introduction
+  Overview
+  Key Concepts
+Implementation
+  Architecture
+    Core Components
+```
+
+**Example with `--max-depth 2`**:
+```text
+Introduction
+  Overview
+  Key Concepts
+Implementation
+  Architecture
+```
+
 ---
 
 ## 📦 Project Configuration

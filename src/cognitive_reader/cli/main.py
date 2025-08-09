@@ -15,6 +15,13 @@ from ..core.progressive_reader import CognitiveReader
 from ..models.config import ReadingConfig
 from ..models.document import DocumentKnowledge
 from ..models.knowledge import LanguageCode
+from ..utils.structure_formatter import (
+    format_structure_as_json,
+    format_structure_as_text,
+    format_structure_compact,
+    filter_sections_by_depth,
+    validate_structure_integrity,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -85,6 +92,11 @@ logger = logging.getLogger(__name__)
     type=int,
     help="Maximum section depth level to analyze (avoid deep hierarchies)",
 )
+@click.option(
+    "--structure-only",
+    is_flag=True,
+    help="Show only document structure without processing summaries",
+)
 @click.version_option()
 def cli(
     document: Path | None,
@@ -103,6 +115,7 @@ def cli(
     partials_dir: Path | None,
     max_sections: int | None,
     max_depth: int | None,
+    structure_only: bool,
 ) -> None:
     """Cognitive Document Reader - Human-like document understanding.
 
@@ -133,6 +146,12 @@ def cli(
 
         # Fast mode with limited sections for quick testing
         cognitive-reader document.md --fast-mode --max-sections 3 --save-partials
+
+        # Show only document structure (for debugging or quick overview)
+        cognitive-reader document.md --structure-only
+        
+        # Show structure limited to depth 2 (first two hierarchy levels)
+        cognitive-reader document.md --structure-only --max-depth 2
     """
     # Configure logging based on verbosity
     if quiet:
@@ -160,6 +179,7 @@ def cli(
                 partials_dir=partials_dir,
                 max_sections=max_sections,
                 max_depth=max_depth,
+                structure_only=structure_only,
             )
         )
     except KeyboardInterrupt:
@@ -193,6 +213,7 @@ async def _async_main(
     partials_dir: Path | None,
     max_sections: int | None,
     max_depth: int | None,
+    structure_only: bool,
 ) -> None:
     """Async main function for CLI operations."""
 
@@ -252,6 +273,63 @@ async def _async_main(
             click.echo(f"Development mode: {', '.join(dev_modes)}")
             if config.save_partial_results:
                 click.echo(f"Partial results will be saved to: {config.partial_results_dir}")
+
+    # Handle structure-only mode
+    if structure_only:
+        # Parse document to extract structure without any LLM processing
+        document_title, sections = await reader.parser.parse_text(
+            document.read_text(encoding="utf-8"), 
+            document.name
+        )
+        
+        # Apply depth filtering if specified
+        if config.max_section_depth:
+            sections = filter_sections_by_depth(sections, config.max_section_depth)
+        
+        # Simply show the clean structure tree (headings only)
+        structure_output = format_structure_as_text(sections, headings_only=True)
+        
+        # Output to file or console
+        if output_file:
+            output_file.write_text(structure_output, encoding="utf-8")
+        else:
+            click.echo(structure_output)
+        
+        return
+    
+    # Show structure in verbose mode before processing
+    if verbose and not quiet:
+        # Parse document to extract structure for preview
+        document_title, sections = await reader.parser.parse_text(
+            document.read_text(encoding="utf-8"), 
+            document.name
+        )
+        
+        # Apply depth filtering if specified
+        display_sections = sections
+        if config.max_section_depth:
+            display_sections = filter_sections_by_depth(sections, config.max_section_depth)
+            if len(display_sections) < len(sections):
+                click.echo(f"📋 Document Structure (showing depth ≤ {config.max_section_depth}):")
+            else:
+                click.echo("📋 Document Structure:")
+        else:
+            click.echo("📋 Document Structure:")
+        
+        structure_tree = format_structure_as_text(display_sections, headings_only=True)
+        # Indent the structure tree for better visual separation
+        for line in structure_tree.split('\n'):
+            if line.strip():  # Only indent non-empty lines
+                click.echo(f"   {line}")
+        
+        # Show validation issues if any (on full structure, not filtered)
+        issues = validate_structure_integrity(sections)
+        if issues:
+            click.echo("⚠️  Structure issues detected:")
+            for issue in issues:
+                click.echo(f"   - {issue}")
+        
+        click.echo()  # Add spacing before processing starts
 
     # Process the document
     knowledge = await reader.read_document(document)
