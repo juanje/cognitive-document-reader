@@ -67,7 +67,7 @@ class CognitiveReader:
                     detected_language=LanguageCode.EN,
                     sections=[],
                     section_summaries={},
-                    processing_metadata={"validation_only": True}
+                    processing_metadata={"validation_only": True},
                 )
             else:
                 raise ValueError("Configuration validation failed")
@@ -83,7 +83,7 @@ class CognitiveReader:
                 detected_language=LanguageCode.EN,
                 sections=[],
                 section_summaries={},
-                processing_metadata={"empty_document": True}
+                processing_metadata={"empty_document": True},
             )
 
         # Detect document language
@@ -97,13 +97,17 @@ class CognitiveReader:
             sections=sections,
             section_summaries=section_summaries,
             document_title=document_title,
-            detected_language=detected_language
+            detected_language=detected_language,
         )
 
-        logger.info(f"Cognitive reading completed: {len(sections)} sections, {len(section_summaries)} summaries")
+        logger.info(
+            f"Cognitive reading completed: {len(sections)} sections, {len(section_summaries)} summaries"
+        )
         return knowledge
 
-    async def read_document_text(self, text: str, title: str = "Untitled Document") -> DocumentKnowledge:
+    async def read_document_text(
+        self, text: str, title: str = "Untitled Document"
+    ) -> DocumentKnowledge:
         """Read and analyze text content directly with cognitive understanding.
 
         Args:
@@ -126,7 +130,7 @@ class CognitiveReader:
                     detected_language=LanguageCode.EN,
                     sections=[],
                     section_summaries={},
-                    processing_metadata={"validation_only": True}
+                    processing_metadata={"validation_only": True},
                 )
             else:
                 raise ValueError("Configuration validation failed")
@@ -142,7 +146,7 @@ class CognitiveReader:
                 detected_language=LanguageCode.EN,
                 sections=[],
                 section_summaries={},
-                processing_metadata={"empty_content": True}
+                processing_metadata={"empty_content": True},
             )
 
         # Detect document language
@@ -156,16 +160,16 @@ class CognitiveReader:
             sections=sections,
             section_summaries=section_summaries,
             document_title=document_title,
-            detected_language=detected_language
+            detected_language=detected_language,
         )
 
-        logger.info(f"Text cognitive reading completed: {len(sections)} sections, {len(section_summaries)} summaries")
+        logger.info(
+            f"Text cognitive reading completed: {len(sections)} sections, {len(section_summaries)} summaries"
+        )
         return knowledge
 
     async def _progressive_reading(
-        self,
-        sections: list[DocumentSection],
-        language: LanguageCode
+        self, sections: list[DocumentSection], language: LanguageCode
     ) -> dict[str, SectionSummary]:
         """Perform progressive reading of document sections.
 
@@ -194,7 +198,9 @@ class CognitiveReader:
 
         async with LLMClient(self.config) as llm_client:
             for i, section in enumerate(content_sections):
-                logger.debug(f"Processing section {i+1}/{len(content_sections)}: {section.title}")
+                logger.debug(
+                    f"Processing section {i + 1}/{len(content_sections)}: {section.title}"
+                )
 
                 # Generate section summary with accumulated context
                 summary = await self._process_section(
@@ -213,7 +219,9 @@ class CognitiveReader:
                 else:
                     logger.warning(f"Failed to process section: {section.title}")
 
-        logger.info(f"Progressive reading completed: {len(section_summaries)} summaries generated")
+        logger.info(
+            f"Progressive reading completed: {len(section_summaries)} summaries generated"
+        )
         return section_summaries
 
     async def _process_section(
@@ -221,7 +229,7 @@ class CognitiveReader:
         section: DocumentSection,
         accumulated_context: str,
         language: LanguageCode,
-        llm_client: LLMClient
+        llm_client: LLMClient,
     ) -> SectionSummary | None:
         """Process a single section to generate its summary.
 
@@ -241,18 +249,20 @@ class CognitiveReader:
                 context=accumulated_context,
                 prompt_type="section_summary",
                 language=language,
-                section_title=section.title
+                section_title=section.title,
             )
 
             # Extract key concepts
             key_concepts = await llm_client.extract_concepts(
                 section_title=section.title,
                 section_content=section.content,
-                language=language
+                language=language,
             )
 
             # Parse the summary response
-            summary_text, additional_concepts = self._parse_summary_response(summary_response)
+            summary_text, additional_concepts = self._parse_summary_response(
+                summary_response
+            )
 
             # Combine concepts, removing duplicates
             all_concepts = key_concepts + additional_concepts
@@ -268,7 +278,7 @@ class CognitiveReader:
                 title=section.title,
                 summary=summary_text,
                 key_concepts=unique_concepts[:5],  # Limit to 5 concepts
-                confidence_score=1.0
+                confidence_score=1.0,
             )
 
         except Exception as e:
@@ -310,9 +320,7 @@ class CognitiveReader:
         return summary, concepts[:5]  # Limit to 5 concepts
 
     def _update_accumulated_context(
-        self,
-        current_context: str,
-        new_summary: SectionSummary
+        self, current_context: str, new_summary: SectionSummary
     ) -> str:
         """Update accumulated context with new section summary.
 
@@ -339,7 +347,9 @@ class CognitiveReader:
             lines = combined_context.split("\n\n")
             truncated_context = ""
             for line in reversed(lines):
-                test_context = f"{line}\n\n{truncated_context}" if truncated_context else line
+                test_context = (
+                    f"{line}\n\n{truncated_context}" if truncated_context else line
+                )
                 if len(test_context) <= max_context_length:
                     truncated_context = test_context
                 else:
@@ -348,7 +358,9 @@ class CognitiveReader:
 
         return combined_context
 
-    def _detect_document_language(self, sections: list[DocumentSection]) -> LanguageCode:
+    def _detect_document_language(
+        self, sections: list[DocumentSection]
+    ) -> LanguageCode:
         """Detect the primary language of the document.
 
         Args:

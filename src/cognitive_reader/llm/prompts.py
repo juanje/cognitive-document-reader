@@ -19,7 +19,9 @@ class PromptManager:
         """Initialize the prompt manager."""
         self._prompts = self._initialize_prompts()
 
-    def get_prompt(self, prompt_type: str, language: LanguageCode = LanguageCode.EN) -> str:
+    def get_prompt(
+        self, prompt_type: str, language: LanguageCode = LanguageCode.EN
+    ) -> str:
         """Get a prompt template by type and language.
 
         Args:
@@ -43,14 +45,16 @@ class PromptManager:
         elif LanguageCode.EN in lang_prompts:
             return lang_prompts[LanguageCode.EN]
         else:
-            raise ValueError(f"No prompt available for type '{prompt_type}' in language '{language}'")
+            raise ValueError(
+                f"No prompt available for type '{prompt_type}' in language '{language}'"
+            )
 
     def format_section_summary_prompt(
         self,
         section_title: str,
         section_content: str,
         accumulated_context: str = "",
-        language: LanguageCode = LanguageCode.EN
+        language: LanguageCode = LanguageCode.EN,
     ) -> str:
         """Format a prompt for section summarization.
 
@@ -68,14 +72,16 @@ class PromptManager:
         return template.format(
             section_title=section_title,
             section_content=section_content,
-            accumulated_context=accumulated_context if accumulated_context else "None available yet."
+            accumulated_context=accumulated_context
+            if accumulated_context
+            else "None available yet.",
         )
 
     def format_document_summary_prompt(
         self,
         document_title: str,
         section_summaries: list[str],
-        language: LanguageCode = LanguageCode.EN
+        language: LanguageCode = LanguageCode.EN,
     ) -> str:
         """Format a prompt for document-level summarization.
 
@@ -90,21 +96,22 @@ class PromptManager:
         template = self.get_prompt("document_summary", language)
 
         # Join section summaries with clear separators
-        summaries_text = "\n\n".join([
-            f"Section {i+1}: {summary}"
-            for i, summary in enumerate(section_summaries)
-        ])
+        summaries_text = "\n\n".join(
+            [
+                f"Section {i + 1}: {summary}"
+                for i, summary in enumerate(section_summaries)
+            ]
+        )
 
         return template.format(
-            document_title=document_title,
-            section_summaries=summaries_text
+            document_title=document_title, section_summaries=summaries_text
         )
 
     def format_concept_extraction_prompt(
         self,
         section_title: str,
         section_content: str,
-        language: LanguageCode = LanguageCode.EN
+        language: LanguageCode = LanguageCode.EN,
     ) -> str:
         """Format a prompt for key concept extraction.
 
@@ -119,8 +126,7 @@ class PromptManager:
         template = self.get_prompt("concept_extraction", language)
 
         return template.format(
-            section_title=section_title,
-            section_content=section_content
+            section_title=section_title, section_content=section_content
         )
 
     def _initialize_prompts(self) -> dict[str, dict[LanguageCode, str]]:
@@ -141,7 +147,7 @@ class PromptManager:
             "concept_extraction": {
                 LanguageCode.EN: self._get_concept_extraction_prompt_en(),
                 LanguageCode.ES: self._get_concept_extraction_prompt_es(),
-            }
+            },
         }
 
     def _get_section_summary_prompt_en(self) -> str:

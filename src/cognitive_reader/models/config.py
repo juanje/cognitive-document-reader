@@ -20,62 +20,53 @@ class ReadingConfig(BaseModel):
     # LLM Configuration (proven models)
     model_name: str = Field(
         default="llama3.1:8b",
-        description="LLM model name - llama3.1:8b proven best for instruction following"
+        description="LLM model name - llama3.1:8b proven best for instruction following",
     )
     temperature: float = Field(
         default=0.1,
         ge=0.0,
         le=2.0,
-        description="Temperature for LLM - low value for consistent summaries"
+        description="Temperature for LLM - low value for consistent summaries",
     )
 
     # Document Processing (essential settings)
     chunk_size: int = Field(
-        default=1000,
-        gt=100,
-        description="Optimal chunk size for cognitive reading"
+        default=1000, gt=100, description="Optimal chunk size for cognitive reading"
     )
     chunk_overlap: int = Field(
         default=200,
         ge=0,
-        description="Chunk overlap - ~20% overlap maintains continuity"
+        description="Chunk overlap - ~20% overlap maintains continuity",
     )
     context_window: int = Field(
         default=4096,
         gt=0,
-        description="Context window size - standard limit that works"
+        description="Context window size - standard limit that works",
     )
 
     # Performance Settings (simplified)
     timeout_seconds: int = Field(
-        default=120,
-        gt=0,
-        description="Timeout for LLM operations in seconds"
+        default=120, gt=0, description="Timeout for LLM operations in seconds"
     )
     max_retries: int = Field(
-        default=3,
-        ge=0,
-        description="Maximum retry attempts for failed operations"
+        default=3, ge=0, description="Maximum retry attempts for failed operations"
     )
 
     # Language and Output
     document_language: LanguageCode = Field(
         default=LanguageCode.AUTO,
-        description="Document language - auto-detect or specify"
+        description="Document language - auto-detect or specify",
     )
 
     # Development modes (AI agent friendly)
     dry_run: bool = Field(
-        default=False,
-        description="Enable dry-run mode - no actual LLM calls"
+        default=False, description="Enable dry-run mode - no actual LLM calls"
     )
     mock_responses: bool = Field(
-        default=False,
-        description="Use simulated responses for testing"
+        default=False, description="Use simulated responses for testing"
     )
     validate_config_only: bool = Field(
-        default=False,
-        description="Only validate configuration, no processing"
+        default=False, description="Only validate configuration, no processing"
     )
 
     # Environment variable mappings
@@ -109,10 +100,19 @@ class ReadingConfig(BaseModel):
                 # Handle type conversion based on field
                 if field_name in {"temperature"}:
                     kwargs[field_name] = float(env_value)
-                elif field_name in {"chunk_size", "chunk_overlap", "context_window",
-                                   "timeout_seconds", "max_retries"}:
+                elif field_name in {
+                    "chunk_size",
+                    "chunk_overlap",
+                    "context_window",
+                    "timeout_seconds",
+                    "max_retries",
+                }:
                     kwargs[field_name] = int(env_value)
-                elif field_name in {"dry_run", "mock_responses", "validate_config_only"}:
+                elif field_name in {
+                    "dry_run",
+                    "mock_responses",
+                    "validate_config_only",
+                }:
                     kwargs[field_name] = env_value.lower() in ("true", "1", "yes", "on")
                 elif field_name == "document_language":
                     kwargs[field_name] = LanguageCode(env_value)

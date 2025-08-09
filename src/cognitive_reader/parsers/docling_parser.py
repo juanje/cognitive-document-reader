@@ -25,9 +25,15 @@ try:
     logger.info("Docling library available for universal document parsing")
 except ImportError:
     DOCLING_AVAILABLE = False
-    logger.warning("Docling library not available, falling back to basic Markdown parsing")
-    InputFormat = None
-    DocumentConverter = None
+    logger.warning(
+        "Docling library not available, falling back to basic Markdown parsing"
+    )
+    # Type-safe fallbacks for when docling is not available
+    InputFormat = type(None)  # type: ignore[misc,assignment]
+    DocumentConverter = type(None)  # type: ignore[misc,assignment]
+    PdfFormatOption = type(None)  # type: ignore[misc,assignment]
+    WordFormatOption = type(None)  # type: ignore[misc,assignment]
+    SimplePipeline = type(None)  # type: ignore[misc,assignment]
 
 
 class DoclingParser:
@@ -46,6 +52,7 @@ class DoclingParser:
     def __init__(self) -> None:
         """Initialize the docling parser."""
         self.structure_detector = StructureDetector()
+        self._docling_converter: Any = None  # Type depends on runtime availability
 
         # Configure supported formats based on docling availability
         if DOCLING_AVAILABLE:
@@ -71,12 +78,8 @@ class DoclingParser:
                     InputFormat.HTML,
                 ],
                 format_options={
-                    InputFormat.PDF: PdfFormatOption(
-                        pipeline_cls=SimplePipeline
-                    ),
-                    InputFormat.DOCX: WordFormatOption(
-                        pipeline_cls=SimplePipeline
-                    ),
+                    InputFormat.PDF: PdfFormatOption(pipeline_cls=SimplePipeline),
+                    InputFormat.DOCX: WordFormatOption(pipeline_cls=SimplePipeline),
                 },
             )
             logger.info("Docling converter initialized successfully")
@@ -84,7 +87,9 @@ class DoclingParser:
             logger.error(f"Failed to initialize docling converter: {e}")
             self._docling_converter = None
 
-    async def parse_document(self, file_path: str | Path) -> tuple[str, list[DocumentSection]]:
+    async def parse_document(
+        self, file_path: str | Path
+    ) -> tuple[str, list[DocumentSection]]:
         """Parse a document and extract title, content, and structure.
 
         Args:
@@ -112,9 +117,11 @@ class DoclingParser:
 
         try:
             # Use docling for non-markdown files if available
-            if (DOCLING_AVAILABLE and
-                self._docling_converter and
-                file_path.suffix.lower() not in {".md", ".markdown"}):
+            if (
+                DOCLING_AVAILABLE
+                and self._docling_converter
+                and file_path.suffix.lower() not in {".md", ".markdown"}
+            ):
                 return await self._parse_with_docling(file_path)
             else:
                 # Use basic Markdown parser for .md files or as fallback
@@ -123,7 +130,9 @@ class DoclingParser:
             logger.error(f"Error parsing document {file_path}: {e}")
             raise ValueError(f"Failed to parse document: {e}") from e
 
-    async def parse_text(self, text: str, title: str = "Untitled Document") -> tuple[str, list[DocumentSection]]:
+    async def parse_text(
+        self, text: str, title: str = "Untitled Document"
+    ) -> tuple[str, list[DocumentSection]]:
         """Parse text content directly without file I/O.
 
         Args:
@@ -150,7 +159,9 @@ class DoclingParser:
             logger.error(f"Error parsing text content: {e}")
             raise ValueError(f"Failed to parse text: {e}") from e
 
-    async def _parse_markdown(self, file_path: Path) -> tuple[str, list[DocumentSection]]:
+    async def _parse_markdown(
+        self, file_path: Path
+    ) -> tuple[str, list[DocumentSection]]:
         """Parse a Markdown document.
 
         Args:
@@ -169,7 +180,9 @@ class DoclingParser:
         # Parse the content
         return await self.parse_text(content, title)
 
-    async def _parse_with_docling(self, file_path: Path) -> tuple[str, list[DocumentSection]]:
+    async def _parse_with_docling(
+        self, file_path: Path
+    ) -> tuple[str, list[DocumentSection]]:
         """Parse a document using docling library.
 
         Args:
@@ -203,7 +216,9 @@ class DoclingParser:
                 # Parse the markdown content using our existing parser
                 return await self.parse_text(markdown_content, document_title)
             else:
-                raise ValueError(f"Docling conversion failed: {result.status.error_message}")
+                raise ValueError(
+                    f"Docling conversion failed: {result.status.error_message}"
+                )
 
         except Exception as e:
             logger.error(f"Docling parsing failed for {file_path}: {e}")
@@ -252,14 +267,14 @@ class DoclingParser:
             stripped_line = line.strip()
 
             # Process current paragraph if we hit a header or empty line
-            if (stripped_line.startswith("#") or not stripped_line) and current_paragraph:
+            if (
+                stripped_line.startswith("#") or not stripped_line
+            ) and current_paragraph:
                 paragraph_text = "\n".join(current_paragraph).strip()
                 if paragraph_text:
-                    elements.append({
-                        "type": "paragraph",
-                        "text": paragraph_text,
-                        "level": 0
-                    })
+                    elements.append(
+                        {"type": "paragraph", "text": paragraph_text, "level": 0}
+                    )
                 current_paragraph = []
 
             if not stripped_line:
@@ -269,27 +284,23 @@ class DoclingParser:
             if stripped_line.startswith("#"):
                 level = len(stripped_line) - len(stripped_line.lstrip("#"))
                 title = stripped_line.lstrip("#").strip()
-                elements.append({
-                    "type": f"heading_{level}",
-                    "text": title,
-                    "level": level
-                })
+                elements.append(
+                    {"type": f"heading_{level}", "text": title, "level": level}
+                )
 
             # Lists (simplified)
-            elif stripped_line.startswith(("- ", "* ", "+ ")) or stripped_line.startswith(tuple(f"{i}. " for i in range(10))):
-                elements.append({
-                    "type": "list_item",
-                    "text": stripped_line,
-                    "level": 0
-                })
+            elif stripped_line.startswith(
+                ("- ", "* ", "+ ")
+            ) or stripped_line.startswith(tuple(f"{i}. " for i in range(10))):
+                elements.append(
+                    {"type": "list_item", "text": stripped_line, "level": 0}
+                )
 
             # Code blocks (simplified)
             elif stripped_line.startswith("```"):
-                elements.append({
-                    "type": "code_block",
-                    "text": stripped_line,
-                    "level": 0
-                })
+                elements.append(
+                    {"type": "code_block", "text": stripped_line, "level": 0}
+                )
 
             # Regular content - accumulate into paragraphs
             else:
@@ -299,11 +310,9 @@ class DoclingParser:
         if current_paragraph:
             paragraph_text = "\n".join(current_paragraph).strip()
             if paragraph_text:
-                elements.append({
-                    "type": "paragraph",
-                    "text": paragraph_text,
-                    "level": 0
-                })
+                elements.append(
+                    {"type": "paragraph", "text": paragraph_text, "level": 0}
+                )
 
         return elements
 
@@ -336,5 +345,5 @@ class DoclingParser:
             "docling_configured": self._docling_converter is not None,
             "supported_formats": list(self._supported_extensions),
             "enhanced_parsing": self.is_docling_available(),
-            "fallback_mode": not self.is_docling_available()
+            "fallback_mode": not self.is_docling_available(),
         }

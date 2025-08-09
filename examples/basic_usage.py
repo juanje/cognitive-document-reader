@@ -18,10 +18,12 @@ async def basic_example():
     config = ReadingConfig.from_env()
 
     # Enable development mode for this example
-    config = config.model_copy(update={
-        "dry_run": True,  # No real LLM calls
-        "mock_responses": True  # Use simulated responses
-    })
+    config = config.model_copy(
+        update={
+            "dry_run": True,  # No real LLM calls
+            "mock_responses": True,  # Use simulated responses
+        }
+    )
 
     # Initialize the cognitive reader
     reader = CognitiveReader(config)
@@ -89,7 +91,7 @@ async def configuration_example():
         chunk_overlap=160,
         document_language=LanguageCode.EN,
         dry_run=True,  # Development mode
-        mock_responses=True
+        mock_responses=True,
     )
 
     reader = CognitiveReader(config)
@@ -110,7 +112,7 @@ async def spanish_example():
     config = ReadingConfig(
         document_language=LanguageCode.AUTO,  # Auto-detect
         dry_run=True,
-        mock_responses=True
+        mock_responses=True,
     )
 
     reader = CognitiveReader(config)

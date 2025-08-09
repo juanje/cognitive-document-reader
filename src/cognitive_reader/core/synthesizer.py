@@ -32,7 +32,7 @@ class Synthesizer:
         sections: list[DocumentSection],
         section_summaries: dict[str, SectionSummary],
         document_title: str,
-        detected_language: LanguageCode
+        detected_language: LanguageCode,
     ) -> DocumentKnowledge:
         """Synthesize complete document knowledge from sections and summaries.
 
@@ -71,7 +71,9 @@ class Synthesizer:
             "dry_run": self.config.dry_run,
         }
 
-        logger.info(f"Document synthesis completed. Generated {len(all_summaries)} summaries.")
+        logger.info(
+            f"Document synthesis completed. Generated {len(all_summaries)} summaries."
+        )
 
         return DocumentKnowledge(
             document_title=document_title,
@@ -79,14 +81,14 @@ class Synthesizer:
             detected_language=detected_language,
             sections=sections,
             section_summaries=all_summaries,
-            processing_metadata=processing_metadata
+            processing_metadata=processing_metadata,
         )
 
     async def _synthesize_container_sections(
         self,
         sections: list[DocumentSection],
         existing_summaries: dict[str, SectionSummary],
-        language: LanguageCode
+        language: LanguageCode,
     ) -> dict[str, SectionSummary]:
         """Synthesize summaries for container sections based on their children.
 
@@ -125,7 +127,7 @@ class Synthesizer:
         all_sections: list[DocumentSection],
         summaries: dict[str, SectionSummary],
         language: LanguageCode,
-        llm_client: LLMClient
+        llm_client: LLMClient,
     ) -> SectionSummary | None:
         """Synthesize a summary for a container section from its children.
 
@@ -144,10 +146,14 @@ class Synthesizer:
         for child_id in section.children_ids:
             if child_id in summaries:
                 child_summary = summaries[child_id]
-                child_summaries.append(f"{child_summary.title}: {child_summary.summary}")
+                child_summaries.append(
+                    f"{child_summary.title}: {child_summary.summary}"
+                )
 
         if not child_summaries:
-            logger.warning(f"No child summaries found for container section: {section.title}")
+            logger.warning(
+                f"No child summaries found for container section: {section.title}"
+            )
             return None
 
         # Combine child summaries for synthesis
@@ -160,7 +166,7 @@ class Synthesizer:
                 context="",  # Container sections don't need progressive context
                 prompt_type="section_summary",
                 language=language,
-                section_title=section.title
+                section_title=section.title,
             )
 
             # Extract key concepts from children
@@ -189,7 +195,7 @@ class Synthesizer:
                 title=section.title,
                 summary=parsed_summary,
                 key_concepts=final_concepts,
-                confidence_score=0.8  # Slightly lower for synthesized content
+                confidence_score=0.8,  # Slightly lower for synthesized content
             )
 
         except Exception as e:
@@ -201,7 +207,7 @@ class Synthesizer:
         document_title: str,
         sections: list[DocumentSection],
         summaries: dict[str, SectionSummary],
-        language: LanguageCode
+        language: LanguageCode,
     ) -> str:
         """Generate document-level summary from section summaries.
 
@@ -237,7 +243,7 @@ class Synthesizer:
                     context="",
                     prompt_type="document_summary",
                     language=language,
-                    section_title=document_title
+                    section_title=document_title,
                 )
 
                 # Extract just the summary part
@@ -264,7 +270,9 @@ class Synthesizer:
 
         for line in lines:
             line = line.strip()
-            if line.startswith(("Summary:", "Resumen:", "Document Summary:", "Resumen del Documento:")):
+            if line.startswith(
+                ("Summary:", "Resumen:", "Document Summary:", "Resumen del Documento:")
+            ):
                 summary = line.split(":", 1)[1].strip()
             elif line.startswith(("Key Concepts:", "Conceptos Clave:")):
                 concepts_text = line.split(":", 1)[1].strip()

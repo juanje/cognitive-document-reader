@@ -21,11 +21,14 @@ class DocumentSection(BaseModel):
     id: str = Field(description="Unique identifier for the section")
     title: str = Field(description="Section title or heading")
     content: str = Field(description="Raw text content of the section")
-    level: int = Field(ge=0, description="Hierarchical level (0 = root, 1 = top-level, etc.)")
-    parent_id: str | None = Field(default=None, description="ID of parent section if any")
+    level: int = Field(
+        ge=0, description="Hierarchical level (0 = root, 1 = top-level, etc.)"
+    )
+    parent_id: str | None = Field(
+        default=None, description="ID of parent section if any"
+    )
     children_ids: list[str] = Field(
-        default_factory=list,
-        description="List of child section IDs"
+        default_factory=list, description="List of child section IDs"
     )
     order_index: int = Field(ge=0, description="Order of appearance in document")
 
@@ -41,14 +44,13 @@ class SectionSummary(BaseModel):
     title: str = Field(description="Section title")
     summary: str = Field(description="Generated summary of the section")
     key_concepts: list[str] = Field(
-        default_factory=list,
-        description="Key concepts identified in this section"
+        default_factory=list, description="Key concepts identified in this section"
     )
     confidence_score: float = Field(
         default=1.0,
         ge=0.0,
         le=1.0,
-        description="Confidence score for the summary quality"
+        description="Confidence score for the summary quality",
     )
 
 
@@ -60,21 +62,24 @@ class DocumentKnowledge(BaseModel):
     """
 
     document_title: str = Field(description="Title of the processed document")
-    document_summary: str = Field(description="High-level summary of the entire document")
-    detected_language: LanguageCode = Field(description="Auto-detected or specified language")
+    document_summary: str = Field(
+        description="High-level summary of the entire document"
+    )
+    detected_language: LanguageCode = Field(
+        description="Auto-detected or specified language"
+    )
 
     sections: list[DocumentSection] = Field(
-        default_factory=list,
-        description="All document sections in hierarchical order"
+        default_factory=list, description="All document sections in hierarchical order"
     )
     section_summaries: dict[str, SectionSummary] = Field(
         default_factory=dict,
-        description="Summaries for each section keyed by section ID"
+        description="Summaries for each section keyed by section ID",
     )
 
     processing_metadata: dict[str, Any] = Field(
         default_factory=dict,
-        description="Metadata about the processing (timing, model used, etc.)"
+        description="Metadata about the processing (timing, model used, etc.)",
     )
 
     def get_section_by_id(self, section_id: str) -> DocumentSection | None:
@@ -97,10 +102,7 @@ class DocumentKnowledge(BaseModel):
         Returns:
             List of top-level sections ordered by appearance.
         """
-        return [
-            section for section in self.sections
-            if section.level == 1
-        ]
+        return [section for section in self.sections if section.level == 1]
 
     def get_children_of_section(self, section_id: str) -> list[DocumentSection]:
         """Get all direct children of a section.

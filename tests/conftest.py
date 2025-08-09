@@ -26,7 +26,7 @@ def test_config() -> ReadingConfig:
         document_language=LanguageCode.EN,
         dry_run=True,  # No real LLM calls
         mock_responses=True,  # Use mock responses
-        validate_config_only=False
+        validate_config_only=False,
     )
 
 
@@ -186,15 +186,15 @@ def mock_document_knowledge():
             title="Introduction",
             content="This is the introduction section.",
             level=1,
-            order_index=1
+            order_index=1,
         ),
         DocumentSection(
             id="section_2",
             title="Main Content",
             content="This is the main content section.",
             level=1,
-            order_index=2
-        )
+            order_index=2,
+        ),
     ]
 
     summaries = {
@@ -202,14 +202,14 @@ def mock_document_knowledge():
             section_id="section_1",
             title="Introduction",
             summary="This section provides an introduction to the topic.",
-            key_concepts=["introduction", "overview", "context"]
+            key_concepts=["introduction", "overview", "context"],
         ),
         "section_2": SectionSummary(
             section_id="section_2",
             title="Main Content",
             summary="This section contains the main discussion.",
-            key_concepts=["main topic", "discussion", "analysis"]
-        )
+            key_concepts=["main topic", "discussion", "analysis"],
+        ),
     }
 
     return DocumentKnowledge(
@@ -221,6 +221,6 @@ def mock_document_knowledge():
         processing_metadata={
             "test_mode": True,
             "total_sections": 2,
-            "total_summaries": 2
-        }
+            "total_summaries": 2,
+        },
     )

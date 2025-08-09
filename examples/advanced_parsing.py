@@ -87,7 +87,9 @@ with intelligent format detection and fallback mechanisms.
     reader = CognitiveReader(config)
 
     print("Processing test document...")
-    knowledge = await reader.read_document_text(test_markdown, "Advanced Document Processing")
+    knowledge = await reader.read_document_text(
+        test_markdown, "Advanced Document Processing"
+    )
 
     print("✅ Document processed successfully")
     print(f"   Title: {knowledge.document_title}")
@@ -158,20 +160,20 @@ async def demonstrate_installation_detection():
             "condition": "Docling not installed",
             "behavior": "Falls back to Markdown-only parsing",
             "formats": [".md", ".markdown"],
-            "advantages": "Always works, no dependencies"
+            "advantages": "Always works, no dependencies",
         },
         {
             "condition": "Docling installed and working",
             "behavior": "Full multi-format parsing enabled",
             "formats": [".md", ".markdown", ".pdf", ".docx", ".html"],
-            "advantages": "Universal document support, robust parsing"
+            "advantages": "Universal document support, robust parsing",
         },
         {
             "condition": "Docling installed but misconfigured",
             "behavior": "Graceful fallback to Markdown parsing",
             "formats": [".md", ".markdown"],
-            "advantages": "Fault tolerance, no application crashes"
-        }
+            "advantages": "Fault tolerance, no application crashes",
+        },
     ]
 
     for i, scenario in enumerate(scenarios, 1):

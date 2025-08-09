@@ -51,7 +51,7 @@ class LLMClient:
         context: str = "",
         prompt_type: str = "section_summary",
         language: LanguageCode = LanguageCode.EN,
-        section_title: str = "Untitled Section"
+        section_title: str = "Untitled Section",
     ) -> str:
         """Generate a summary for given content.
 
@@ -78,14 +78,14 @@ class LLMClient:
                 section_title=section_title,
                 section_content=content,
                 accumulated_context=context,
-                language=language
+                language=language,
             )
         elif prompt_type == "document_summary":
             # For document summary, content should be section summaries
             prompt = self.prompt_manager.format_document_summary_prompt(
                 document_title=section_title,
                 section_summaries=[content],  # Expecting formatted summaries
-                language=language
+                language=language,
             )
         else:
             raise ValueError(f"Unsupported prompt type: {prompt_type}")
@@ -97,7 +97,7 @@ class LLMClient:
         self,
         section_title: str,
         section_content: str,
-        language: LanguageCode = LanguageCode.EN
+        language: LanguageCode = LanguageCode.EN,
     ) -> list[str]:
         """Extract key concepts from section content.
 
@@ -116,7 +116,7 @@ class LLMClient:
         prompt = self.prompt_manager.format_concept_extraction_prompt(
             section_title=section_title,
             section_content=section_content,
-            language=language
+            language=language,
         )
 
         response = await self._generate_with_retries(prompt)
@@ -147,11 +147,13 @@ class LLMClient:
 
                 if attempt < self.config.max_retries:
                     # Exponential backoff
-                    wait_time = 2 ** attempt
+                    wait_time = 2**attempt
                     await asyncio.sleep(wait_time)
                     logger.info(f"Retrying in {wait_time}s...")
 
-        raise ValueError(f"LLM generation failed after {self.config.max_retries + 1} attempts: {last_error}")
+        raise ValueError(
+            f"LLM generation failed after {self.config.max_retries + 1} attempts: {last_error}"
+        )
 
     async def _call_ollama(self, prompt: str) -> str:
         """Make actual call to Ollama API.
@@ -163,7 +165,9 @@ class LLMClient:
             Response text from Ollama.
         """
         if not self._session:
-            raise RuntimeError("LLM client not properly initialized. Use async context manager.")
+            raise RuntimeError(
+                "LLM client not properly initialized. Use async context manager."
+            )
 
         payload = {
             "model": self.config.model_name,
@@ -171,8 +175,8 @@ class LLMClient:
             "stream": False,
             "options": {
                 "temperature": self.config.temperature,
-                "num_ctx": self.config.context_window
-            }
+                "num_ctx": self.config.context_window,
+            },
         }
 
         url = f"{self._base_url}/api/generate"
@@ -186,7 +190,9 @@ class LLMClient:
             response_text = data.get("response", "")
             return str(response_text).strip()
 
-    def _get_mock_summary(self, content: str, prompt_type: str, language: LanguageCode) -> str:
+    def _get_mock_summary(
+        self, content: str, prompt_type: str, language: LanguageCode
+    ) -> str:
         """Generate mock summary for development/testing.
 
         Args:
@@ -225,7 +231,7 @@ class LLMClient:
         concepts = []
         for i, word in enumerate(words[:3]):  # Up to 3 concepts
             if len(word) > 3:  # Skip short words
-                concepts.append(f"concept_{i+1}_{word.lower()}")
+                concepts.append(f"concept_{i + 1}_{word.lower()}")
 
         # Ensure we always have at least 2 concepts
         while len(concepts) < 2:
@@ -265,7 +271,11 @@ class LLMClient:
         if not concepts:
             # Simple fallback - extract capitalized words as potential concepts
             words = response.split()
-            concepts = [word.strip(".,!?") for word in words if word[0].isupper() and len(word) > 3][:5]
+            concepts = [
+                word.strip(".,!?")
+                for word in words
+                if word[0].isupper() and len(word) > 3
+            ][:5]
 
         return concepts[:5]  # Limit to 5 concepts
 
@@ -312,7 +322,9 @@ class LLMClient:
                     )
 
                     if not model_available:
-                        logger.warning(f"Model {self.config.model_name} not found in Ollama. Available models: {models}")
+                        logger.warning(
+                            f"Model {self.config.model_name} not found in Ollama. Available models: {models}"
+                        )
 
                     return model_available
                 else:

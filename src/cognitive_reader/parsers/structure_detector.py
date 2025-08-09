@@ -20,7 +20,9 @@ class StructureDetector:
         """Initialize the structure detector."""
         self._section_counter = 0
 
-    def detect_structure(self, document_elements: list[dict[str, Any]]) -> list[DocumentSection]:
+    def detect_structure(
+        self, document_elements: list[dict[str, Any]]
+    ) -> list[DocumentSection]:
         """Extract hierarchical sections from document elements.
 
         Args:
@@ -44,11 +46,13 @@ class StructureDetector:
                 continue
 
             # Create section for headers and significant content blocks
-            if element_type.startswith("heading") or self._is_significant_content(element):
+            if element_type.startswith("heading") or self._is_significant_content(
+                element
+            ):
                 section = self._create_section(
                     text=text,
                     level=level if element_type.startswith("heading") else level + 1,
-                    element_type=element_type
+                    element_type=element_type,
                 )
 
                 # Update hierarchy relationships
@@ -57,7 +61,9 @@ class StructureDetector:
 
         return sections
 
-    def _create_section(self, text: str, level: int, element_type: str) -> DocumentSection:
+    def _create_section(
+        self, text: str, level: int, element_type: str
+    ) -> DocumentSection:
         """Create a DocumentSection from element data.
 
         Args:
@@ -85,10 +91,12 @@ class StructureDetector:
             title=title,
             content=content,
             level=level,
-            order_index=self._section_counter
+            order_index=self._section_counter,
         )
 
-    def _update_hierarchy(self, section: DocumentSection, section_stack: list[DocumentSection]) -> None:
+    def _update_hierarchy(
+        self, section: DocumentSection, section_stack: list[DocumentSection]
+    ) -> None:
         """Update parent-child relationships in the hierarchy.
 
         Args:
@@ -127,12 +135,11 @@ class StructureDetector:
         # Must have substantial text content
         min_content_length = 50
 
-        return (
-            element_type in significant_types and
-            len(text) >= min_content_length
-        )
+        return element_type in significant_types and len(text) >= min_content_length
 
-    def build_section_tree(self, sections: list[DocumentSection]) -> list[DocumentSection]:
+    def build_section_tree(
+        self, sections: list[DocumentSection]
+    ) -> list[DocumentSection]:
         """Build complete section tree with proper parent-child relationships.
 
         Args:

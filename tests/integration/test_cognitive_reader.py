@@ -23,17 +23,24 @@ async def test_basic_reading(test_config, sample_markdown):
     assert len(knowledge.document_summary) > 0
 
     # Should have processing metadata
-    assert "test_mode" in knowledge.processing_metadata or "dry_run" in knowledge.processing_metadata
+    assert (
+        "test_mode" in knowledge.processing_metadata
+        or "dry_run" in knowledge.processing_metadata
+    )
 
 
 @pytest.mark.asyncio
 async def test_spanish_document_reading(test_config, sample_spanish_markdown):
     """Test reading Spanish document with language detection."""
     # Override language to AUTO for detection testing
-    spanish_config = test_config.model_copy(update={"document_language": LanguageCode.AUTO})
+    spanish_config = test_config.model_copy(
+        update={"document_language": LanguageCode.AUTO}
+    )
     reader = CognitiveReader(spanish_config)
 
-    knowledge = await reader.read_document_text(sample_spanish_markdown, "Documento de Prueba")
+    knowledge = await reader.read_document_text(
+        sample_spanish_markdown, "Documento de Prueba"
+    )
 
     assert knowledge.document_title == "Documento de Prueba"
     assert knowledge.detected_language == LanguageCode.ES

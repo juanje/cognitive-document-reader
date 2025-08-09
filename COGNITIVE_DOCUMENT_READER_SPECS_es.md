@@ -491,7 +491,7 @@ class AdvancedReadingConfig(ReadingConfig):
 
 #### Herramientas de Desarrollo Profesional (Fase 2)
 - **CI/CD Completo**
-  - GitHub Actions con matriz de pruebas (Python 3.10, 3.11, 3.12)
+  - GitHub Actions con matriz de pruebas (Python 3.12, 3.13)
   - Hooks automáticos de pre-commit
   - Dependabot para actualizaciones de seguridad
   - Automatización de releases a PyPI con tags
@@ -673,7 +673,7 @@ tag-regex = "^v(?P<version>\\d+\\.\\d+\\.\\d+)$"
 version-file = "src/cognitive_reader/_version.py"
 
 [tool.uv]
-python-version = "3.10"
+python-version = "3.12"
 index-strategy = "unsafe-best-match"
 
 [project.scripts]
@@ -689,11 +689,10 @@ classifiers = [
     "Intended Audience :: Developers", 
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11", 
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 dependencies = [
     "pydantic>=2.0,<3.0",      # Validación de datos y configuraciones

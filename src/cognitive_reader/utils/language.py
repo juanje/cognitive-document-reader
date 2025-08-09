@@ -71,7 +71,9 @@ class LanguageDetector:
                 return LanguageCode.EN
             else:
                 # For unsupported languages, default to English
-                logger.info(f"Detected language '{detected_lang}' not supported, defaulting to English")
+                logger.info(
+                    f"Detected language '{detected_lang}' not supported, defaulting to English"
+                )
                 return LanguageCode.EN
 
         except (LangDetectException, ImportError) as e:
@@ -94,41 +96,128 @@ class LanguageDetector:
 
         # Common Spanish indicators
         spanish_indicators = [
-            "el ", "la ", "los ", "las ", "un ", "una ", "de ", "del ", "al ",
-            "con ", "por ", "para ", "que ", "en ", "es ", "son ", "está ", "están ",
-            "tiene ", "tienen ", "hacer ", "hace ", "hacen ", "puede ", "pueden ",
-            "también ", "también", "además", "mientras", "durante", "después",
-            "antes", "sobre", "entre", "bajo", "hasta", "desde", "hacia", "según"
+            "el ",
+            "la ",
+            "los ",
+            "las ",
+            "un ",
+            "una ",
+            "de ",
+            "del ",
+            "al ",
+            "con ",
+            "por ",
+            "para ",
+            "que ",
+            "en ",
+            "es ",
+            "son ",
+            "está ",
+            "están ",
+            "tiene ",
+            "tienen ",
+            "hacer ",
+            "hace ",
+            "hacen ",
+            "puede ",
+            "pueden ",
+            "también ",
+            "también",
+            "además",
+            "mientras",
+            "durante",
+            "después",
+            "antes",
+            "sobre",
+            "entre",
+            "bajo",
+            "hasta",
+            "desde",
+            "hacia",
+            "según",
         ]
 
         # Common English indicators
         english_indicators = [
-            "the ", "and ", "or ", "but ", "with ", "for ", "to ", "of ", "in ",
-            "on ", "at ", "by ", "from ", "up ", "about ", "into ", "through ",
-            "is ", "are ", "was ", "were ", "have ", "has ", "had ", "do ", "does ",
-            "did ", "will ", "would ", "could ", "should ", "can ", "may ", "might ",
-            "this ", "that ", "these ", "those ", "which ", "what ", "when ", "where ",
-            "why ", "how ", "who ", "whom ", "whose "
+            "the ",
+            "and ",
+            "or ",
+            "but ",
+            "with ",
+            "for ",
+            "to ",
+            "of ",
+            "in ",
+            "on ",
+            "at ",
+            "by ",
+            "from ",
+            "up ",
+            "about ",
+            "into ",
+            "through ",
+            "is ",
+            "are ",
+            "was ",
+            "were ",
+            "have ",
+            "has ",
+            "had ",
+            "do ",
+            "does ",
+            "did ",
+            "will ",
+            "would ",
+            "could ",
+            "should ",
+            "can ",
+            "may ",
+            "might ",
+            "this ",
+            "that ",
+            "these ",
+            "those ",
+            "which ",
+            "what ",
+            "when ",
+            "where ",
+            "why ",
+            "how ",
+            "who ",
+            "whom ",
+            "whose ",
         ]
 
         # Count indicators
-        spanish_count = sum(1 for indicator in spanish_indicators if indicator in text_lower)
-        english_count = sum(1 for indicator in english_indicators if indicator in text_lower)
+        spanish_count = sum(
+            1 for indicator in spanish_indicators if indicator in text_lower
+        )
+        english_count = sum(
+            1 for indicator in english_indicators if indicator in text_lower
+        )
 
         # Calculate text length factor (longer text = more reliable)
         text_length = len(text)
-        confidence_threshold = max(2, text_length // 200)  # Minimum 2, scales with text length
+        confidence_threshold = max(
+            2, text_length // 200
+        )  # Minimum 2, scales with text length
 
         # Determine language based on counts
         if spanish_count >= confidence_threshold and spanish_count > english_count:
-            logger.debug(f"Heuristic detection: Spanish (score: {spanish_count} vs {english_count})")
+            logger.debug(
+                f"Heuristic detection: Spanish (score: {spanish_count} vs {english_count})"
+            )
             return LanguageCode.ES
         elif english_count >= confidence_threshold:
-            logger.debug(f"Heuristic detection: English (score: {english_count} vs {spanish_count})")
+            logger.debug(
+                f"Heuristic detection: English (score: {english_count} vs {spanish_count})"
+            )
             return LanguageCode.EN
         else:
             # Default to English if uncertain
-            logger.debug(f"Heuristic detection: Uncertain (ES: {spanish_count}, EN: {english_count}), defaulting to English")
+            logger.debug(
+                f"Heuristic detection: Uncertain (ES: {spanish_count}, EN: {english_count}), defaulting to English"
+            )
             return LanguageCode.EN
 
     def get_supported_languages(self) -> list[LanguageCode]:

@@ -2,7 +2,7 @@
 
 > Human-like document understanding through progressive reading and hierarchical synthesis
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🧠 Overview
@@ -215,7 +215,7 @@ ruff format .
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.12+
 - `uv` for dependency management
 
 ### Setup

@@ -37,7 +37,7 @@ def test_config_validation():
         chunk_overlap=100,
         context_window=2048,
         timeout_seconds=60,
-        max_retries=2
+        max_retries=2,
     )
     assert config.temperature == 0.5
     assert config.chunk_size == 500
@@ -89,7 +89,7 @@ def test_config_from_env_with_values():
         "COGNITIVE_READER_MAX_RETRIES": "2",
         "COGNITIVE_READER_LANGUAGE": "es",
         "COGNITIVE_READER_DRY_RUN": "true",
-        "COGNITIVE_READER_MOCK_RESPONSES": "false"
+        "COGNITIVE_READER_MOCK_RESPONSES": "false",
     }
 
     with mock.patch.dict(os.environ, env_vars):

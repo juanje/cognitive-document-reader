@@ -18,66 +18,52 @@ from ..models.knowledge import LanguageCode
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.argument("document", type=click.Path(exists=True, path_type=Path), required=False)
+@click.argument(
+    "document", type=click.Path(exists=True, path_type=Path), required=False
+)
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     type=click.Choice(["json", "markdown"], case_sensitive=False),
     default="markdown",
-    help="Output format for results (default: markdown)"
+    help="Output format for results (default: markdown)",
 )
 @click.option(
-    "--language", "-l",
+    "--language",
+    "-l",
     type=click.Choice(["auto", "en", "es"], case_sensitive=False),
     default="auto",
-    help="Document language (default: auto-detect)"
+    help="Document language (default: auto-detect)",
 )
 @click.option(
-    "--model", "-m",
-    type=str,
-    help="LLM model to use (overrides environment config)"
+    "--model", "-m", type=str, help="LLM model to use (overrides environment config)"
 )
 @click.option(
-    "--temperature", "-t",
-    type=float,
-    help="Temperature for LLM generation (0.0-2.0)"
+    "--temperature", "-t", type=float, help="Temperature for LLM generation (0.0-2.0)"
 )
 @click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Run in dry-run mode (no actual LLM calls)"
+    "--dry-run", is_flag=True, help="Run in dry-run mode (no actual LLM calls)"
 )
-@click.option(
-    "--mock-responses",
-    is_flag=True,
-    help="Use mock responses for testing"
-)
+@click.option("--mock-responses", is_flag=True, help="Use mock responses for testing")
 @click.option(
     "--validate-config",
     is_flag=True,
-    help="Only validate configuration, don't process document"
+    help="Only validate configuration, don't process document",
 )
 @click.option(
-    "--output-file", "-f",
+    "--output-file",
+    "-f",
     type=click.Path(path_type=Path),
-    help="Save output to file instead of stdout"
+    help="Save output to file instead of stdout",
 )
-@click.option(
-    "--verbose", "-v",
-    is_flag=True,
-    help="Enable verbose logging"
-)
-@click.option(
-    "--quiet", "-q",
-    is_flag=True,
-    help="Suppress all output except results"
-)
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress all output except results")
 @click.version_option()
 def cli(
     document: Path | None,
@@ -90,7 +76,7 @@ def cli(
     validate_config: bool,
     output_file: Path | None,
     verbose: bool,
-    quiet: bool
+    quiet: bool,
 ) -> None:
     """Cognitive Document Reader - Human-like document understanding.
 
@@ -121,19 +107,21 @@ def cli(
 
     try:
         # Run the async main function
-        asyncio.run(_async_main(
-            document=document,
-            output=output,
-            language=language,
-            model=model,
-            temperature=temperature,
-            dry_run=dry_run,
-            mock_responses=mock_responses,
-            validate_config=validate_config,
-            output_file=output_file,
-            verbose=verbose,
-            quiet=quiet
-        ))
+        asyncio.run(
+            _async_main(
+                document=document,
+                output=output,
+                language=language,
+                model=model,
+                temperature=temperature,
+                dry_run=dry_run,
+                mock_responses=mock_responses,
+                validate_config=validate_config,
+                output_file=output_file,
+                verbose=verbose,
+                quiet=quiet,
+            )
+        )
     except KeyboardInterrupt:
         if not quiet:
             click.echo("\nOperation cancelled by user", err=True)
@@ -143,6 +131,7 @@ def cli(
             click.echo(f"Error: {e}", err=True)
         if verbose:
             import traceback
+
             traceback.print_exc()
         sys.exit(1)
 
@@ -158,7 +147,7 @@ async def _async_main(
     validate_config: bool,
     output_file: Path | None,
     verbose: bool,
-    quiet: bool
+    quiet: bool,
 ) -> None:
     """Async main function for CLI operations."""
 
@@ -169,7 +158,7 @@ async def _async_main(
         temperature=temperature,
         dry_run=dry_run,
         mock_responses=mock_responses,
-        validate_config=validate_config
+        validate_config=validate_config,
     )
 
     # Initialize reader
@@ -192,7 +181,9 @@ async def _async_main(
 
     # Require document for processing modes
     if not document:
-        raise click.UsageError("Document argument is required unless using --validate-config")
+        raise click.UsageError(
+            "Document argument is required unless using --validate-config"
+        )
 
     if not quiet:
         click.echo(f"Processing document: {document}")
@@ -222,7 +213,10 @@ async def _async_main(
     if not quiet:
         total_sections = len(knowledge.sections)
         total_summaries = len(knowledge.section_summaries)
-        click.echo(f"\n✅ Processing completed: {total_sections} sections, {total_summaries} summaries", err=True)
+        click.echo(
+            f"\n✅ Processing completed: {total_sections} sections, {total_summaries} summaries",
+            err=True,
+        )
 
 
 def _build_config(
@@ -231,7 +225,7 @@ def _build_config(
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
-    validate_config: bool
+    validate_config: bool,
 ) -> ReadingConfig:
     """Build configuration from CLI options and environment."""
 
@@ -278,7 +272,9 @@ def _format_json_output(knowledge: DocumentKnowledge) -> str:
                 "parent_id": section.parent_id,
                 "children_ids": section.children_ids,
                 "order_index": section.order_index,
-                "content_preview": section.content[:200] + "..." if len(section.content) > 200 else section.content
+                "content_preview": section.content[:200] + "..."
+                if len(section.content) > 200
+                else section.content,
             }
             for section in knowledge.sections
         ],
@@ -287,11 +283,11 @@ def _format_json_output(knowledge: DocumentKnowledge) -> str:
                 "title": summary.title,
                 "summary": summary.summary,
                 "key_concepts": summary.key_concepts,
-                "confidence_score": summary.confidence_score
+                "confidence_score": summary.confidence_score,
             }
             for section_id, summary in knowledge.section_summaries.items()
         },
-        "processing_metadata": knowledge.processing_metadata
+        "processing_metadata": knowledge.processing_metadata,
     }
 
     return json.dumps(output_dict, indent=2, ensure_ascii=False)

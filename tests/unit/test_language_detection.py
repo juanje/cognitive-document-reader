@@ -35,7 +35,7 @@ def test_detect_english_text(detector):
         "This is a test document in English. It contains several sentences.",
         "The quick brown fox jumps over the lazy dog. This is a common phrase.",
         "Hello world! This is an example of English text for testing purposes.",
-        "In this document, we will discuss various topics related to software development."
+        "In this document, we will discuss various topics related to software development.",
     ]
 
     for text in english_texts:
@@ -49,7 +49,7 @@ def test_detect_spanish_text(detector):
         "Este es un documento de prueba en español. Contiene varias oraciones.",
         "Hola mundo! Este es un ejemplo de texto en español para propósitos de prueba.",
         "En este documento, discutiremos varios temas relacionados con el desarrollo de software.",
-        "La programación es una disciplina que requiere práctica y dedicación constante."
+        "La programación es una disciplina que requiere práctica y dedicación constante.",
     ]
 
     for text in spanish_texts:
@@ -126,12 +126,16 @@ def test_heuristic_detection_details(detector):
     detector._langdetect_available = False
 
     # Test with text that has clear Spanish indicators
-    spanish_heavy = "En este documento se presenta la metodología para el análisis de datos."
+    spanish_heavy = (
+        "En este documento se presenta la metodología para el análisis de datos."
+    )
     result = detector.detect_language(spanish_heavy)
     assert result == LanguageCode.ES
 
     # Test with text that has clear English indicators
-    english_heavy = "This document presents the methodology for data analysis and processing."
+    english_heavy = (
+        "This document presents the methodology for data analysis and processing."
+    )
     result = detector.detect_language(english_heavy)
     assert result == LanguageCode.EN
 
@@ -154,7 +158,9 @@ def test_confidence_threshold_scaling(detector):
     assert result in [LanguageCode.EN, LanguageCode.ES]
 
     # Longer text with many indicators
-    long_text = "El gato está en la casa con el perro y los otros animales que viven allí."
+    long_text = (
+        "El gato está en la casa con el perro y los otros animales que viven allí."
+    )
     result = detector.detect_language(long_text)
     assert result == LanguageCode.ES
 
