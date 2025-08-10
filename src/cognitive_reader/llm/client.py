@@ -8,7 +8,7 @@ from typing import Any
 
 import aiohttp
 
-from ..models.config import ReadingConfig
+from ..models.config import CognitiveConfig
 from ..models.knowledge import LanguageCode
 from .prompts import PromptManager
 
@@ -22,7 +22,7 @@ class LLMClient:
     error handling, and support for development modes (dry-run, mocking).
     """
 
-    def __init__(self, config: ReadingConfig) -> None:
+    def __init__(self, config: CognitiveConfig) -> None:
         """Initialize the LLM client.
 
         Args:
@@ -170,7 +170,7 @@ class LLMClient:
             )
 
         payload = {
-            "model": self.config.active_model,
+            "model": self.config.main_model or self.config.model_name,
             "prompt": prompt,
             "stream": False,
             "options": {
@@ -317,16 +317,29 @@ class LLMClient:
                     models = [model.get("name", "") for model in data.get("models", [])]
 
                     # Check if configured model is available
-                    model_available = any(
-                        self.config.active_model in model for model in models
+                    # Check if the main model is available
+                    main_model = self.config.main_model or self.config.model_name
+                    main_model_available = any(
+                        main_model in model for model in models
                     )
 
-                    if not model_available:
+                    if not main_model_available:
                         logger.warning(
-                            f"Model {self.config.active_model} not found in Ollama. Available models: {models}"
+                            f"Main model {main_model} not found in Ollama. Available models: {models}"
                         )
 
-                    return model_available
+                    # Also check fast model if configured
+                    fast_model_available = True
+                    if self.config.enable_fast_first_pass and self.config.fast_pass_model:
+                        fast_model_available = any(
+                            self.config.fast_pass_model in model for model in models
+                        )
+                        if not fast_model_available:
+                            logger.warning(
+                                f"Fast model {self.config.fast_pass_model} not found in Ollama. Available models: {models}"
+                            )
+
+                    return main_model_available and fast_model_available
                 else:
                     logger.error(f"Ollama API returned status {response.status}")
                     return False

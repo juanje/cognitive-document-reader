@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from .config import ReadingConfig
-from .document import DocumentKnowledge, DocumentSection, SectionSummary
-from .knowledge import LanguageCode
+from .config import CognitiveConfig
+from .document import CognitiveKnowledge, DocumentSection, SectionSummary
+from .knowledge import ConceptDefinition, LanguageCode
 
 __all__ = [
-    "ReadingConfig",
-    "DocumentKnowledge",
+    "CognitiveConfig",
+    "CognitiveKnowledge",
     "DocumentSection",
     "SectionSummary",
+    "ConceptDefinition",
     "LanguageCode",
 ]

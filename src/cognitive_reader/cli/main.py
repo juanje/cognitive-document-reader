@@ -12,14 +12,12 @@ from typing import Any
 import click
 
 from ..core.progressive_reader import CognitiveReader
-from ..models.config import ReadingConfig
-from ..models.document import DocumentKnowledge
+from ..models.config import CognitiveConfig
+from ..models.document import CognitiveKnowledge
 from ..models.knowledge import LanguageCode
 from ..utils.structure_formatter import (
-    format_structure_as_json,
-    format_structure_as_text,
-    format_structure_compact,
     filter_sections_by_depth,
+    format_structure_as_text,
     validate_structure_integrity,
 )
 
@@ -51,9 +49,10 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--model", "-m", type=str, help="LLM model to use (overrides environment config)"
 )
-@click.option(
-    "--fast-mode", is_flag=True, help="Use fast model for quicker processing"
-)
+# TODO: Phase 2 - fast_mode replaced by dual model strategy (enable_fast_first_pass)
+# @click.option(
+#     "--fast-mode", is_flag=True, help="Use fast model for quicker processing"
+# )
 @click.option(
     "--temperature", "-t", type=float, help="Temperature for LLM generation (0.0-2.0)"
 )
@@ -74,19 +73,20 @@ logger = logging.getLogger(__name__)
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all output except results")
-@click.option(
-    "--save-partials", is_flag=True, help="Save partial results as sections are processed"
-)
-@click.option(
-    "--partials-dir",
-    type=click.Path(path_type=Path),
-    help="Directory to save partial results (default: ./partial_results)",
-)
-@click.option(
-    "--max-sections",
-    type=int,
-    help="Maximum number of sections to process (for testing with large docs)",
-)
+# TODO: Phase 2 - Re-enable these development features when logic is implemented
+# @click.option(
+#     "--save-partials", is_flag=True, help="Save partial results as sections are processed"
+# )
+# @click.option(
+#     "--partials-dir",
+#     type=click.Path(path_type=Path),
+#     help="Directory to save partial results (default: ./partial_results)",
+# )
+# @click.option(
+#     "--max-sections",
+#     type=int,
+#     help="Maximum number of sections to process (for testing with large docs)",
+# )
 @click.option(
     "--max-depth",
     type=int,
@@ -103,7 +103,7 @@ def cli(
     output: str,
     language: str,
     model: str | None,
-    fast_mode: bool,
+    # fast_mode: bool,             # TODO: Phase 2 - replaced by dual model strategy
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
@@ -111,10 +111,10 @@ def cli(
     output_file: Path | None,
     verbose: bool,
     quiet: bool,
-    save_partials: bool,
-    partials_dir: Path | None,
-    max_sections: int | None,
-    max_depth: int | None,
+    # save_partials: bool,       # TODO: Phase 2
+    # partials_dir: Path | None, # TODO: Phase 2
+    # max_sections: int | None,  # TODO: Phase 2
+    max_depth: int | None,       # ✅ WORKING: for --structure-only
     structure_only: bool,
 ) -> None:
     """Cognitive Document Reader - Human-like document understanding.
@@ -126,32 +126,37 @@ def cli(
     Examples:
 
         # Basic usage
+
         cognitive-reader document.md
 
         # JSON output to file
+
         cognitive-reader document.md --output json -f analysis.json
 
         # Spanish document with specific model
+
         cognitive-reader documento.md --language es --model qwen3:8b
 
         # Development modes
+
         cognitive-reader document.md --dry-run
         cognitive-reader --validate-config
 
-        # Testing with large documents (process only first 5 sections)
-        cognitive-reader large_doc.md --max-sections 5 --save-partials
+        # Show only document structure (fast, no LLM processing)
 
-        # Limit analysis depth and save partials to custom directory
-        cognitive-reader complex_doc.md --max-depth 2 --partials-dir ./debug_output
-
-        # Fast mode with limited sections for quick testing
-        cognitive-reader document.md --fast-mode --max-sections 3 --save-partials
-
-        # Show only document structure (for debugging or quick overview)
         cognitive-reader document.md --structure-only
-        
+
         # Show structure limited to depth 2 (first two hierarchy levels)
+
         cognitive-reader document.md --structure-only --max-depth 2
+
+        # Verbose mode to see document structure before processing
+
+        cognitive-reader document.md --verbose
+
+        # Process with custom temperature
+
+        cognitive-reader document.md --temperature 0.2
     """
     # Configure logging based on verbosity
     if quiet:
@@ -167,7 +172,7 @@ def cli(
                 output=output,
                 language=language,
                 model=model,
-                fast_mode=fast_mode,
+                # fast_mode=fast_mode,             # TODO: Phase 2 - replaced by dual model strategy
                 temperature=temperature,
                 dry_run=dry_run,
                 mock_responses=mock_responses,
@@ -175,10 +180,10 @@ def cli(
                 output_file=output_file,
                 verbose=verbose,
                 quiet=quiet,
-                save_partials=save_partials,
-                partials_dir=partials_dir,
-                max_sections=max_sections,
-                max_depth=max_depth,
+                # save_partials=save_partials,    # TODO: Phase 2
+                # partials_dir=partials_dir,      # TODO: Phase 2
+                # max_sections=max_sections,      # TODO: Phase 2
+                max_depth=max_depth,             # ✅ WORKING
                 structure_only=structure_only,
             )
         )
@@ -201,7 +206,7 @@ async def _async_main(
     output: str,
     language: str,
     model: str | None,
-    fast_mode: bool,
+    # fast_mode: bool,             # TODO: Phase 2 - replaced by dual model strategy
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
@@ -209,10 +214,10 @@ async def _async_main(
     output_file: Path | None,
     verbose: bool,
     quiet: bool,
-    save_partials: bool,
-    partials_dir: Path | None,
-    max_sections: int | None,
-    max_depth: int | None,
+    # save_partials: bool,       # TODO: Phase 2
+    # partials_dir: Path | None, # TODO: Phase 2
+    # max_sections: int | None,  # TODO: Phase 2
+    max_depth: int | None,       # ✅ WORKING
     structure_only: bool,
 ) -> None:
     """Async main function for CLI operations."""
@@ -221,15 +226,15 @@ async def _async_main(
     config = _build_config(
         language=language,
         model=model,
-        fast_mode=fast_mode,
+        # fast_mode=fast_mode,             # TODO: Phase 2 - replaced by dual model strategy
         temperature=temperature,
         dry_run=dry_run,
         mock_responses=mock_responses,
         validate_config=validate_config,
-        save_partials=save_partials,
-        partials_dir=partials_dir,
-        max_sections=max_sections,
-        max_depth=max_depth,
+        # save_partials=save_partials,    # TODO: Phase 2
+        # partials_dir=partials_dir,      # TODO: Phase 2
+        # max_sections=max_sections,      # TODO: Phase 2
+        max_depth=max_depth,             # ✅ WORKING
     )
 
     # Initialize reader
@@ -264,71 +269,76 @@ async def _async_main(
                 dev_modes.append("dry-run")
             if config.mock_responses:
                 dev_modes.append("mock-responses")
-            if config.save_partial_results:
-                dev_modes.append("save-partials")
-            if config.max_sections:
-                dev_modes.append(f"max-sections={config.max_sections}")
-            if config.max_section_depth:
-                dev_modes.append(f"max-depth={config.max_section_depth}")
+            # TODO: Phase 2 - Re-implement these development features:
+            # if config.save_partial_results:
+            #     dev_modes.append("save-partials")
+            # if config.max_sections:
+            #     dev_modes.append(f"max-sections={config.max_sections}")
+
+            # ✅ WORKING: Show max-depth when used with --structure-only
+            if config.max_hierarchy_depth and config.max_hierarchy_depth != 3:  # Don't show default
+                dev_modes.append(f"max-depth={config.max_hierarchy_depth}")
+
             click.echo(f"Development mode: {', '.join(dev_modes)}")
-            if config.save_partial_results:
-                click.echo(f"Partial results will be saved to: {config.partial_results_dir}")
+            # TODO: Phase 2 - Re-implement:
+            # if config.save_partial_results:
+            #     click.echo(f"Partial results will be saved to: {config.partial_results_dir}")
 
     # Handle structure-only mode
     if structure_only:
         # Parse document to extract structure without any LLM processing
         document_title, sections = await reader.parser.parse_text(
-            document.read_text(encoding="utf-8"), 
+            document.read_text(encoding="utf-8"),
             document.name
         )
-        
+
         # Apply depth filtering if specified
-        if config.max_section_depth:
-            sections = filter_sections_by_depth(sections, config.max_section_depth)
-        
+        if config.max_hierarchy_depth:
+            sections = filter_sections_by_depth(sections, config.max_hierarchy_depth)
+
         # Simply show the clean structure tree (headings only)
         structure_output = format_structure_as_text(sections, headings_only=True)
-        
+
         # Output to file or console
         if output_file:
             output_file.write_text(structure_output, encoding="utf-8")
         else:
             click.echo(structure_output)
-        
+
         return
-    
+
     # Show structure in verbose mode before processing
     if verbose and not quiet:
         # Parse document to extract structure for preview
         document_title, sections = await reader.parser.parse_text(
-            document.read_text(encoding="utf-8"), 
+            document.read_text(encoding="utf-8"),
             document.name
         )
-        
+
         # Apply depth filtering if specified
         display_sections = sections
-        if config.max_section_depth:
-            display_sections = filter_sections_by_depth(sections, config.max_section_depth)
+        if config.max_hierarchy_depth:
+            display_sections = filter_sections_by_depth(sections, config.max_hierarchy_depth)
             if len(display_sections) < len(sections):
-                click.echo(f"📋 Document Structure (showing depth ≤ {config.max_section_depth}):")
+                click.echo(f"📋 Document Structure (showing depth ≤ {config.max_hierarchy_depth}):")
             else:
                 click.echo("📋 Document Structure:")
         else:
             click.echo("📋 Document Structure:")
-        
+
         structure_tree = format_structure_as_text(display_sections, headings_only=True)
         # Indent the structure tree for better visual separation
         for line in structure_tree.split('\n'):
             if line.strip():  # Only indent non-empty lines
                 click.echo(f"   {line}")
-        
+
         # Show validation issues if any (on full structure, not filtered)
         issues = validate_structure_integrity(sections)
         if issues:
             click.echo("⚠️  Structure issues detected:")
             for issue in issues:
                 click.echo(f"   - {issue}")
-        
+
         click.echo()  # Add spacing before processing starts
 
     # Process the document
@@ -358,16 +368,16 @@ async def _async_main(
 def _build_config(
     language: str,
     model: str | None,
-    fast_mode: bool,
+    # fast_mode: bool,             # TODO: Phase 2 - replaced by dual model strategy
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
     validate_config: bool,
-    save_partials: bool,
-    partials_dir: Path | None,
-    max_sections: int | None,
-    max_depth: int | None,
-) -> ReadingConfig:
+    # save_partials: bool,       # TODO: Phase 2
+    # partials_dir: Path | None, # TODO: Phase 2
+    # max_sections: int | None,  # TODO: Phase 2
+    max_depth: int | None,       # ✅ WORKING
+) -> CognitiveConfig:
     """Build configuration from CLI options and environment."""
 
     # Start with environment configuration
@@ -375,11 +385,12 @@ def _build_config(
 
     # Override with CLI options
     if model:
-        # Legacy support: if --model is specified, use it for both fast and quality
-        config_dict["fast_model"] = model
-        config_dict["quality_model"] = model
-    if fast_mode:
-        config_dict["fast_mode"] = fast_mode
+        config_dict["model_name"] = model
+        # If --model is specified, override both models in dual strategy
+        config_dict["main_model"] = model
+        config_dict["fast_pass_model"] = model
+    # TODO: Phase 2 - fast_mode is now replaced by dual model strategy
+    # The enable_fast_first_pass config controls this behavior
     if temperature is not None:
         config_dict["temperature"] = temperature
     if language != "auto":
@@ -391,16 +402,20 @@ def _build_config(
     config_dict["validate_config_only"] = validate_config
 
     # Development and testing features
-    config_dict["save_partial_results"] = save_partials
-    if partials_dir is not None:
-        config_dict["partial_results_dir"] = str(partials_dir)
-    if max_sections is not None:
-        config_dict["max_sections"] = max_sections
+    # Apply CLI overrides
+    # TODO: Phase 2 - Re-implement these development features:
+    # config_dict["save_partial_results"] = save_partials
+    # if partials_dir is not None:
+    #     config_dict["partial_results_dir"] = str(partials_dir)
+    # if max_sections is not None:
+    #     config_dict["max_sections"] = max_sections
+
+    # ✅ WORKING: max_depth with --structure-only
     if max_depth is not None:
-        config_dict["max_section_depth"] = max_depth
+        config_dict["max_hierarchy_depth"] = max_depth
 
     # Create configuration
-    base_config = ReadingConfig.from_env()
+    base_config = CognitiveConfig.from_env()
 
     # Apply overrides
     if config_dict:
@@ -411,7 +426,7 @@ def _build_config(
     return config
 
 
-def _format_json_output(knowledge: DocumentKnowledge) -> str:
+def _format_json_output(knowledge: CognitiveKnowledge) -> str:
     """Format knowledge as JSON output."""
     # Convert to dict for JSON serialization
     output_dict = {
@@ -447,7 +462,7 @@ def _format_json_output(knowledge: DocumentKnowledge) -> str:
     return json.dumps(output_dict, indent=2, ensure_ascii=False)
 
 
-def _format_markdown_output(knowledge: DocumentKnowledge) -> str:
+def _format_markdown_output(knowledge: CognitiveKnowledge) -> str:
     """Format knowledge as enhanced Markdown output."""
     lines = []
 

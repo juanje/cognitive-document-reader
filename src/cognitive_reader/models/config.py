@@ -3,195 +3,147 @@
 from __future__ import annotations
 
 import os
-from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field
 
 from .knowledge import LanguageCode
 
 
-class ReadingConfig(BaseModel):
-    """Simplified reading configuration for MVP - focus on essentials.
+class CognitiveConfig(BaseModel):
+    """Configuration for cognitive document processing v2.0.
 
-    This configuration model provides all necessary settings for the cognitive
-    document reader with sensible defaults optimized for production use.
+    This configuration implements the dual model strategy and multi-pass processing
+    according to SPECS v2.0 for authentic cognitive reading simulation.
     """
 
-    # LLM Configuration (dual model system for speed vs quality)
-    fast_model: str = Field(
-        default="llama3.1:8b",
-        description="Fast model for quick processing and development",
-    )
-    quality_model: str = Field(
-        default="qwen3:8b",
-        description="High-quality model for deep analysis (slower, reasoning mode)",
-    )
-    fast_mode: bool = Field(
-        default=False,
-        description="Use fast model for quicker responses, quality model otherwise",
-    )
-    temperature: float = Field(
-        default=0.1,
+    # LLM Configuration
+    model_name: str = Field(default="qwen3:8b", description="Default LLM model name (used when dual models not configured)")
+    temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="LLM temperature")
+
+    # Multi-pass configuration (extensible design)
+    max_passes: int = Field(default=2, ge=1, le=10, description="Maximum number of cognitive passes")
+    convergence_threshold: float = Field(default=0.1, ge=0.01, le=1.0, description="Threshold to detect when additional passes add minimal value")
+
+    # Dual model strategy: fast first scan + quality processing
+    enable_fast_first_pass: bool = Field(default=True, description="Use fast model for initial scan")
+    fast_pass_model: str | None = Field(default="llama3.1:8b", description="Fast model for initial document scan")
+    main_model: str | None = Field(default="qwen3:8b", description="Quality model for detailed cognitive processing")
+
+    # Temperature settings
+    fast_pass_temperature: float | None = Field(default=0.1, ge=0.0, le=2.0, description="Temperature for fast scan")
+    main_pass_temperature: float | None = Field(default=0.3, ge=0.0, le=2.0, description="Temperature for quality processing")
+
+    # Cognitive Features
+    enable_second_pass: bool = Field(default=True, description="Enable second pass processing")
+    enable_refinement: bool = Field(default=True, description="Enable refinement during reading")
+    refinement_threshold: float = Field(
+        default=0.4,
         ge=0.0,
-        le=2.0,
-        description="Temperature for LLM - low value for consistent summaries",
+        le=1.0,
+        description="Threshold for triggering refinement (0.0=never, 1.0=always)"
     )
 
-    # Document Processing (essential settings)
-    chunk_size: int = Field(
-        default=1000, gt=100, description="Optimal chunk size for cognitive reading"
-    )
-    chunk_overlap: int = Field(
-        default=200,
-        ge=0,
-        description="Chunk overlap - ~20% overlap maintains continuity",
-    )
-    context_window: int = Field(
-        default=4096,
-        gt=0,
-        description="Context window size - standard limit that works",
-    )
+    # Document Processing
+    chunk_size: int = Field(default=1000, gt=100, description="Text chunk size for processing")
+    chunk_overlap: int = Field(default=200, ge=0, description="Overlap between chunks")
+    context_window: int = Field(default=4096, gt=0, description="LLM context window limit")
 
-    # Performance Settings (simplified)
-    timeout_seconds: int = Field(
-        default=120, gt=0, description="Timeout for LLM operations in seconds"
-    )
-    max_retries: int = Field(
-        default=3, ge=0, description="Maximum retry attempts for failed operations"
-    )
+    # Performance Settings
+    timeout_seconds: int = Field(default=120, gt=0, description="Request timeout")
+    max_retries: int = Field(default=3, ge=0, description="Maximum retry attempts")
+    document_language: LanguageCode = Field(default=LanguageCode.AUTO, description="Document language")
 
-    # Language and Output
-    document_language: LanguageCode = Field(
-        default=LanguageCode.AUTO,
-        description="Document language - auto-detect or specify",
-    )
+    # Summary Optimization for RAG/Fine-tuning
+    target_summary_length: int = Field(default=800, gt=100, description="Target summary length in characters")
+    min_summary_length: int = Field(default=400, gt=50, description="Minimum summary length in characters")
+    max_summary_length: int = Field(default=1200, gt=100, description="Maximum summary length in characters")
+    max_hierarchy_depth: int = Field(default=3, ge=1, description="Maximum hierarchy depth (0=book, 1=chapter, 2=section)")
 
-    # Development modes (AI agent friendly)
-    dry_run: bool = Field(
-        default=False, description="Enable dry-run mode - no actual LLM calls"
-    )
-    mock_responses: bool = Field(
-        default=False, description="Use simulated responses for testing"
-    )
-    validate_config_only: bool = Field(
-        default=False, description="Only validate configuration, no processing"
-    )
-
-    # Development and Testing Features
-    save_partial_results: bool = Field(
-        default=False,
-        description="Save section summaries as they are processed for debugging",
-    )
-    partial_results_dir: str = Field(
-        default="./partial_results",
-        description="Directory to save partial results and debug information",
-    )
-    max_sections: int | None = Field(
-        default=None,
-        description="Maximum number of sections to process (for testing with large docs)",
-    )
-    max_section_depth: int | None = Field(
-        default=None,
-        description="Maximum section depth level to analyze (avoid deep hierarchies)",
-    )
-
-    # Environment variable mappings
-    _env_mapping: ClassVar[dict[str, str]] = {
-        "fast_model": "COGNITIVE_READER_FAST_MODEL",
-        "quality_model": "COGNITIVE_READER_QUALITY_MODEL",
-        "fast_mode": "COGNITIVE_READER_FAST_MODE",
-        "temperature": "COGNITIVE_READER_TEMPERATURE",
-        "chunk_size": "COGNITIVE_READER_CHUNK_SIZE",
-        "chunk_overlap": "COGNITIVE_READER_CHUNK_OVERLAP",
-        "context_window": "COGNITIVE_READER_CONTEXT_WINDOW",
-        "timeout_seconds": "COGNITIVE_READER_TIMEOUT_SECONDS",
-        "max_retries": "COGNITIVE_READER_MAX_RETRIES",
-        "document_language": "COGNITIVE_READER_LANGUAGE",
-        "dry_run": "COGNITIVE_READER_DRY_RUN",
-        "mock_responses": "COGNITIVE_READER_MOCK_RESPONSES",
-        "validate_config_only": "COGNITIVE_READER_VALIDATE_CONFIG_ONLY",
-        "save_partial_results": "COGNITIVE_READER_SAVE_PARTIALS",
-        "partial_results_dir": "COGNITIVE_READER_PARTIALS_DIR",
-        "max_sections": "COGNITIVE_READER_MAX_SECTIONS",
-        "max_section_depth": "COGNITIVE_READER_MAX_DEPTH",
-    }
-
-    @property
-    def active_model(self) -> str:
-        """Get the currently active model based on fast_mode setting.
-
-        Returns:
-            str: fast_model if fast_mode is True, quality_model otherwise
-        """
-        return self.fast_model if self.fast_mode else self.quality_model
-
-    def enable_fast_mode(self) -> ReadingConfig:
-        """Enable fast mode for quicker processing.
-
-        Returns:
-            ReadingConfig: New config instance with fast_mode enabled
-        """
-        return self.model_copy(update={"fast_mode": True})
-
-    def enable_quality_mode(self) -> ReadingConfig:
-        """Enable quality mode for deep analysis.
-
-        Returns:
-            ReadingConfig: New config instance with fast_mode disabled
-        """
-        return self.model_copy(update={"fast_mode": False})
+    # Development Features
+    dry_run: bool = Field(default=False, description="Enable dry-run mode (no actual LLM calls)")
+    mock_responses: bool = Field(default=False, description="Use mock responses for testing")
+    validate_config_only: bool = Field(default=False, description="Only validate configuration")
+    
+    # NOTE: max_hierarchy_depth is used for --structure-only --max-depth functionality
 
     @classmethod
-    def from_env(cls) -> ReadingConfig:
-        """Create config from environment variables with fallback to defaults.
+    def from_env(cls) -> CognitiveConfig:
+        """Create configuration from environment variables with fallback to defaults.
 
         Returns:
-            ReadingConfig: Configuration instance with values from environment
-                          variables or defaults.
+            CognitiveConfig: Configuration instance with values from environment
+                          variables or defaults according to SPECS v2.0.
         """
-        kwargs: dict[str, Any] = {}
+        return cls(
+            # LLM settings
+            model_name=os.getenv("COGNITIVE_READER_MODEL", "qwen3:8b"),
+            temperature=float(os.getenv("COGNITIVE_READER_TEMPERATURE", "0.1")),
 
-        for field_name, env_var in cls._env_mapping.items():
-            env_value = os.getenv(env_var)
-            if env_value is not None:
-                # Handle type conversion based on field
-                if field_name in {"temperature"}:
-                    kwargs[field_name] = float(env_value)
-                elif field_name in {
-                    "chunk_size",
-                    "chunk_overlap",
-                    "context_window",
-                    "timeout_seconds",
-                    "max_retries",
-                }:
-                    kwargs[field_name] = int(env_value)
-                elif field_name in {"max_sections", "max_section_depth"}:
-                    # Handle optional integer fields
-                    kwargs[field_name] = int(env_value) if env_value.strip() else None
-                elif field_name in {
-                    "dry_run",
-                    "mock_responses",
-                    "validate_config_only",
-                    "save_partial_results",
-                }:
-                    kwargs[field_name] = env_value.lower() in ("true", "1", "yes", "on")
-                elif field_name == "document_language":
-                    kwargs[field_name] = LanguageCode(env_value)
-                elif field_name == "fast_mode":
-                    kwargs[field_name] = env_value.lower() in ("true", "1", "yes", "on")
-                else:
-                    kwargs[field_name] = env_value
+            # Multi-pass configuration (extensible design)
+            max_passes=int(os.getenv("COGNITIVE_READER_MAX_PASSES", "2")),
+            convergence_threshold=float(os.getenv("COGNITIVE_READER_CONVERGENCE_THRESHOLD", "0.1")),
 
-        # Backward compatibility: support legacy COGNITIVE_READER_MODEL
-        legacy_model = os.getenv("COGNITIVE_READER_MODEL")
-        if legacy_model is not None:
-            # If legacy model is set but new fields aren't, use legacy for both
-            if "fast_model" not in kwargs:
-                kwargs["fast_model"] = legacy_model
-            if "quality_model" not in kwargs:
-                kwargs["quality_model"] = legacy_model
+            # Dual model settings (fast scan + quality processing)
+            enable_fast_first_pass=os.getenv("COGNITIVE_READER_ENABLE_FAST_FIRST_PASS", "true").lower() == "true",
+            fast_pass_model=os.getenv("COGNITIVE_READER_FAST_PASS_MODEL", "llama3.1:8b"),
+            main_model=os.getenv("COGNITIVE_READER_MAIN_MODEL", "qwen3:8b"),
+            fast_pass_temperature=float(os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE", "0.1")) if os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE") else None,
+            main_pass_temperature=float(os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE", "0.3")) if os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE") else None,
 
-        return cls(**kwargs)
+            # Cognitive features
+            enable_second_pass=os.getenv("COGNITIVE_READER_ENABLE_SECOND_PASS", "true").lower() == "true",
+            enable_refinement=os.getenv("COGNITIVE_READER_ENABLE_REFINEMENT", "true").lower() == "true",
+            refinement_threshold=float(os.getenv("COGNITIVE_READER_REFINEMENT_THRESHOLD", "0.4")),
+
+            # Processing settings
+            chunk_size=int(os.getenv("COGNITIVE_READER_CHUNK_SIZE", "1000")),
+            chunk_overlap=int(os.getenv("COGNITIVE_READER_CHUNK_OVERLAP", "200")),
+            context_window=int(os.getenv("COGNITIVE_READER_CONTEXT_WINDOW", "4096")),
+
+            # Performance settings
+            timeout_seconds=int(os.getenv("COGNITIVE_READER_TIMEOUT_SECONDS", "120")),
+            max_retries=int(os.getenv("COGNITIVE_READER_MAX_RETRIES", "3")),
+            document_language=LanguageCode(os.getenv("COGNITIVE_READER_LANGUAGE", "auto")),
+
+            # Summary optimization for RAG/Fine-tuning
+            target_summary_length=int(os.getenv("COGNITIVE_READER_TARGET_SUMMARY_LENGTH", "800")),
+            min_summary_length=int(os.getenv("COGNITIVE_READER_MIN_SUMMARY_LENGTH", "400")),
+            max_summary_length=int(os.getenv("COGNITIVE_READER_MAX_SUMMARY_LENGTH", "1200")),
+            max_hierarchy_depth=int(os.getenv("COGNITIVE_READER_MAX_HIERARCHY_DEPTH", "3")),
+
+            # Development features
+            dry_run=os.getenv("COGNITIVE_READER_DRY_RUN", "false").lower() == "true",
+            mock_responses=os.getenv("COGNITIVE_READER_MOCK_RESPONSES", "false").lower() == "true",
+            validate_config_only=os.getenv("COGNITIVE_READER_VALIDATE_CONFIG_ONLY", "false").lower() == "true",
+        )
+
+    def get_model_for_pass(self, pass_number: int) -> str:
+        """Get the appropriate model for a specific pass.
+
+        Args:
+            pass_number: The pass number (1-based)
+
+        Returns:
+            str: Model name to use for this pass
+        """
+        if pass_number == 1 and self.enable_fast_first_pass and self.fast_pass_model:
+            return self.fast_pass_model
+        return self.main_model or self.model_name
+
+    def get_temperature_for_pass(self, pass_number: int) -> float:
+        """Get the appropriate temperature for a specific pass.
+
+        Args:
+            pass_number: The pass number (1-based)
+
+        Returns:
+            float: Temperature to use for this pass
+        """
+        if pass_number == 1 and self.enable_fast_first_pass and self.fast_pass_temperature is not None:
+            return self.fast_pass_temperature
+        if pass_number > 1 and self.main_pass_temperature is not None:
+            return self.main_pass_temperature
+        return self.temperature
 
     def is_development_mode(self) -> bool:
         """Check if any development mode is enabled.
@@ -203,7 +155,4 @@ class ReadingConfig(BaseModel):
             self.dry_run
             or self.mock_responses
             or self.validate_config_only
-            or self.save_partial_results
-            or self.max_sections is not None
-            or self.max_section_depth is not None
         )

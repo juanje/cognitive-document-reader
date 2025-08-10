@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import pytest
 
-from cognitive_reader.models import ReadingConfig
+from cognitive_reader.models import CognitiveConfig
 from cognitive_reader.models.knowledge import LanguageCode
 
 
 @pytest.fixture
-def test_config() -> ReadingConfig:
+def test_config() -> CognitiveConfig:
     """Simple test configuration with mocks enabled.
 
     Returns:
-        ReadingConfig with development modes enabled for testing.
+        CognitiveConfig with development modes enabled for testing.
     """
-    return ReadingConfig(
+    return CognitiveConfig(
         model_name="test-model",
         temperature=0.1,
         chunk_size=500,  # Smaller for faster tests
@@ -168,34 +168,34 @@ def empty_markdown() -> str:
 
 
 @pytest.fixture
-def mock_document_knowledge():
-    """Mock DocumentKnowledge for testing outputs.
+def mock_cognitive_knowledge():
+    """Mock CognitiveKnowledge for testing outputs.
 
     Returns:
-        Mock DocumentKnowledge object with sample data.
+        Mock CognitiveKnowledge object with sample data.
     """
     from cognitive_reader.models import (
-        DocumentKnowledge,
-        DocumentSection,
+        CognitiveKnowledge,
         SectionSummary,
     )
 
-    sections = [
-        DocumentSection(
-            id="section_1",
-            title="Introduction",
-            content="This is the introduction section.",
-            level=1,
-            order_index=1,
-        ),
-        DocumentSection(
-            id="section_2",
-            title="Main Content",
-            content="This is the main content section.",
-            level=1,
-            order_index=2,
-        ),
-    ]
+    # Example sections for reference (not used in this fixture)
+    # sections = [
+    #     DocumentSection(
+    #         id="section_1",
+    #         title="Introduction",
+    #         content="This is the introduction section.",
+    #         level=1,
+    #         order_index=1,
+    #     ),
+    #     DocumentSection(
+    #         id="section_2",
+    #         title="Main Content",
+    #         content="This is the main content section.",
+    #         level=1,
+    #         order_index=2,
+    #     ),
+    # ]
 
     summaries = {
         "section_1": SectionSummary(
@@ -203,24 +203,27 @@ def mock_document_knowledge():
             title="Introduction",
             summary="This section provides an introduction to the topic.",
             key_concepts=["introduction", "overview", "context"],
+            level=1,
+            order_index=1,
         ),
         "section_2": SectionSummary(
             section_id="section_2",
             title="Main Content",
             summary="This section contains the main discussion.",
             key_concepts=["main topic", "discussion", "analysis"],
+            level=1,
+            order_index=2,
         ),
     }
 
-    return DocumentKnowledge(
+    return CognitiveKnowledge(
         document_title="Test Document",
-        document_summary="This is a test document for validation purposes.",
         detected_language=LanguageCode.EN,
-        sections=sections,
-        section_summaries=summaries,
-        processing_metadata={
-            "test_mode": True,
-            "total_sections": 2,
-            "total_summaries": 2,
-        },
+        hierarchical_summaries=summaries,
+        concepts=[],  # Empty for basic test
+        hierarchy_index={"1": ["section_1", "section_2"]},
+        parent_child_map={},
+        total_sections=2,
+        avg_summary_length=50,
+        total_concepts=0,
     )

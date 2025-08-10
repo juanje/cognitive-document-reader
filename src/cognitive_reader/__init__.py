@@ -8,8 +8,8 @@ and enriched metadata for AI projects.
 from __future__ import annotations
 
 from .core.progressive_reader import CognitiveReader
-from .models.config import ReadingConfig
-from .models.document import DocumentKnowledge, DocumentSection, SectionSummary
+from .models.config import CognitiveConfig
+from .models.document import CognitiveKnowledge, DocumentSection, SectionSummary
 from .models.knowledge import LanguageCode
 
 try:
@@ -19,8 +19,8 @@ except ImportError:
 
 __all__ = [
     "CognitiveReader",
-    "ReadingConfig",
-    "DocumentKnowledge",
+    "CognitiveConfig",
+    "CognitiveKnowledge",
     "DocumentSection",
     "SectionSummary",
     "LanguageCode",

@@ -126,7 +126,6 @@ def test_cli_markdown_output(runner, sample_md_file):
 
     assert result.exit_code == 0
     assert "# Test Document" in result.output
-    assert "## Document Summary" in result.output
     assert "## Processing Information" in result.output
 
 

@@ -3,17 +3,14 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
-
-import pytest
 
 from cognitive_reader.models.document import DocumentSection
 from cognitive_reader.utils.structure_formatter import (
+    filter_sections_by_depth,
     format_structure_as_json,
     format_structure_as_text,
     format_structure_compact,
     get_structure_summary,
-    filter_sections_by_depth,
     validate_structure_integrity,
 )
 
@@ -25,7 +22,7 @@ class TestFormatStructureAsText:
         """Test formatting empty structure."""
         sections: list[DocumentSection] = []
         result = format_structure_as_text(sections)
-        
+
         expected = "(No sections detected)"
         assert result == expected
 
@@ -41,9 +38,9 @@ class TestFormatStructureAsText:
                 is_heading=True,
             )
         ]
-        
+
         result = format_structure_as_text(sections)
-        
+
         expected = "Introduction"
         assert result == expected
 
@@ -58,7 +55,7 @@ class TestFormatStructureAsText:
                 order_index=1,
             ),
             DocumentSection(
-                id="section_2", 
+                id="section_2",
                 title="Section 1.1",
                 content="Section content",
                 level=2,
@@ -81,17 +78,17 @@ class TestFormatStructureAsText:
                 order_index=4,
             ),
         ]
-        
+
         result = format_structure_as_text(sections)
-        
+
         expected_lines = [
             "Chapter 1",
             "  Section 1.1",
-            "  Section 1.2", 
+            "  Section 1.2",
             "Chapter 2",
         ]
         expected = "\n".join(expected_lines)
-        
+
         assert result == expected
 
     def test_format_deep_hierarchy(self) -> None:
@@ -107,16 +104,16 @@ class TestFormatStructureAsText:
                 id="3", title="Level 3", content="", level=3, order_index=3
             ),
         ]
-        
+
         result = format_structure_as_text(sections)
-        
+
         expected_lines = [
             "Level 1",
             "  Level 2",
             "    Level 3",
         ]
         expected = "\n".join(expected_lines)
-        
+
         assert result == expected
 
     def test_format_with_cleaned_titles(self) -> None:
@@ -130,9 +127,9 @@ class TestFormatStructureAsText:
                 order_index=1,
             )
         ]
-        
+
         result = format_structure_as_text(sections)
-        
+
         # Should show cleaned title, not content
         assert result == "Introduction"
         assert "{#intro}" not in result
@@ -153,21 +150,21 @@ class TestFormatStructureAsText:
                 id="4", title="Another paragraph...", content="", level=2, order_index=4, is_heading=False
             ),
         ]
-        
+
         # Without filter - shows all sections
         result_all = format_structure_as_text(sections, headings_only=False)
         assert "Chapter 1" in result_all
         assert "Some paragraph content here..." in result_all
         assert "Section 1.1" in result_all
         assert "Another paragraph..." in result_all
-        
+
         # With filter - shows only headings
         result_headings = format_structure_as_text(sections, headings_only=True)
         assert "Chapter 1" in result_headings
         assert "Section 1.1" in result_headings
         assert "Some paragraph content here..." not in result_headings
         assert "Another paragraph..." not in result_headings
-        
+
         # Structure should be clean
         expected_lines = ["Chapter 1", "  Section 1.1"]
         assert result_headings == "\n".join(expected_lines)
@@ -182,7 +179,7 @@ class TestFormatStructureAsText:
                 id="2", title="More content", content="", level=1, order_index=2, is_heading=False
             ),
         ]
-        
+
         result = format_structure_as_text(sections, headings_only=True)
         assert result == "(No headings detected)"
 
@@ -194,9 +191,9 @@ class TestFormatStructureAsJson:
         """Test JSON formatting of empty structure."""
         sections: list[DocumentSection] = []
         result = format_structure_as_json(sections)
-        
+
         parsed = json.loads(result)
-        
+
         assert parsed["document_structure"]["total_sections"] == 0
         assert parsed["document_structure"]["max_depth"] == 0
         assert parsed["document_structure"]["sections"] == []
@@ -213,14 +210,14 @@ class TestFormatStructureAsJson:
                 children_ids=["child_1", "child_2"],
             )
         ]
-        
+
         result = format_structure_as_json(sections)
         parsed = json.loads(result)
-        
+
         structure = parsed["document_structure"]
         assert structure["total_sections"] == 1
         assert structure["max_depth"] == 1
-        
+
         section_data = structure["sections"][0]
         assert section_data["id"] == "section_1"
         assert section_data["title"] == "Introduction"
@@ -240,20 +237,20 @@ class TestFormatStructureAsJson:
                 parent_id="section_1"
             ),
         ]
-        
+
         result = format_structure_as_json(sections)
         parsed = json.loads(result)
-        
+
         structure = parsed["document_structure"]
         assert structure["total_sections"] == 2
         assert structure["max_depth"] == 2
-        
+
         # Check parent section
         parent = structure["sections"][0]
         assert parent["level"] == 1
         assert parent["has_children"] is False  # children_ids is empty in this test
-        
-        # Check child section  
+
+        # Check child section
         child = structure["sections"][1]
         assert child["level"] == 2
         assert child["parent_id"] == "section_1"
@@ -266,7 +263,7 @@ class TestFormatStructureCompact:
         """Test compact formatting of empty structure."""
         sections: list[DocumentSection] = []
         result = format_structure_compact(sections)
-        
+
         assert result == "Structure: No sections detected"
 
     def test_format_single_section_compact(self) -> None:
@@ -276,9 +273,9 @@ class TestFormatStructureCompact:
                 id="1", title="Introduction", content="", level=1, order_index=1
             )
         ]
-        
+
         result = format_structure_compact(sections)
-        
+
         expected = "Structure: 1 sections, max depth 1 | Introduction"
         assert result == expected
 
@@ -290,9 +287,9 @@ class TestFormatStructureCompact:
             DocumentSection(id="3", title="Section 1.2", content="", level=2, order_index=3),
             DocumentSection(id="4", title="Chapter 2", content="", level=1, order_index=4),
         ]
-        
+
         result = format_structure_compact(sections)
-        
+
         expected = "Structure: 4 sections, max depth 2 | Chapter 1 | → Section 1.1 | → Section 1.2 | Chapter 2"
         assert result == expected
 
@@ -302,9 +299,9 @@ class TestFormatStructureCompact:
             DocumentSection(id=f"{i}", title=f"Section {i}", content="", level=1, order_index=i)
             for i in range(1, 8)  # 7 sections
         ]
-        
+
         result = format_structure_compact(sections)
-        
+
         assert "Structure: 7 sections, max depth 1" in result
         assert "Section 1" in result
         assert "Section 2" in result
@@ -323,7 +320,7 @@ class TestGetStructureSummary:
         """Test summary of empty structure."""
         sections: list[DocumentSection] = []
         summary = get_structure_summary(sections)
-        
+
         expected = {
             "total_sections": 0,
             "max_depth": 0,
@@ -338,9 +335,9 @@ class TestGetStructureSummary:
             DocumentSection(id="1", title="Section 1", content="", level=1, order_index=1),
             DocumentSection(id="2", title="Section 2", content="", level=1, order_index=2),
         ]
-        
+
         summary = get_structure_summary(sections)
-        
+
         expected = {
             "total_sections": 2,
             "max_depth": 1,
@@ -357,9 +354,9 @@ class TestGetStructureSummary:
             DocumentSection(id="3", title="Section 2", content="", level=2, order_index=3),
             DocumentSection(id="4", title="Subsection", content="", level=3, order_index=4),
         ]
-        
+
         summary = get_structure_summary(sections)
-        
+
         expected = {
             "total_sections": 4,
             "max_depth": 3,
@@ -376,7 +373,7 @@ class TestValidateStructureIntegrity:
         """Test validation of empty structure."""
         sections: list[DocumentSection] = []
         issues = validate_structure_integrity(sections)
-        
+
         assert len(issues) == 1
         assert "No sections found" in issues[0]
 
@@ -387,9 +384,9 @@ class TestValidateStructureIntegrity:
             DocumentSection(id="2", title="Section 1.1", content="", level=2, order_index=2),
             DocumentSection(id="3", title="Chapter 2", content="", level=1, order_index=3),
         ]
-        
+
         issues = validate_structure_integrity(sections)
-        
+
         assert len(issues) == 0
 
     def test_validate_gap_in_order_indices(self) -> None:
@@ -398,9 +395,9 @@ class TestValidateStructureIntegrity:
             DocumentSection(id="1", title="Section 1", content="", level=1, order_index=1),
             DocumentSection(id="2", title="Section 3", content="", level=1, order_index=3),  # Gap: missing 2
         ]
-        
+
         issues = validate_structure_integrity(sections)
-        
+
         assert len(issues) >= 1
         assert any("order indices" in issue for issue in issues)
 
@@ -410,9 +407,9 @@ class TestValidateStructureIntegrity:
             DocumentSection(id="1", title="Chapter", content="", level=1, order_index=1),
             DocumentSection(id="2", title="Deep section", content="", level=4, order_index=2),  # Jump from 1 to 4
         ]
-        
+
         issues = validate_structure_integrity(sections)
-        
+
         assert len(issues) >= 1
         assert any("Large level jump" in issue for issue in issues)
 
@@ -421,9 +418,9 @@ class TestValidateStructureIntegrity:
         sections = [
             DocumentSection(id="1", title="Subsection", content="", level=3, order_index=1),  # Starts with level 3
         ]
-        
+
         issues = validate_structure_integrity(sections)
-        
+
         assert len(issues) >= 1
         assert any("starts with section level > 1" in issue for issue in issues)
 
@@ -435,7 +432,7 @@ class TestFilterSectionsByDepth:
         """Test filtering empty list of sections."""
         sections: list[DocumentSection] = []
         result = filter_sections_by_depth(sections, 2)
-        
+
         assert result == []
 
     def test_filter_single_level(self) -> None:
@@ -444,9 +441,9 @@ class TestFilterSectionsByDepth:
             DocumentSection(id="1", title="Section 1", content="", level=1, order_index=1),
             DocumentSection(id="2", title="Section 2", content="", level=1, order_index=2),
         ]
-        
+
         result = filter_sections_by_depth(sections, 1)
-        
+
         assert len(result) == 2
         assert all(section.level <= 1 for section in result)
 
@@ -460,10 +457,10 @@ class TestFilterSectionsByDepth:
             DocumentSection(id="5", title="Section 1.2", content="", level=2, order_index=5),
             DocumentSection(id="6", title="Chapter 2", content="", level=1, order_index=6),
         ]
-        
+
         # Filter to depth 2 (should include levels 1 and 2 only)
         result = filter_sections_by_depth(sections, 2)
-        
+
         assert len(result) == 4  # Chapter 1, Section 1.1, Section 1.2, Chapter 2
         assert all(section.level <= 2 for section in result)
         assert "Chapter 1" in [s.title for s in result]
@@ -482,10 +479,10 @@ class TestFilterSectionsByDepth:
             DocumentSection(id="4", title="Level 4", content="", level=4, order_index=4),
             DocumentSection(id="5", title="Level 5", content="", level=5, order_index=5),
         ]
-        
+
         # Filter to depth 3
         result = filter_sections_by_depth(sections, 3)
-        
+
         assert len(result) == 3
         assert [s.title for s in result] == ["Level 1", "Level 2", "Level 3"]
 
@@ -498,9 +495,9 @@ class TestFilterSectionsByDepth:
             DocumentSection(id="4", title="D", content="", level=1, order_index=4),
             DocumentSection(id="5", title="E", content="", level=3, order_index=5),
         ]
-        
+
         result = filter_sections_by_depth(sections, 2)
-        
+
         # Should preserve original order: A, C, D
         assert len(result) == 3
         assert [s.title for s in result] == ["A", "C", "D"]
@@ -512,9 +509,9 @@ class TestFilterSectionsByDepth:
             DocumentSection(id="1", title="Level 1", content="", level=1, order_index=1),
             DocumentSection(id="2", title="Level 2", content="", level=2, order_index=2),
         ]
-        
+
         result = filter_sections_by_depth(sections, 10)
-        
+
         # Should return all sections when max_depth is higher than any level
         assert len(result) == 2
         assert result == sections

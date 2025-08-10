@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import BaseModel, ConfigDict, Field
 
-from .knowledge import LanguageCode
+from .knowledge import ConceptDefinition, LanguageCode
 
 
 class DocumentSection(BaseModel):
@@ -37,94 +35,83 @@ class DocumentSection(BaseModel):
 
 
 class SectionSummary(BaseModel):
-    """Summary of a document section with extracted key concepts.
+    """Summary of a document section according to SPECS v2.0."""
 
-    Contains the processed understanding of a section including
-    its summary and key concepts for cognitive reading.
+    section_id: str = Field(description="Unique identifier for the section")
+    title: str = Field(description="Section title (cleaned)")
+    summary: str = Field(description="Cognitive-refined summary of the section")
+    key_concepts: list[str] = Field(default_factory=list, description="List of key concepts (concept_ids)")
+    parent_id: str | None = Field(default=None, description="Parent section ID (None for root)")
+    children_ids: list[str] = Field(default_factory=list, description="Child section IDs")
+    level: int = Field(description="Hierarchy level (0=document, 1=chapter, 2=section, etc.)")
+    order_index: int = Field(description="Order of appearance in document")
+
+
+class CognitiveKnowledge(BaseModel):
+    """Complete cognitive knowledge extracted from a document according to SPECS v2.0.
+
+    This is the main output of the cognitive reading process for RAG and fine-tuning.
     """
 
-    section_id: str = Field(description="ID of the section this summary describes")
-    title: str = Field(description="Section title")
-    summary: str = Field(description="Generated summary of the section")
-    key_concepts: list[str] = Field(
-        default_factory=list, description="Key concepts identified in this section"
-    )
-    confidence_score: float = Field(
-        default=1.0,
-        ge=0.0,
-        le=1.0,
-        description="Confidence score for the summary quality",
-    )
-
-
-class DocumentKnowledge(BaseModel):
-    """Complete knowledge extracted from a document.
-
-    This is the main output of the cognitive reading process,
-    containing all extracted knowledge, summaries, and metadata.
-    """
-
+    # Document Metadata
     document_title: str = Field(description="Title of the processed document")
-    document_summary: str = Field(
-        description="High-level summary of the entire document"
-    )
-    detected_language: LanguageCode = Field(
-        description="Auto-detected or specified language"
+    detected_language: LanguageCode = Field(description="Auto-detected or specified language")
+
+    # Hierarchical Summaries (optimized for RAG chunks)
+    hierarchical_summaries: dict[str, SectionSummary] = Field(
+        default_factory=dict, description="Hierarchical summaries by section_id"
     )
 
-    sections: list[DocumentSection] = Field(
-        default_factory=list, description="All document sections in hierarchical order"
-    )
-    section_summaries: dict[str, SectionSummary] = Field(
-        default_factory=dict,
-        description="Summaries for each section keyed by section ID",
+    # Concepts (top-level list for consistent terminology)
+    concepts: list[ConceptDefinition] = Field(
+        default_factory=list, description="Key concepts with cognitive-refined definitions"
     )
 
-    processing_metadata: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Metadata about the processing (timing, model used, etc.)",
+    # Hierarchy Navigation (essential for RAG context)
+    hierarchy_index: dict[str, list[str]] = Field(
+        default_factory=dict, description="Sections by hierarchy level: {'0': ['book'], '1': ['cap_1', 'cap_2']}"
+    )
+    parent_child_map: dict[str, list[str]] = Field(
+        default_factory=dict, description="Parent to children mapping for navigation"
     )
 
-    def get_section_by_id(self, section_id: str) -> DocumentSection | None:
-        """Get a section by its ID.
+    # Document Statistics (useful for apps consuming the data)
+    total_sections: int = Field(description="Total number of sections processed")
+    avg_summary_length: int = Field(description="Average summary length in characters")
+    total_concepts: int = Field(description="Total number of concepts identified")
+
+    def get_summary_by_id(self, section_id: str) -> SectionSummary | None:
+        """Get a section summary by its ID.
 
         Args:
             section_id: The ID of the section to retrieve.
 
         Returns:
-            The section if found, None otherwise.
+            The section summary if found, None otherwise.
         """
-        for section in self.sections:
-            if section.id == section_id:
-                return section
-        return None
+        return self.hierarchical_summaries.get(section_id)
 
-    def get_top_level_sections(self) -> list[DocumentSection]:
-        """Get all top-level sections (level 1).
+    def get_concept_by_id(self, concept_id: str) -> ConceptDefinition | None:
+        """Get a concept by its ID.
+
+        Args:
+            concept_id: The ID of the concept to retrieve.
 
         Returns:
-            List of top-level sections ordered by appearance.
+            The concept if found, None otherwise.
         """
-        return [section for section in self.sections if section.level == 1]
+        for concept in self.concepts:
+            if concept.concept_id == concept_id:
+                return concept
+        return None
 
-    def get_children_of_section(self, section_id: str) -> list[DocumentSection]:
-        """Get all direct children of a section.
+    def get_children_of_section(self, section_id: str) -> list[str]:
+        """Get all direct children IDs of a section.
 
         Args:
             section_id: The ID of the parent section.
 
         Returns:
-            List of child sections ordered by appearance.
+            List of child section IDs.
         """
-        parent_section = self.get_section_by_id(section_id)
-        if not parent_section:
-            return []
-
-        children = []
-        for child_id in parent_section.children_ids:
-            child = self.get_section_by_id(child_id)
-            if child:
-                children.append(child)
-
-        # Sort by order_index to maintain document order
-        return sorted(children, key=lambda s: s.order_index)
+        return self.parent_child_map.get(section_id, [])

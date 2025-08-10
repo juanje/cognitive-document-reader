@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 
 from ..llm.client import LLMClient
-from ..models.config import ReadingConfig
-from ..models.document import DocumentKnowledge, DocumentSection, SectionSummary
+from ..models.config import CognitiveConfig
+from ..models.document import CognitiveKnowledge, DocumentSection, SectionSummary
 from ..models.knowledge import LanguageCode
 from ..parsers.docling_parser import DoclingParser
 from ..utils.language import LanguageDetector
@@ -25,29 +24,29 @@ class CognitiveReader:
     entire cognitive reading process.
     """
 
-    def __init__(self, config: ReadingConfig | None = None) -> None:
+    def __init__(self, config: CognitiveConfig | None = None) -> None:
         """Initialize the cognitive reader.
 
         Args:
             config: Reading configuration. If None, will load from environment.
         """
-        self.config = config or ReadingConfig.from_env()
+        self.config = config or CognitiveConfig.from_env()
         self.parser = DoclingParser()
         self.synthesizer = Synthesizer(self.config)
         self.language_detector = LanguageDetector()
 
-        logger.info(f"CognitiveReader initialized with model: {self.config.active_model} (fast_mode: {self.config.fast_mode})")
+        logger.info(f"CognitiveReader initialized with models: fast={self.config.fast_pass_model}, main={self.config.main_model}")
         if self.config.is_development_mode():
             logger.info("Development mode enabled - no real LLM calls will be made")
 
-    async def read_document(self, file_path: str | Path) -> DocumentKnowledge:
+    async def read_document(self, file_path: str | Path) -> CognitiveKnowledge:
         """Read and analyze a document file with cognitive understanding.
 
         Args:
             file_path: Path to the document file to read.
 
         Returns:
-            Complete DocumentKnowledge with analysis and summaries.
+            Complete CognitiveKnowledge with analysis and summaries.
 
         Raises:
             FileNotFoundError: If the document file doesn't exist.
@@ -62,13 +61,16 @@ class CognitiveReader:
             if is_valid:
                 logger.info("Configuration validation successful")
                 # Return empty knowledge for validation-only mode
-                return DocumentKnowledge(
+                return CognitiveKnowledge(
                     document_title="Configuration Validation",
-                    document_summary="Configuration is valid and ready for processing.",
                     detected_language=LanguageCode.EN,
-                    sections=[],
-                    section_summaries={},
-                    processing_metadata={"validation_only": True},
+                    hierarchical_summaries={},
+                    concepts=[],
+                    hierarchy_index={},
+                    parent_child_map={},
+                    total_sections=0,
+                    avg_summary_length=0,
+                    total_concepts=0,
                 )
             else:
                 raise ValueError("Configuration validation failed")
@@ -78,13 +80,16 @@ class CognitiveReader:
 
         if not sections:
             logger.warning(f"No sections found in document: {file_path}")
-            return DocumentKnowledge(
+            return CognitiveKnowledge(
                 document_title=document_title,
-                document_summary="Empty document - no content to analyze.",
                 detected_language=LanguageCode.EN,
-                sections=[],
-                section_summaries={},
-                processing_metadata={"empty_document": True},
+                hierarchical_summaries={},
+                concepts=[],
+                hierarchy_index={},
+                parent_child_map={},
+                total_sections=0,
+                avg_summary_length=0,
+                total_concepts=0,
             )
 
         # Detect document language
@@ -108,7 +113,7 @@ class CognitiveReader:
 
     async def read_document_text(
         self, text: str, title: str = "Untitled Document"
-    ) -> DocumentKnowledge:
+    ) -> CognitiveKnowledge:
         """Read and analyze text content directly with cognitive understanding.
 
         Args:
@@ -116,7 +121,7 @@ class CognitiveReader:
             title: Title for the document.
 
         Returns:
-            Complete DocumentKnowledge with analysis and summaries.
+            Complete CognitiveKnowledge with analysis and summaries.
         """
         logger.info(f"Starting cognitive reading of text: {title}")
 
@@ -125,13 +130,16 @@ class CognitiveReader:
             is_valid = await self.validate_configuration()
             if is_valid:
                 logger.info("Configuration validation successful")
-                return DocumentKnowledge(
+                return CognitiveKnowledge(
                     document_title="Configuration Validation",
-                    document_summary="Configuration is valid and ready for processing.",
                     detected_language=LanguageCode.EN,
-                    sections=[],
-                    section_summaries={},
-                    processing_metadata={"validation_only": True},
+                    hierarchical_summaries={},
+                    concepts=[],
+                    hierarchy_index={},
+                    parent_child_map={},
+                    total_sections=0,
+                    avg_summary_length=0,
+                    total_concepts=0,
                 )
             else:
                 raise ValueError("Configuration validation failed")
@@ -141,13 +149,16 @@ class CognitiveReader:
 
         if not sections:
             logger.warning("No sections found in text content")
-            return DocumentKnowledge(
+            return CognitiveKnowledge(
                 document_title=document_title,
-                document_summary="Empty content - no sections to analyze.",
                 detected_language=LanguageCode.EN,
-                sections=[],
-                section_summaries={},
-                processing_metadata={"empty_content": True},
+                hierarchical_summaries={},
+                concepts=[],
+                hierarchy_index={},
+                parent_child_map={},
+                total_sections=0,
+                avg_summary_length=0,
+                total_concepts=0,
             )
 
         # Detect document language
@@ -199,8 +210,9 @@ class CognitiveReader:
         content_sections = [s for s in filtered_sections if not s.children_ids]
 
         logger.info(f"Processing {len(content_sections)} content sections")
-        if self.config.max_sections or self.config.max_section_depth:
-            logger.info(f"Filters applied - Original: {len(ordered_sections)}, Filtered: {len(filtered_sections)}")
+        # TODO: Phase 2 - Re-implement section filtering
+        # if self.config.max_sections or self.config.max_section_depth:
+        #     logger.info(f"Filters applied - Original: {len(ordered_sections)}, Filtered: {len(filtered_sections)}")
 
         async with LLMClient(self.config) as llm_client:
             for i, section in enumerate(content_sections):
@@ -216,15 +228,16 @@ class CognitiveReader:
                 if summary:
                     section_summaries[section.id] = summary
 
+                    # TODO: Phase 2 - Re-implement save partial results
                     # Save partial result if configured
-                    if self.config.save_partial_results:
-                        await self._save_partial_result(
-                            section_index=i + 1,
-                            total_sections=len(content_sections),
-                            section=section,
-                            summary=summary,
-                            accumulated_context=accumulated_context,
-                        )
+                    # if self.config.save_partial_results:
+                    #     await self._save_partial_result(
+                    #         section_index=i + 1,
+                    #         total_sections=len(content_sections),
+                    #         section=section,
+                    #         summary=summary,
+                    #         accumulated_context=accumulated_context,
+                    #     )
 
                     # Update accumulated context for next sections
                     accumulated_context = self._update_accumulated_context(
@@ -294,7 +307,10 @@ class CognitiveReader:
                 title=section.title,
                 summary=summary_text,
                 key_concepts=unique_concepts[:5],  # Limit to 5 concepts
-                confidence_score=1.0,
+                level=section.level,
+                order_index=section.order_index,
+                parent_id=section.parent_id,
+                children_ids=section.children_ids,
             )
 
         except Exception as e:
@@ -387,24 +403,25 @@ class CognitiveReader:
         """
         filtered_sections = sections
 
+        # TODO: Phase 2 - Re-implement filtering logic
         # Apply depth filter if configured
-        if self.config.max_section_depth is not None:
-            filtered_sections = self._filter_by_depth(
-                filtered_sections, self.config.max_section_depth
-            )
-            logger.info(
-                f"Depth filter applied (max depth: {self.config.max_section_depth}): "
-                f"{len(sections)} -> {len(filtered_sections)} sections"
-            )
+        # if self.config.max_section_depth is not None:
+        #     filtered_sections = self._filter_by_depth(
+        #         filtered_sections, self.config.max_section_depth
+        #     )
+        #     logger.info(
+        #         f"Depth filter applied (max depth: {self.config.max_section_depth}): "
+        #         f"{len(sections)} -> {len(filtered_sections)} sections"
+        #     )
 
         # Apply section count limit if configured
-        if self.config.max_sections is not None:
-            original_count = len(filtered_sections)
-            filtered_sections = filtered_sections[: self.config.max_sections]
-            logger.info(
-                f"Section count limit applied (max: {self.config.max_sections}): "
-                f"{original_count} -> {len(filtered_sections)} sections"
-            )
+        # if self.config.max_sections is not None:
+        #     original_count = len(filtered_sections)
+        #     filtered_sections = filtered_sections[: self.config.max_sections]
+        #     logger.info(
+        #         f"Section count limit applied (max: {self.config.max_sections}): "
+        #         f"{original_count} -> {len(filtered_sections)} sections"
+        #     )
 
         return filtered_sections
 
@@ -422,6 +439,7 @@ class CognitiveReader:
         """
         return [section for section in sections if section.level <= max_depth]
 
+    # TODO: Phase 2 - Re-implement save partial results functionality
     async def _save_partial_result(
         self,
         section_index: int,
@@ -432,12 +450,12 @@ class CognitiveReader:
     ) -> None:
         """Save partial processing result for debugging and evaluation.
 
-        Args:
-            section_index: Current section number (1-based).
-            total_sections: Total number of sections being processed.
-            section: The processed section.
-            summary: Generated summary for the section.
-            accumulated_context: Current accumulated context.
+        NOTE: Temporarily disabled for Phase 1 MVP.
+        """
+        # Temporarily disabled - no-op for Phase 1
+        pass
+
+        # TODO: Phase 2 - Re-implement this functionality
         """
         try:
             # Create output directory if it doesn't exist
@@ -473,8 +491,8 @@ class CognitiveReader:
                     else accumulated_context,
                 },
                 "config": {
-                    "model_used": self.config.active_model,
-                    "fast_mode": self.config.fast_mode,
+                    "model_used": self.config.main_model or self.config.model_name,
+                    "enable_fast_first_pass": self.config.enable_fast_first_pass,
                     "temperature": self.config.temperature,
                 },
             }
@@ -491,6 +509,7 @@ class CognitiveReader:
         except Exception as e:
             # Don't fail the main process if partial saving fails
             logger.warning(f"Failed to save partial result for section {section_index}: {e}")
+        """
 
     def _detect_document_language(
         self, sections: list[DocumentSection]

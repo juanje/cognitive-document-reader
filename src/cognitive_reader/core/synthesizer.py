@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 
 from ..llm.client import LLMClient
-from ..models.config import ReadingConfig
-from ..models.document import DocumentKnowledge, DocumentSection, SectionSummary
+from ..models.config import CognitiveConfig
+from ..models.document import CognitiveKnowledge, DocumentSection, SectionSummary
 from ..models.knowledge import LanguageCode
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class Synthesizer:
     understanding, creating summaries at each level of the hierarchy.
     """
 
-    def __init__(self, config: ReadingConfig) -> None:
+    def __init__(self, config: CognitiveConfig) -> None:
         """Initialize the synthesizer.
 
         Args:
@@ -33,7 +33,7 @@ class Synthesizer:
         section_summaries: dict[str, SectionSummary],
         document_title: str,
         detected_language: LanguageCode,
-    ) -> DocumentKnowledge:
+    ) -> CognitiveKnowledge:
         """Synthesize complete document knowledge from sections and summaries.
 
         Args:
@@ -56,32 +56,39 @@ class Synthesizer:
         )
         all_summaries.update(container_summaries)
 
-        # Generate document-level summary
-        document_summary = await self._generate_document_summary(
-            document_title, sections, all_summaries, detected_language
-        )
+        # TODO: Phase 2 - Generate document-level summary
+        # document_summary = await self._generate_document_summary(
+        #     document_title, sections, all_summaries, detected_language
+        # )
 
-        # Create processing metadata
-        processing_metadata = {
-            "total_sections": len(sections),
-            "total_summaries": len(all_summaries),
-            "synthesis_method": "hierarchical_bottom_up",
-            "language": detected_language.value,
-            "model_used": self.config.active_model,
-            "dry_run": self.config.dry_run,
-        }
+        # TODO: Phase 2 - Create processing metadata
+        # processing_metadata = {
+        #     "total_sections": len(sections),
+        #     "total_summaries": len(all_summaries),
+        #     "synthesis_method": "hierarchical_bottom_up",
+        #     "language": detected_language.value,
+        #     "model_used": self.config.main_model or self.config.model_name,
+        #     "dry_run": self.config.dry_run,
+        # }
 
         logger.info(
             f"Document synthesis completed. Generated {len(all_summaries)} summaries."
         )
 
-        return DocumentKnowledge(
+        # TODO: Phase 2 - Convert to CognitiveKnowledge format
+        # For now, create a basic CognitiveKnowledge structure
+        hierarchical_summaries = {s.section_id: s for s in all_summaries.values()}
+
+        return CognitiveKnowledge(
             document_title=document_title,
-            document_summary=document_summary,
             detected_language=detected_language,
-            sections=sections,
-            section_summaries=all_summaries,
-            processing_metadata=processing_metadata,
+            hierarchical_summaries=hierarchical_summaries,
+            concepts=[],  # TODO: Phase 2 - implement concept extraction
+            hierarchy_index={},  # TODO: Phase 2 - implement hierarchy index
+            parent_child_map={},  # TODO: Phase 2 - implement parent-child mapping
+            total_sections=len(sections),
+            avg_summary_length=sum(len(s.summary) for s in all_summaries.values()) // max(len(all_summaries), 1),
+            total_concepts=0,  # TODO: Phase 2 - implement concept counting
         )
 
     async def _synthesize_container_sections(
@@ -195,7 +202,10 @@ class Synthesizer:
                 title=section.title,
                 summary=parsed_summary,
                 key_concepts=final_concepts,
-                confidence_score=0.8,  # Slightly lower for synthesized content
+                level=section.level,
+                order_index=section.order_index,
+                parent_id=section.parent_id,
+                children_ids=section.children_ids,
             )
 
         except Exception as e:

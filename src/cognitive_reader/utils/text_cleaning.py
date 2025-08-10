@@ -7,16 +7,16 @@ import re
 
 def clean_markdown_internal_links(title: str) -> str:
     """Remove markdown internal link references from titles.
-    
+
     Removes patterns like {#anchor-name} that are commonly used for
     internal linking in markdown documents.
-    
+
     Args:
         title: The original title that may contain internal link references.
-        
+
     Returns:
         The cleaned title with internal link references removed.
-        
+
     Examples:
         >>> clean_markdown_internal_links("## Introduction {#introduction}")
         "## Introduction"
@@ -31,33 +31,33 @@ def clean_markdown_internal_links(title: str) -> str:
     """
     if not title:
         return title
-    
+
     # Pattern to match markdown internal links: {#...}
     # Matches: {#word}, {#word-with-dashes}, {#word_with_underscores}, etc.
     pattern = r'\s*\{#[^}]+\}\s*'
-    
+
     # Remove the pattern and clean up extra whitespace
     cleaned = re.sub(pattern, ' ', title)
-    
+
     # Clean up multiple spaces and strip
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-    
+
     return cleaned
 
 
 def clean_section_title(title: str) -> str:
     """Clean section title by applying various cleaning operations.
-    
+
     This is the main function to clean section titles during document processing.
     Currently handles internal link cleaning, but can be extended for other
     cleaning operations in the future.
-    
+
     Args:
         title: The original section title.
-        
+
     Returns:
         The cleaned title.
-        
+
     Examples:
         >>> clean_section_title("Introduction {#intro}")
         "Introduction"
@@ -66,5 +66,5 @@ def clean_section_title(title: str) -> str:
     """
     # Always clean internal links - they don't add value to summaries
     cleaned_title = clean_markdown_internal_links(title)
-    
+
     return cleaned_title
