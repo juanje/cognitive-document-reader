@@ -140,15 +140,22 @@ cognitive-document-reader/
 
 ## 🎯 Primary Use Cases
 
-### **1. High-Quality Summaries for Human Reading/Study**
-   - Summaries that evolve during reading process  
-   - Contextual maps showing knowledge development
-   - Progressive learning paths through complex documents
+### **1. RAG (Retrieval Augmented Generation) Optimization**
+   - **Hierarchical summaries as semantic chunks**: Replace arbitrary text chunks with cognitive-enhanced summaries
+   - **Concept definitions as specialized chunks**: Add domain-specific concepts for precise retrieval
+   - **Contextual coherence**: Maintain author's voice and methodology vs. fragmented understanding
+   - **Direct integration**: Summaries ready for embedding and vector database ingestion
 
-### **2. Enriched Metadata for AI Projects**
-   - Training data that preserves evolution of understanding
-   - Context-rich information with refinement traceability  
-   - Structured document knowledge with emergent relationships
+### **2. Fine-tuning Dataset Generation**
+   - **Hierarchical context building**: Book → Chapter → Section summaries for coherent training
+   - **Consistent terminology**: Cognitive-refined concept definitions for domain accuracy
+   - **Rich training examples**: Use summary hierarchy to generate contextually coherent Q&A pairs
+   - **Quality validation**: Use concept definitions to validate synthetic data consistency
+
+### **3. High-Quality Document Understanding**
+   - **Two-pass cognitive processing**: Summaries that evolve during reading like human comprehension
+   - **Emergent insights**: Understanding that emerges only with complete document context
+   - **Author voice preservation**: Maintain original methodology and tone
 
 ### 🧠 **Core Innovation: Two-Pass Cognitive Processing**
 
@@ -218,20 +225,20 @@ This approach **improves both performance and accuracy** by matching computation
    - **No chunks**: Avoid fragmented understanding
 
 #### 4. **Minimal Output** (Prove Concept)
-   - **Basic JSON**: Include which summaries got refined and why
-   - **Simple Markdown**: Show evolution annotations where refinement occurred
-   - **Clear demonstration**: Show difference from traditional fragmented processing
+   - **Clean JSON**: Hierarchical summaries and refined concepts without process metadata
+   - **Evident quality**: Output should clearly show its advantages (coherent summaries, defined concepts, logical hierarchy)
+   - **Value-focused**: Only information useful for RAG/Fine-tuning, no internal process noise
 
 #### 5. **Development Essentials** (For Testing)
    - **Dry-run mode**: Test without LLM costs
-   - **Simple logging**: Track what got refined
+   - **Internal logging**: Only for debugging during development
    - **Configuration**: Enable/disable second pass and refinement
 
 ### 🎯 **Success Criteria for MVP v2**
 
-- ✅ **Proof of concept**: Clearly demonstrate different results than sequential processing
+- ✅ **Proof of concept**: Output that evidences superior quality (coherent summaries vs. fragmented chunks)
 - ✅ **"3 pasos" test**: Successfully process the book with cognitive approach
-- ✅ **Refinement examples**: Show cases where understanding evolved during reading
+- ✅ **Cognitive quality**: Summaries that show deep and integrated understanding of content
 - ✅ **Context benefit**: Demonstrate value of accumulated context vs. fragments
 
 ---
@@ -265,37 +272,44 @@ class DocumentSection(BaseModel):
     order_index: int                           # Order within parent
 
 class SectionSummary(BaseModel):
-    """Section summary with cognitive processing tracking"""
+    """Section summary optimized for RAG chunks"""
     section_id: str                            # Reference to DocumentSection.id
     title: str                                 # Section title
-    summary: str                               # Final summary (after all processing)
-    key_concepts: List[str] = Field(default_factory=list)  # Identified key concepts
-    
-    # Cognitive processing flags
-    was_refined: bool = False                  # True if refined during first pass
-    was_enriched: bool = False                 # True if enhanced during second pass
-    
-    # Optional refinement context (implementation can choose level of detail)
-    refinement_reason: Optional[str] = None    # Why it was refined (if applicable)
-    enrichment_details: Optional[str] = None   # What was added during enrichment
+    summary: str                               # Cognitive-enhanced summary (optimized for RAG chunks)
+    key_concepts: List[str] = Field(default_factory=list)  # Key concept IDs relevant to this section
+    summary_length: int                        # Length of summary in characters
+
+class ConceptDefinition(BaseModel):
+    """Key concept with cognitive-refined definition"""
+    concept_id: str                            # Unique identifier (e.g., "sedentarismo", "movimiento_natural")
+    name: str                                  # Human-readable name of the concept
+    definition: str                            # Cognitive-refined definition
+    first_mentioned_in: str                    # Section ID where this concept was first identified
+    relevant_sections: List[str] = Field(default_factory=list)  # Section IDs where concept is relevant
 
 class CognitiveKnowledge(BaseModel):
-    """Complete knowledge extracted with cognitive processing"""
+    """Complete knowledge extracted with cognitive processing for RAG/Fine-tuning"""
     # Document identification
     document_title: str
-    document_summary: str                      # Final document-level summary
+    document_summary: str                      # Cognitive-enhanced document-level summary
     detected_language: LanguageCode
     
-    # Document structure and content
-    sections: List[DocumentSection]            # Hierarchical document structure
-    section_summaries: Dict[str, SectionSummary]  # Section ID -> Summary mapping
+    # Hierarchical summaries optimized for RAG chunks
+    hierarchical_summaries: Dict[str, SectionSummary]  # Section ID -> Summary mapping
     
-    # Cognitive processing metadata
-    processing_approach: str = "two_pass_cognitive"  # Processing method used
-    refinements_made: int = 0                  # Number of sections refined
-    second_pass_enrichments: int = 0           # Number of sections enriched
+    # Key concepts with cognitive-refined definitions
+    concepts: Dict[str, ConceptDefinition]     # Concept ID -> Definition mapping
     
-    # Standard processing metadata
+    # Hierarchy navigation indices
+    hierarchy_index: Dict[str, List[str]] = Field(default_factory=dict)  # Level -> Section IDs
+    parent_child_map: Dict[str, List[str]] = Field(default_factory=dict)  # Parent ID -> Child IDs
+    
+    # Summary statistics
+    total_sections: int = 0
+    avg_summary_length: int = 0
+    total_concepts: int = 0
+    
+    # Optional processing metadata
     processing_metadata: Dict[str, Any] = Field(default_factory=dict)
 
 class CognitiveConfig(BaseModel):
@@ -306,10 +320,168 @@ class CognitiveConfig(BaseModel):
     temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="LLM temperature")
     
     # Dual Model Configuration - Simulates human reading patterns
-    first_pass_model: Optional[str] = Field(default=None, description="Fast model for first pass (rapid reading)")
-    second_pass_model: Optional[str] = Field(default=None, description="Quality model for second pass (careful analysis)")
-    first_pass_temperature: Optional[float] = Field(default=None, ge=0.0, le=2.0, description="Temperature for first pass")
-    second_pass_temperature: Optional[float] = Field(default=None, ge=0.0, le=2.0, description="Temperature for second pass")
+    # Multi-pass configuration (extensible design)
+    max_passes: int = Field(default=2, ge=1, le=10, description="Maximum number of cognitive passes")
+    convergence_threshold: float = Field(default=0.1, ge=0.01, le=1.0, description="Threshold to detect when additional passes add minimal value")
+    
+    # Dual model strategy: fast first scan + quality processing  
+    enable_fast_first_pass: bool = Field(default=True, description="Use fast model for initial scan")
+    fast_pass_model: Optional[str] = Field(default="llama3.1:8b", description="Fast model for initial document scan")
+    main_model: Optional[str] = Field(default="qwen3:8b", description="Quality model for detailed cognitive processing")
+    
+    # Temperature settings
+    fast_pass_temperature: Optional[float] = Field(default=0.1, ge=0.0, le=2.0, description="Temperature for fast scan")
+    main_pass_temperature: Optional[float] = Field(default=0.3, ge=0.0, le=2.0, description="Temperature for quality processing")
+
+### **🔧 Extensible Multi-Pass Design Philosophy**
+
+The MVP implements **2-pass reading** but is architecturally prepared for **N-pass extension**:
+
+```python
+# MVP Usage (2 passes) - Ready today
+config = CognitiveConfig(
+    max_passes=2,
+    fast_pass_model="llama3.1:8b",    # Quick initial scan
+    main_model="qwen3:8b"          # Quality cognitive processing
+)
+
+# Future N-pass Usage (same API) - Seamless extension
+config = CognitiveConfig(
+    max_passes=4,                     # Configurable depth
+    convergence_threshold=0.05,       # Auto-stop optimization  
+    main_model="qwen3:8b"          # Same model, richer context each pass
+)
+```
+
+#### **Key Design Principles**
+
+1. **📖 Same "Brain", Better Knowledge**: Multiple passes use the **same model** with **progressively richer context**
+2. **🔄 Context Accumulation**: Each pass provides accumulated summaries, concepts, and insights to the next
+3. **🏆 Original Text Authority**: **Source text always takes precedence** over previous summaries/context when conflicts arise
+4. **⚡ Smart Speed/Quality Balance**: Fast scan (`llama3.1:8b`) + Quality processing (`qwen3:8b`) 
+5. **🎯 Convergence Detection**: Future auto-stop when additional passes add minimal value
+6. **🏗️ API Consistency**: Same interface scales from 2-pass MVP to N-pass advanced features
+
+#### **🏆 Source Text Authority Principle**
+
+**CRITICAL**: When processing each section, the **original text** is the ultimate authority:
+
+```python
+# Prompting hierarchy (highest to lowest authority)
+AUTHORITY_HIERARCHY = [
+    "Original text content",           # 🥇 Supreme authority - always wins
+    "Previous refined summaries",      # 🥈 Contextual guidance  
+    "Discovered concepts",             # 🥉 Supporting information
+    "Global document understanding"    # 📚 Background context
+]
+```
+
+**Conflict Resolution Strategy**:
+- ✅ **Text contradicts summary** → Update summary to match text
+- ✅ **Text adds new nuance** → Enrich summary with text's perspective  
+- ✅ **Text reveals error in concept** → Refine concept definition
+- ❌ **Never** modify text interpretation to fit previous context
+
+#### **💭 Authority-Aware Prompting Strategy**
+
+**Example Prompt Structure** (enforcing text authority):
+
+```
+CONTEXT (for background only):
+- Book Summary: [previous understanding]
+- Concept Definitions: [discovered so far]  
+- Parent Section Summary: [if applicable]
+
+SOURCE TEXT (AUTHORITATIVE):
+[actual section content to process]
+
+INSTRUCTIONS:
+1. Read the SOURCE TEXT carefully - this is your PRIMARY source of truth
+2. Use CONTEXT only as background information to inform your understanding
+3. If the SOURCE TEXT contradicts any CONTEXT information:
+   - Trust the SOURCE TEXT completely
+   - Update your understanding based on the SOURCE TEXT
+   - Note discrepancies for refinement
+4. Generate summary that reflects the SOURCE TEXT accurately
+5. Identify concepts mentioned in SOURCE TEXT (not just from context)
+
+CRITICAL: The SOURCE TEXT is always correct. Previous summaries may contain errors or incomplete understanding.
+```
+
+#### **📝 Practical Example: Text Authority in Action**
+
+**Scenario**: Processing chapter 3 of "3 pasos contra el sedentarismo"
+
+```python
+# Previous context (may contain errors)
+previous_summary = {
+    "sedentarismo": "Lack of physical exercise in modern life"  # ← Incomplete understanding
+}
+
+# Current section text (authoritative)
+source_text = """
+El sedentarismo, en su sentido más profundo, no es simplemente pasar mucho tiempo sentado. 
+Es un concepto arraigado en la falta de movimiento variado y en la especialización de las posturas.
+"""
+
+# Cognitive processing result (text authority applied)
+refined_understanding = {
+    "sedentarismo": "Estado crónico de inactividad física que resulta de la falta de movimiento variado y especialización de posturas, no simplemente pasar tiempo sentado"  # ← Corrected by source text
+}
+```
+
+**Key Insight**: The source text **corrected** the previous incomplete definition, demonstrating how text authority ensures evolving accuracy.
+
+---
+
+## 🔄 **Core Purpose: Error Correction & Refinement**
+
+### **🎯 Primary Justification for Multi-Pass Design**
+
+The **main reason** for second, third, and N-th passes is **systematic error correction and knowledge refinement**:
+
+#### **🔍 What Gets Corrected/Refined**
+
+1. **📝 Summary Accuracy**
+   - **Initial errors**: First-pass summaries may miss key points or misinterpret concepts
+   - **Progressive refinement**: Each pass corrects and enriches understanding
+   - **Global coherence**: Later sections provide context that clarifies earlier misunderstandings
+
+2. **💡 Concept Definitions**
+   - **Initial approximations**: First encounters with concepts yield partial definitions
+   - **Iterative precision**: Subsequent passes refine definitions with richer context
+   - **Cross-reference validation**: Concepts mentioned across sections get more accurate definitions
+
+3. **🔗 Relationship Understanding** 
+   - **Missing connections**: Single-pass processing misses concept relationships
+   - **Emergent patterns**: Multi-pass reveals how concepts relate across the document
+   - **Hierarchical clarity**: Parent-child concept relationships become apparent
+
+#### **📈 Correction Examples from Real Usage**
+
+```python
+# Pass 1: Initial understanding (often incomplete/incorrect)
+first_pass_concept = {
+    "sedentarismo": "Lack of physical exercise"  # ← Surface-level understanding
+}
+
+# Pass 2: Corrected with global context
+second_pass_concept = {
+    "sedentarismo": "Estado crónico de inactividad física caracterizado por falta de movimiento variado y especialización de posturas, no simplemente ausencia de ejercicio"  # ← Deep, accurate understanding
+}
+
+# Pass 3: Further refined with cross-references
+third_pass_concept = {
+    "sedentarismo": "Estado crónico de inactividad física que resulta de entornos modernos que eliminan movimiento variado, causando adaptaciones corporales problemáticas mediante especialización postural. Se diferencia de la simple falta de ejercicio por su enfoque en variedad de movimiento vs. intensidad."  # ← Comprehensive, nuanced understanding
+}
+```
+
+#### **✅ Success Indicators for Refinement**
+
+- **Concept evolution**: Definitions become more precise and comprehensive across passes
+- **Error detection**: System identifies and corrects previous misunderstandings  
+- **Coherence improvement**: Summaries align better with document's overall message
+- **Relationship clarity**: Connections between concepts become explicit and accurate
     
     # Document Processing
     chunk_size: int = Field(default=1000, gt=100, description="Text chunk size for processing")
@@ -331,6 +503,12 @@ class CognitiveConfig(BaseModel):
         description="Threshold for triggering refinement (0.0=never, 1.0=always)"
     )
     
+    # Summary Optimization for RAG/Fine-tuning
+    target_summary_length: int = Field(default=800, gt=100, description="Target summary length in characters")
+    min_summary_length: int = Field(default=400, gt=50, description="Minimum summary length in characters")
+    max_summary_length: int = Field(default=1200, gt=100, description="Maximum summary length in characters")
+    max_hierarchy_depth: int = Field(default=3, ge=1, description="Maximum hierarchy depth (0=book, 1=chapter, 2=section)")
+    
     # Development Features
     dry_run: bool = Field(default=False, description="Run without LLM calls")
     mock_responses: bool = Field(default=False, description="Use mock responses")
@@ -345,11 +523,16 @@ class CognitiveConfig(BaseModel):
             model_name=os.getenv("COGNITIVE_READER_MODEL", "qwen3:8b"),
             temperature=float(os.getenv("COGNITIVE_READER_TEMPERATURE", "0.1")),
             
-            # Dual model settings (simulates human reading patterns)
-            first_pass_model=os.getenv("COGNITIVE_READER_FIRST_PASS_MODEL"),  # None if not set
-            second_pass_model=os.getenv("COGNITIVE_READER_SECOND_PASS_MODEL"),  # None if not set
-            first_pass_temperature=float(os.getenv("COGNITIVE_READER_FIRST_PASS_TEMPERATURE", "0.3")) if os.getenv("COGNITIVE_READER_FIRST_PASS_TEMPERATURE") else None,
-            second_pass_temperature=float(os.getenv("COGNITIVE_READER_SECOND_PASS_TEMPERATURE", "0.1")) if os.getenv("COGNITIVE_READER_SECOND_PASS_TEMPERATURE") else None,
+            # Multi-pass configuration (extensible design)
+            max_passes=int(os.getenv("COGNITIVE_READER_MAX_PASSES", "2")),
+            convergence_threshold=float(os.getenv("COGNITIVE_READER_CONVERGENCE_THRESHOLD", "0.1")),
+            
+            # Dual model settings (fast scan + quality processing)
+            enable_fast_first_pass=os.getenv("COGNITIVE_READER_ENABLE_FAST_FIRST_PASS", "true").lower() == "true",
+            fast_pass_model=os.getenv("COGNITIVE_READER_FAST_PASS_MODEL", "llama3.1:8b"),
+            main_model=os.getenv("COGNITIVE_READER_MAIN_MODEL", "qwen3:8b"),
+            fast_pass_temperature=float(os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE", "0.1")) if os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE") else None,
+            main_pass_temperature=float(os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE", "0.3")) if os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE") else None,
             
             # Processing settings
             chunk_size=int(os.getenv("COGNITIVE_READER_CHUNK_SIZE", "1000")),
@@ -366,6 +549,12 @@ class CognitiveConfig(BaseModel):
             enable_refinement=os.getenv("COGNITIVE_READER_ENABLE_REFINEMENT", "true").lower() == "true",
             refinement_threshold=float(os.getenv("COGNITIVE_READER_REFINEMENT_THRESHOLD", "0.4")),
             
+            # Summary optimization for RAG/Fine-tuning
+            target_summary_length=int(os.getenv("COGNITIVE_READER_TARGET_SUMMARY_LENGTH", "800")),
+            min_summary_length=int(os.getenv("COGNITIVE_READER_MIN_SUMMARY_LENGTH", "400")),
+            max_summary_length=int(os.getenv("COGNITIVE_READER_MAX_SUMMARY_LENGTH", "1200")),
+            max_hierarchy_depth=int(os.getenv("COGNITIVE_READER_MAX_HIERARCHY_DEPTH", "3")),
+            
             # Development features
             dry_run=os.getenv("COGNITIVE_READER_DRY_RUN", "false").lower() == "true",
             mock_responses=os.getenv("COGNITIVE_READER_MOCK_RESPONSES", "false").lower() == "true",
@@ -377,11 +566,16 @@ COGNITIVE_READER_ENV_VARS = {
     "COGNITIVE_READER_MODEL": "Default LLM model name (default: qwen3:8b)",
     "COGNITIVE_READER_TEMPERATURE": "Default LLM temperature 0.0-2.0 (default: 0.1)",
     
-    # Dual Model Configuration (Simulates Human Reading Patterns)
-    "COGNITIVE_READER_FIRST_PASS_MODEL": "Fast model for first pass rapid reading (optional)",
-    "COGNITIVE_READER_SECOND_PASS_MODEL": "Quality model for second pass careful analysis (optional)",
-    "COGNITIVE_READER_FIRST_PASS_TEMPERATURE": "Temperature for first pass model (default: 0.3 if model set)",
-    "COGNITIVE_READER_SECOND_PASS_TEMPERATURE": "Temperature for second pass model (default: 0.1 if model set)",
+    # Multi-pass Configuration (Extensible Design)
+    "COGNITIVE_READER_MAX_PASSES": "Maximum number of cognitive passes (default: 2)",
+    "COGNITIVE_READER_CONVERGENCE_THRESHOLD": "Threshold to auto-stop passes when minimal improvement (default: 0.1)",
+    
+    # Dual Model Strategy (Fast Scan + Quality Processing)
+    "COGNITIVE_READER_ENABLE_FAST_FIRST_PASS": "Enable fast model for initial scan (default: true)",
+    "COGNITIVE_READER_FAST_PASS_MODEL": "Fast model for initial document scan (default: llama3.1:8b)",
+    "COGNITIVE_READER_MAIN_MODEL": "Quality model for detailed cognitive processing (default: qwen3:8b)",
+    "COGNITIVE_READER_FAST_PASS_TEMPERATURE": "Temperature for fast scan (default: 0.1)",
+    "COGNITIVE_READER_MAIN_PASS_TEMPERATURE": "Temperature for quality processing (default: 0.3)",
     
     # Processing Configuration  
     "COGNITIVE_READER_CHUNK_SIZE": "Text chunk size (default: 1000)",
@@ -393,6 +587,12 @@ COGNITIVE_READER_ENV_VARS = {
     "COGNITIVE_READER_ENABLE_SECOND_PASS": "Enable second pass true/false (default: true)",
     "COGNITIVE_READER_ENABLE_REFINEMENT": "Enable refinement true/false (default: true)",
     "COGNITIVE_READER_REFINEMENT_THRESHOLD": "Refinement threshold 0.0-1.0 (default: 0.4)",
+    
+    # Summary Optimization for RAG/Fine-tuning
+    "COGNITIVE_READER_TARGET_SUMMARY_LENGTH": "Target summary length in characters (default: 800)",
+    "COGNITIVE_READER_MIN_SUMMARY_LENGTH": "Minimum summary length in characters (default: 400)",
+    "COGNITIVE_READER_MAX_SUMMARY_LENGTH": "Maximum summary length in characters (default: 1200)",
+    "COGNITIVE_READER_MAX_HIERARCHY_DEPTH": "Maximum hierarchy depth 0-N (default: 3)",
     
     # Performance & Development
     "COGNITIVE_READER_TIMEOUT_SECONDS": "Request timeout (default: 120)",
@@ -419,7 +619,7 @@ COGNITIVE_READER_ENV_VARS = {
 - Complete cognitive processing statistics (refinements made, enrichments made)
 - Clear indication of which sections were processed with cognitive features
 - Processing metadata including models used for each pass
-- Cognitive evolution tracking and refinement history
+- Clean output focused on final knowledge without process tracking
 
 ---
 
@@ -572,45 +772,156 @@ Cognitive Knowledge Output
 
 ## 📊 Simple Output Formats v2
 
-### **Basic Cognitive JSON**
+### **Cognitive Knowledge JSON Output** (Optimized for RAG/Fine-tuning)
 
 ```json
 {
   "document_title": "3 Pasos Contra el Sedentarismo",
-  "document_summary": "Final enriched summary...",
+  "document_summary": "Guía práctica para contrarrestar el sedentarismo mediante tres movimientos fundamentales que restauran la funcionalidad corporal natural: caminar más para la capacidad cardiovascular base, sentarse en el suelo para movilidad de cadera, y colgarse para fuerza de agarre y descompresión espinal. El libro explica cómo el sedentarismo causa adaptaciones corporales problemáticas y presenta una metodología específica basada en movimientos naturales para recuperar la salud y funcionalidad.",
   "detected_language": "es",
-  "processing_approach": "two_pass_cognitive",
   
-  "cognitive_processing": {
-    "refinements_made": 3,
-    "second_pass_enrichments": 5,
-    "sections_refined": ["seccion_1", "seccion_3"]
-  },
-  
-  "section_summaries": {
-    "seccion_1": {
-      "section_id": "seccion_1",
-      "title": "Introducción al sedentarismo",
-      "summary": "Final summary after both passes...",
-      "key_concepts": ["sedentarismo", "entorno_sedentario", "salud_compleja"],
-      "was_refined": true,
-      "was_enriched": true
+  "concepts": {
+    "sedentarismo": {
+      "concept_id": "sedentarismo",
+      "name": "Sedentarismo",
+      "definition": "Estado crónico de inactividad física que resulta de la exposición prolongada a entornos que requieren poca o ninguna actividad física, causando adaptaciones corporales que comprometen la salud y funcionalidad natural del cuerpo humano.",
+      "first_mentioned_in": "introduccion",
+      "relevant_sections": ["introduccion", "problemas_comunes", "tres_pasos"]
     },
-    "seccion_2": {
-      "section_id": "seccion_2", 
-      "title": "Problemas comunes: limitaciones de la movilidad, dolor y estrés",
-      "summary": "Final summary after both passes...",
-      "key_concepts": ["movilidad", "dolor", "estres", "sistema_nervioso"],
-      "was_refined": false,
-      "was_enriched": true
+    "movimiento_natural": {
+      "concept_id": "movimiento_natural",
+      "name": "Movimiento Natural", 
+      "definition": "Patrones de movimiento para los que el cuerpo humano está evolutivamente adaptado, incluyendo caminar, sentarse en el suelo, colgarse y otras actividades que mantienen la funcionalidad corporal óptima sin requerir equipamiento especializado.",
+      "first_mentioned_in": "introduccion",
+      "relevant_sections": ["introduccion", "tres_pasos"]
+    },
+    "vida_nomada": {
+      "concept_id": "vida_nomada",
+      "name": "Vida Nómada Ancestral",
+      "definition": "Estilo de vida de nuestros ancestros durante más de dos millones de años, caracterizado por movimiento constante, variedad de posturas y estímulos diversos que moldearon nuestro cuerpo para la adaptación y resiliencia.",
+      "first_mentioned_in": "introduccion",
+      "relevant_sections": ["introduccion"]
+    },
+    "tres_pasos": {
+      "concept_id": "tres_pasos",
+      "name": "Metodología de Tres Pasos",
+      "definition": "Sistema específico de intervención contra el sedentarismo que consiste en: 1) Caminar más para restaurar la funcionalidad base, 2) Sentarse más en el suelo para recuperar movilidad de cadera, y 3) Colgarse más de las manos para fortalecer agarre y descomprimir columna.",
+      "first_mentioned_in": "tres_pasos",
+      "relevant_sections": ["tres_pasos", "paso_1", "paso_2", "paso_3"]
     }
   },
   
-  "processing_metadata": {
-    "processing_time_seconds": 45.2,
-    "total_sections": 15,
-    "llm_calls_made": 32
-  }
+  "hierarchical_summaries": {
+    "book": {
+      "section_id": "book",
+      "title": "3 Pasos Contra el Sedentarismo",
+      "summary": "Guía práctica para contrarrestar el sedentarismo mediante tres movimientos fundamentales que restauran la funcionalidad corporal natural. Explica cómo el sedentarismo causa adaptaciones corporales problemáticas y presenta una metodología específica basada en movimientos naturales para recuperar la salud y funcionalidad.",
+      "key_concepts": ["sedentarismo", "movimiento_natural", "vida_nomada", "tres_pasos"],
+      "summary_length": 850
+    },
+    "introduccion": {
+      "section_id": "introduccion",
+      "title": "Introducción al sedentarismo",
+      "summary": "Análisis profundo del sedentarismo como discrepancia entre nuestra biología ancestral nómada y el entorno moderno. Explica cómo nuestros ancestros vivieron durante más de dos millones de años en movimiento constante, y cómo la revolución agrícola hace 10,000 años nos transformó en seres sedentarios, creando un desajuste que genera enfermedades de la civilización y adaptaciones celulares problemáticas.",
+      "key_concepts": ["sedentarismo", "vida_nomada", "movimiento_natural"],
+      "summary_length": 780
+    },
+    "problemas_comunes": {
+      "section_id": "problemas_comunes",
+      "title": "Problemas comunes: limitaciones de la movilidad, dolor y estrés",
+      "summary": "Exploración científica de cómo el sistema nervioso procesa movimiento y dolor, explicando conceptos como propiocepción, mapas cerebrales, nocicepción y sensibilización. Analiza la relación entre estabilidad del tronco y movilidad de extremidades, y cómo la rigidez muscular actúa como mecanismo de protección del cerebro ante movimientos percibidos como inseguros.",
+      "key_concepts": ["dolor_cronico", "mapas_cerebrales", "estabilidad_proximal"],
+      "summary_length": 720
+    },
+    "tres_pasos": {
+      "section_id": "tres_pasos", 
+      "title": "3 pasos para salir del sedentarismo",
+      "summary": "Presentación de la metodología central: tres movimientos específicos que abordan las causas raíz del sedentarismo. Caminar más como actividad natural accesible, sentarse más en el suelo para fortalecer musculatura postural y movilidad de cadera, y colgarse más de las manos para desarrollar agarre y descomprimir articulaciones. Incluye respiración como herramienta para controlar el sistema nervioso autónomo.",
+      "key_concepts": ["tres_pasos", "caminar", "sentarse_suelo", "colgarse", "respiracion"],
+      "summary_length": 920
+    },
+    "paso_1": {
+      "section_id": "paso_1",
+      "title": "Caminar más",
+      "summary": "Explicación de caminar como la actividad más natural para el ser humano. No requiere equipo especial y es accesible para todos. Beneficios incluyen mejora de densidad ósea, circulación, salud de los pies y activación de músculos posturales. Más efectivo distribuir pequeñas caminatas a lo largo del día que hacer una sola caminata larga.",
+      "key_concepts": ["caminar", "movimiento_base", "densidad_osea"],
+      "summary_length": 650
+    },
+    "paso_2": {
+      "section_id": "paso_2",
+      "title": "Sentarse más en el suelo",
+      "summary": "Análisis de cómo la silla proporciona estabilidad externa que atrofia la musculatura postural y reduce el rango de movimiento. Sentarse en el suelo obliga a usar músculos posturales, cambiar de postura constantemente y fortalecer articulaciones. Esta práctica mejora fuerza, equilibrio y movilidad del tren inferior, relacionándose con mayor longevidad.",
+      "key_concepts": ["sentarse_suelo", "musculatura_postural", "movilidad_cadera"],
+      "summary_length": 680
+    },
+    "paso_3": {
+      "section_id": "paso_3",
+      "title": "Colgarse más de las manos",
+      "summary": "Como primates, estamos biológicamente diseñados para colgarnos. La falta de este movimiento debilita el agarre, tendones y ligamentos del tren superior, creando desequilibrios en hombros. Colgarse de forma progresiva fortalece el agarre, descomprime articulaciones y mejora movilidad y control de hombros y escápulas.",
+      "key_concepts": ["colgarse", "fuerza_agarre", "descompresion_articular"],
+      "summary_length": 620
+    }
+  },
+  
+  "hierarchy_index": {
+    "0": ["book"],
+    "1": ["introduccion", "problemas_comunes", "tres_pasos", "conclusiones"],
+    "2": ["paso_1", "paso_2", "paso_3", "paso_extra"]
+  },
+  
+  "parent_child_map": {
+    "book": ["introduccion", "problemas_comunes", "tres_pasos", "conclusiones"],
+    "tres_pasos": ["paso_1", "paso_2", "paso_3", "paso_extra"]
+  },
+  
+  "total_sections": 8,
+  "avg_summary_length": 740,
+  "total_concepts": 4
+}
+```
+
+### **JSON Schema & Versioning**
+
+**Schema Versioning Strategy**: 
+- All output follows a **versioned JSON Schema** for consumer safety
+- Schema versions use **semantic versioning** (MAJOR.MINOR.PATCH)
+- Current version: **v1.0.0**
+
+**Schema Location**:
+```
+GitHub Repository: https://github.com/juanje/cognitive-document-reader/schemas/
+├── v1.0.0/
+│   ├── cognitive-knowledge.json       # Main output schema
+│   ├── concept-definition.json        # Concept schema
+│   └── section-summary.json          # Summary schema
+└── README.md                          # Schema documentation
+```
+
+**Usage for Consumers**:
+```python
+# Python validation example
+import jsonschema
+import requests
+
+# Load schema from GitHub
+schema_url = "https://raw.githubusercontent.com/juanje/cognitive-document-reader/main/schemas/v1.0.0/cognitive-knowledge.json"
+schema = requests.get(schema_url).json()
+
+# Validate cognitive reader output
+jsonschema.validate(output_data, schema)
+```
+
+**Schema Evolution**:
+- **v1.0.0**: Initial release (hierarchical summaries + concepts)
+- **v1.1.0**: Future - Add optional fields (backward compatible)
+- **v2.0.0**: Future - Breaking changes (major version bump)
+
+**Output Includes Schema Version**:
+```json
+{
+  "schema_version": "1.0.0",
+  "document_title": "...",
+  ...
 }
 ```
 
@@ -661,19 +972,12 @@ Final summary showing the three specific movements (caminar más, sentarse en el
 ```bash
 $ cognitive-reader book.md
 
-✅ Cognitive Reading Complete (Two-pass processing)
+✅ Cognitive Reading Complete
 
-📊 Processing Summary:
-- Approach: Two-pass cognitive reading  
-- First pass: Progressive reading + 3 refinements
-- Second pass: Global context enrichment + 5 enrichments
+📊 Document Analysis:
 - Total sections: 15
-- Processing time: 45.2s
-
-💡 Cognitive Benefits Detected:
-- 3 sections had improved understanding during first pass
-- 5 sections gained additional context during second pass  
-- Author's methodology preserved and clarified
+- Concepts identified: 12
+- Average summary length: 740 characters
 
 📄 Output saved to: book_cognitive_summary.json
 ```
@@ -709,7 +1013,7 @@ $ cognitive-reader book.md
 - **Dual model performance**: Optimize performance with fast/quality model strategy
 - **Memory usage**: Efficient memory management with different model configurations
 - **LLM call optimization**: Efficient context reuse across passes and models
-- **Scalability**: Performance must remain acceptable for documents up to 300 pages
+- **Scalability**: Performance must remain acceptable for large documents
 
 **Quality Assurance Requirements**:
 - **Author voice preservation**: Cognitive processing must maintain content fidelity
@@ -721,7 +1025,7 @@ $ cognitive-reader book.md
 
 ## 🎯 Development Phases
 
-### **Phase 1: Data Model Foundation**
+### **Foundation: Cognitive Data Models**
 
 **Objectives**:
 - Implement cognitive processing data models
@@ -734,7 +1038,7 @@ $ cognitive-reader book.md
 - `CognitiveConfig` with cognitive feature toggles and dual model support
 - Clean API design focused on cognitive reading
 
-### **Phase 2: First Pass Cognitive Features**
+### **First Pass: Progressive Refinement**
 
 **Objectives**:
 - Implement refinement capability in progressive reading
@@ -748,7 +1052,7 @@ $ cognitive-reader book.md
 - Refinement threshold configuration
 - Unit testing for refinement features
 
-### **Phase 3: Second Pass Implementation**
+### **Second Pass: Contextual Enrichment**
 
 **Objectives**:
 - Implement global context enrichment capability
@@ -762,7 +1066,7 @@ $ cognitive-reader book.md
 - Enrichment detection and tracking
 - Complete two-pass flow testing
 
-### **Phase 4: Integration & Validation**
+### **Validation: Testing & Optimization**
 
 **Objectives**:
 - Validate cognitive processing benefits with real documents
@@ -797,20 +1101,101 @@ $ cognitive-reader book.md
 - ✅ **Coherent refinements**: Refinements should improve summary quality
 - ✅ **Valuable enrichments**: Second pass should add meaningful context
 - ✅ **Author voice preservation**: Maintain fidelity to original content
-- ✅ **Clear evolution tracking**: Simple before/after comparisons show value
+- ✅ **Clear output quality**: Final summaries and concepts demonstrate superior understanding
 - ✅ **Model effectiveness**: Fast model enables speed, quality model enhances depth
+
+---
+
+## 📚 Testing with Real Document
+
+### **Example Document for Validation**
+
+The project includes a reduced version of the actual book "3 pasos contra el sedentarismo" in `examples/3 pasos contra el sedentarismo.md` to enable **realistic testing** and **quality validation**.
+
+#### **Document Structure** (Real Content)
+```
+3 pasos contra el sedentarismo.md
+├── Introducción al sedentarismo
+│   ├── ¿Qué es el sedentarismo?
+│   │   ├── De nómadas a sedentarios
+│   │   ├── Enfermedades de la civilización
+│   │   ├── En la especialización está la clave
+│   │   ├── Nuestras células se adaptan
+│   │   └── Conclusiones
+├── Problemas comunes: limitaciones de la movilidad, dolor y estrés
+│   ├── Sistema nervioso
+│   ├── Movilidad  
+│   └── Dolor
+├── 3 pasos para salir del sedentarismo
+│   ├── Caminar más
+│   ├── Sentarse más en el suelo
+│   ├── Colgarse más de las manos
+│   ├── Paso extra: respiración
+│   └── ¿Y ahora qué? Siguientes pasos
+└── Conclusiones
+```
+
+#### **Key Testing Benefits**
+
+1. **🎯 Authentic Content**: Real author voice and methodology
+2. **🔬 Quality Validation**: Compare cognitive vs. traditional processing
+3. **📊 Concept Extraction**: Validate extraction of domain-specific terms
+4. **🏗️ Hierarchy Testing**: Multi-level structure with logical relationships
+5. **⚡ Performance Testing**: Appropriately sized document for realistic but manageable testing
+
+#### **Recommended Test Cases**
+
+```python
+# Test Case 1: Full Cognitive Processing
+test_file = "examples/3 pasos contra el sedentarismo.md"
+result = cognitive_reader.process_document(
+    file_path=test_file,
+    enable_second_pass=True,
+    enable_refinement=True
+)
+
+# Validate authentic concepts are extracted
+expected_concepts = [
+    "sedentarismo", "vida_nomada", "movimiento_natural", 
+    "tres_pasos", "dolor_cronico", "mapas_cerebrales"
+]
+
+# Test Case 2: Quality Comparison
+traditional_chunks = chunk_processor.process(test_file)
+cognitive_summaries = result.hierarchical_summaries
+
+# Cognitive summaries should show:
+# ✅ Coherent understanding of methodology
+# ✅ Logical progression from problems to solutions  
+# ✅ Preserved author's voice and specific terminology
+# ✅ Connected concepts across sections
+```
+
+#### **Quality Indicators to Validate**
+
+- **📖 Coherent Book Summary**: Should capture the core methodology and progression
+- **🔗 Connected Concepts**: `sedentarismo` → `tres_pasos` relationship should be clear
+- **🎯 Accurate Terminology**: Domain-specific terms like "propiocepción", "nocicepción" 
+- **📚 Preserved Voice**: Maintains author's scientific yet accessible tone
+- **🧩 Logical Hierarchy**: Introduction → Problems → Solutions → Conclusions flow
 
 ---
 
 ## 🚀 Future Development (Post-MVP)
 
-### **Phase 2: Enhanced Cognitive Features**
+### **Enhanced Cognitive Features**
+- **Multi-pass iterative reading**: Extend beyond 2-pass to N-pass cognitive processing
+  - Configurable number of passes (3, 4, 5+ re-readings)
+  - Each pass deepens understanding and refines concepts iteratively
+  - Diminishing returns detection to optimize pass count automatically
+  - Pass-specific prompting strategies for progressive refinement
+  - Advanced context accumulation across multiple iterations
 - **Complex emergent concept detection**: More sophisticated concept emergence patterns
 - **Knowledge graph generation**: Export relationships to graph databases
 - **Multi-document cognitive synthesis**: Read across related documents
 - **Advanced refinement strategies**: More intelligent refinement triggers
 
-### **Phase 3: Advanced Integration**
+### **Advanced Integration**
 - **Contradiction detection**: Handle inconsistencies intelligently  
 - **Expert feedback loops**: Incorporate human expert refinements
 - **Adaptive cognitive strategies**: Adjust approach based on document type
@@ -824,7 +1209,7 @@ $ cognitive-reader book.md
 
 1. ✅ **Progressive + Refinement**: First pass that can update understanding as context grows
 2. ✅ **Global Enrichment**: Second pass that enriches with complete document context  
-3. ✅ **Simple Evolution Tracking**: Basic before/after tracking of understanding changes
+3. ✅ **Integrated Summaries**: Final output that reflects deep understanding without process metadata
 4. ✅ **Proof of Concept**: Demonstrate clear difference from chunk-based fragmentation
 
 **MVP v2** proves that **cognitive reading works differently** than sequential processing, establishing the foundation for more advanced cognitive features in future phases.

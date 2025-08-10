@@ -177,29 +177,38 @@ Illustration of how the two-pass processing would work:
 
 #### 🔄 **First Pass**:
 ```
-Section 1: "Introducción al sedentarismo"
-└── Initial summary: "Introduction to sedentarism problems and basic concepts"
+Section 1.1: "¿Qué es el sedentarismo?"
+└── Initial summary: "Definition and evolution from nomadic to sedentary lifestyle"
+
+Section 1.1.1: "De nómadas a sedentarios"
+└── Updates Parent: "Historical shift from movement-rich nomadic life to specialized sedentary patterns"
+└── Updates Book: "Foundation: sedentarism as evolutionary mismatch, not just sitting"
+
+Section 1.1.2: "Enfermedades de la civilización"
+└── Updates Section 1.1: "Sedentary lifestyle linked to chronic diseases replacing infectious diseases"
+└── Updates Book: "Modern health problems stem from lifestyle-biology mismatch"
 
 Section 2: "Problemas comunes: limitaciones de la movilidad, dolor y estrés"
-└── Updates Book Summary: "Sedentarism causes specific mobility, pain and stress problems"
-└── Updates Section 1: "Sedentarism introduction with specific health consequences (see Section 2)"
+└── Updates Book: "Specific manifestations: nervous system, mobility, pain from sedentary specialization"
 
-Section 3: "3 pasos para salir del sedentarismo" 
-└── Updates Book Summary: "Three-step method (walk more, sit on floor, hang) to combat sedentarism"
-└── Updates Section 1: "Introduction that leads to the specific 3-step solution"
-└── Updates Section 2: "Problems that the 3-step method specifically addresses"
+Section 3.1: "Caminar más"
+└── Updates Section 3: "First step: natural human movement, accessible to all"
+└── Updates Book: "Solution framework: three specific movement interventions (walking, floor sitting, hanging)"
 ```
 
 #### 🔍 **Second Pass**:
 ```
-Re-read Section 1 with complete context:
-└── Enriches: "Introduction establishes foundation for understanding why the specific 3 steps (walking, floor sitting, hanging) address the root causes"
+Re-read "De nómadas a sedentarios" with complete solution context:
+└── Enriches: "Nomadic movement variety explains why the 3 steps (walking, floor sitting, hanging) specifically recreate ancestral movement patterns"
 
-Re-read Section 2 with known methodology:
-└── Enriches: "Mobility, pain and stress problems are specifically addressed by the three movement patterns: walking, floor positions, and hanging"
+Re-read "En la especialización está la clave" with known interventions:
+└── Enriches: "Specialization problems (postural adaptation, 'use it or lose it') are directly countered by diversifying movement through the 3 steps"
+
+Re-read "Sistema nervioso" section with movement solutions:
+└── Enriches: "Neurological concepts (proprioception, brain maps, pain) explain why varied movement (3 steps) improves nervous system function"
 
 Final Synthesis:
-└── "The book presents a coherent framework where sedentarism → specific movement limitations → health problems, solved through three specific movement interventions"
+└── "Coherent framework: evolutionary mismatch → cellular adaptation → nervous system problems → solved by recreating ancestral movement diversity through walking, floor sitting, and hanging"
 ```
 
 **Result**: A Knowledge Graph where each concept is contextually connected with all others according to the author's specific logic.
@@ -236,13 +245,14 @@ the coherence of the author's specific approach.
 
 #### 3. **Knowledge Navigation**
 ```
-Concept: "Mobility"
+Concept: "Especialización de posturas" (Postural specialization)
 
 Desired context:
-- Definition according to the book (within "Common problems")
-- Relationship with the 3 specific steps (walking more, floor sitting, hanging)
-- Position in the argumentative structure (problem → solution)
-- Cross-references to relevant sections (introduction, specific steps)
+- Definition according to the book (within "En la especialización está la clave")
+- Connection to cellular adaptation principle ("úselo o piérdalo" - use it or lose it)
+- Relationship with nervous system problems (brain maps, proprioception)
+- Solution through the 3 steps: diversifying movement (walking, floor sitting, hanging)
+- Cross-references: nomadic lifestyle → specialization problems → nervous system impact → movement solutions
 ```
 
 ---
@@ -284,7 +294,7 @@ The project doesn't stop at contextualized summaries. The **final goal** is to c
 
 **With Cognitive Document Reader**:
 - Summaries that preserve medical context
-- Interconnected concepts (sedentarism → insulin resistance → diabetes)
+- Interconnected concepts (nomadic life → sedentarism → civilization diseases → specific nervous system problems)
 - Navigation through book-specific evidence
 
 ### Case 2: Health App Developer

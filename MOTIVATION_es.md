@@ -177,29 +177,38 @@ Ilustración de cómo funcionaría el procesamiento de dos pasadas:
 
 #### 🔄 **Primera Pasada**:
 ```
-Sección 1: "Introducción al sedentarismo"
-└── Resumen inicial: "Introducción a los problemas del sedentarismo y conceptos básicos"
+Sección 1.1: "¿Qué es el sedentarismo?"
+└── Resumen inicial: "Definición y evolución del estilo de vida nómada al sedentario"
+
+Sección 1.1.1: "De nómadas a sedentarios"
+└── Actualiza Padre: "Cambio histórico de vida nómada rica en movimiento a patrones sedentarios especializados"
+└── Actualiza Libro: "Fundamento: sedentarismo como desajuste evolutivo, no solo estar sentado"
+
+Sección 1.1.2: "Enfermedades de la civilización"
+└── Actualiza Sección 1.1: "Estilo de vida sedentario vinculado a enfermedades crónicas que reemplazan infecciosas"
+└── Actualiza Libro: "Problemas de salud modernos provienen del desajuste entre estilo de vida y biología"
 
 Sección 2: "Problemas comunes: limitaciones de la movilidad, dolor y estrés"
-└── Actualiza Resumen Libro: "El sedentarismo causa problemas específicos de movilidad, dolor y estrés"
-└── Actualiza Secc.1: "Introducción al sedentarismo con consecuencias específicas de salud (ver Sección 2)"
+└── Actualiza Libro: "Manifestaciones específicas: sistema nervioso, movilidad, dolor por especialización sedentaria"
 
-Sección 3: "3 pasos para salir del sedentarismo"
-└── Actualiza Resumen Libro: "Método de 3 pasos (caminar más, sentarse en el suelo, colgarse) para combatir sedentarismo"
-└── Actualiza Secc.1: "Introducción que lleva a la solución específica de 3 pasos"
-└── Actualiza Secc.2: "Problemas que el método de 3 pasos aborda específicamente"
+Sección 3.1: "Caminar más"
+└── Actualiza Sección 3: "Primer paso: movimiento humano natural, accesible para todos"
+└── Actualiza Libro: "Marco de solución: tres intervenciones específicas de movimiento (caminar, sentarse en suelo, colgarse)"
 ```
 
 #### 🔍 **Segunda Pasada**:
 ```
-Releer Sección 1 con contexto completo:
-└── Enriquece: "La introducción establece las bases para entender por qué los 3 pasos específicos (caminar, sentarse en suelo, colgarse) abordan las causas raíz"
+Releer "De nómadas a sedentarios" con contexto completo de solución:
+└── Enriquece: "La variedad de movimiento nómada explica por qué los 3 pasos (caminar, sentarse en suelo, colgarse) recrean específicamente patrones de movimiento ancestrales"
 
-Releer Sección 2 con metodología conocida:
-└── Enriquece: "Los problemas de movilidad, dolor y estrés son abordados específicamente por los tres patrones de movimiento: caminar, posiciones en el suelo, y colgarse"
+Releer "En la especialización está la clave" con intervenciones conocidas:
+└── Enriquece: "Los problemas de especialización (adaptación postural, 'úselo o piérdalo') se contrarrestan directamente diversificando movimiento con los 3 pasos"
+
+Releer sección "Sistema nervioso" con soluciones de movimiento:
+└── Enriquece: "Conceptos neurológicos (propiocepción, mapas cerebrales, dolor) explican por qué el movimiento variado (3 pasos) mejora función del sistema nervioso"
 
 Síntesis Final:
-└── "El libro presenta un marco coherente donde sedentarismo → limitaciones de movimiento específicas → problemas de salud, resueltos mediante tres intervenciones de movimiento específicas"
+└── "Marco coherente: desajuste evolutivo → adaptación celular → problemas del sistema nervioso → resueltos recreando diversidad de movimiento ancestral mediante caminar, sentarse en suelo, y colgarse"
 ```
 
 **Resultado**: Un Knowledge Graph donde cada concepto está contextualizadamente conectado con todos los demás según la lógica específica del autor.
@@ -236,13 +245,14 @@ la coherencia del enfoque específico del autor.
 
 #### 3. **Navegación de Conocimiento**
 ```
-Concepto: "Movilidad"
+Concepto: "Especialización de posturas"
 
 Contexto deseado:
-- Definición según el libro (dentro de "Problemas comunes")
-- Relación con los 3 pasos específicos (caminar, sentarse en suelo, colgarse)
-- Posición en la estructura argumental (problema → solución)
-- Referencias cruzadas a secciones relevantes (introducción, pasos específicos)
+- Definición según el libro (dentro de "En la especialización está la clave")
+- Conexión con principio de adaptación celular ("úselo o piérdalo")
+- Relación con problemas del sistema nervioso (mapas cerebrales, propiocepción)
+- Solución a través de los 3 pasos: diversificar movimiento (caminar, sentarse en suelo, colgarse)
+- Referencias cruzadas: vida nómada → problemas de especialización → impacto sistema nervioso → soluciones de movimiento
 ```
 
 ---
@@ -284,7 +294,7 @@ El proyecto no se detiene en resúmenes contextualizados. La **meta final** es c
 
 **Con Cognitive Document Reader**:
 - Resúmenes que preservan el contexto médico
-- Conceptos interconectados (sedentarismo → resistencia insulínica → diabetes)
+- Conceptos interconectados (vida nómada → sedentarismo → enfermedades de la civilización → problemas específicos del sistema nervioso)
 - Navegación por evidencia específica del libro
 
 ### Caso 2: Desarrollador de Apps de Salud
