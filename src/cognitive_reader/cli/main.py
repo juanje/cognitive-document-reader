@@ -357,8 +357,8 @@ async def _async_main(
         click.echo(output_text)
 
     if not quiet:
-        total_sections = len(knowledge.sections)
-        total_summaries = len(knowledge.section_summaries)
+        total_sections = knowledge.total_sections
+        total_summaries = len(knowledge.hierarchical_summaries)
         click.echo(
             f"\n✅ Processing completed: {total_sections} sections, {total_summaries} summaries",
             err=True,
@@ -427,119 +427,133 @@ def _build_config(
 
 
 def _format_json_output(knowledge: CognitiveKnowledge) -> str:
-    """Format knowledge as JSON output."""
-    # Convert to dict for JSON serialization
+    """Format knowledge as JSON output according to SPECS v2.0."""
+    # Convert to dict for JSON serialization using v2.0 structure
     output_dict = {
         "document_title": knowledge.document_title,
-        "document_summary": knowledge.document_summary,
         "detected_language": knowledge.detected_language.value,
-        "sections": [
-            {
-                "id": section.id,
-                "title": section.title,
-                "level": section.level,
-                "parent_id": section.parent_id,
-                "children_ids": section.children_ids,
-                "order_index": section.order_index,
-                "content_preview": section.content[:200] + "..."
-                if len(section.content) > 200
-                else section.content,
-            }
-            for section in knowledge.sections
-        ],
-        "section_summaries": {
+        "hierarchical_summaries": {
             section_id: {
                 "title": summary.title,
                 "summary": summary.summary,
                 "key_concepts": summary.key_concepts,
-                "confidence_score": summary.confidence_score,
+                "level": summary.level,
+                "order_index": summary.order_index,
+                "parent_id": summary.parent_id,
+                "children_ids": summary.children_ids,
             }
-            for section_id, summary in knowledge.section_summaries.items()
+            for section_id, summary in knowledge.hierarchical_summaries.items()
         },
-        "processing_metadata": knowledge.processing_metadata,
+        "concepts": [
+            {
+                "concept_id": concept.concept_id,
+                "name": concept.name,
+                "definition": concept.definition,
+                "first_mentioned_in": concept.first_mentioned_in,
+                "relevant_sections": concept.relevant_sections,
+            }
+            for concept in knowledge.concepts
+        ],
+        "hierarchy_index": knowledge.hierarchy_index,
+        "parent_child_map": knowledge.parent_child_map,
+        "statistics": {
+            "total_sections": knowledge.total_sections,
+            "avg_summary_length": knowledge.avg_summary_length,
+            "total_concepts": knowledge.total_concepts,
+        },
     }
 
     return json.dumps(output_dict, indent=2, ensure_ascii=False)
 
 
 def _format_markdown_output(knowledge: CognitiveKnowledge) -> str:
-    """Format knowledge as enhanced Markdown output."""
+    """Format knowledge as enhanced Markdown output according to SPECS v2.0."""
     lines = []
 
-    # Title and summary
+    # Title
     lines.append(f"# {knowledge.document_title}")
     lines.append("")
-    lines.append("## Document Summary")
-    lines.append("")
-    lines.append(knowledge.document_summary)
-    lines.append("")
 
-    # Metadata
+    # Processing Information
     lines.append("## Processing Information")
     lines.append("")
     lines.append(f"- **Language**: {knowledge.detected_language.value}")
-    lines.append(f"- **Total Sections**: {len(knowledge.sections)}")
-    lines.append(f"- **Total Summaries**: {len(knowledge.section_summaries)}")
-
-    if knowledge.processing_metadata:
-        for key, value in knowledge.processing_metadata.items():
-            if key not in ["total_sections", "total_summaries"]:
-                lines.append(f"- **{key.replace('_', ' ').title()}**: {value}")
+    lines.append(f"- **Total Sections**: {knowledge.total_sections}")
+    lines.append(f"- **Total Concepts**: {knowledge.total_concepts}")
+    lines.append(f"- **Average Summary Length**: {knowledge.avg_summary_length} characters")
     lines.append("")
 
-    # Section summaries
-    if knowledge.section_summaries:
+    # Section Analysis (ordered summaries)
+    if knowledge.hierarchical_summaries:
         lines.append("## Section Analysis")
         lines.append("")
 
-        # Get sections ordered by appearance
-        ordered_sections = sorted(knowledge.sections, key=lambda s: s.order_index)
+        # Get summaries ordered by order_index
+        ordered_summaries = sorted(
+            knowledge.hierarchical_summaries.values(),
+            key=lambda s: s.order_index
+        )
 
-        for section in ordered_sections:
-            if section.id in knowledge.section_summaries:
-                summary = knowledge.section_summaries[section.id]
+        for summary in ordered_summaries:
+            # Section header with level indication
+            level_prefix = "#" * (min(summary.level + 2, 6))  # Max heading level 6
+            lines.append(f"{level_prefix} {summary.title}")
+            lines.append("")
 
-                # Section header with level indication
-                level_prefix = "#" * (min(section.level + 2, 6))  # Max heading level 6
-                lines.append(f"{level_prefix} {summary.title}")
+            # Summary
+            lines.append(f"**Summary**: {summary.summary}")
+            lines.append("")
+
+            # Key concepts
+            if summary.key_concepts:
+                concepts_text = ", ".join(summary.key_concepts)
+                lines.append(f"**Key Concepts**: {concepts_text}")
                 lines.append("")
 
-                # Summary
-                lines.append(f"**Summary**: {summary.summary}")
+    # Concepts Glossary
+    if knowledge.concepts:
+        lines.append("## Concepts Glossary")
+        lines.append("")
+
+        for concept in knowledge.concepts:
+            lines.append(f"### {concept.name}")
+            lines.append("")
+            lines.append(f"**Definition**: {concept.definition}")
+            lines.append("")
+            if concept.relevant_sections:
+                sections_text = ", ".join(concept.relevant_sections)
+                lines.append(f"**Found in sections**: {sections_text}")
                 lines.append("")
 
-                # Key concepts
-                if summary.key_concepts:
-                    concepts_text = ", ".join(summary.key_concepts)
-                    lines.append(f"**Key Concepts**: {concepts_text}")
-                    lines.append("")
-
-                # Confidence score
-                if summary.confidence_score < 1.0:
-                    lines.append(f"**Confidence**: {summary.confidence_score:.2f}")
-                    lines.append("")
-
-    # Document structure
+    # Document Structure (using hierarchy_index and parent_child_map)
     lines.append("## Document Structure")
     lines.append("")
 
-    # Build hierarchical view
-    def add_section_tree(section: Any, indent: int = 0) -> None:
-        prefix = "  " * indent + "- "
-        lines.append(f"{prefix}{section.title} (Level {section.level})")
+    # Build hierarchical view from hierarchy_index
+    def add_hierarchy_level(level: str, indent: int = 0) -> None:
+        if level not in knowledge.hierarchy_index:
+            return
 
-        # Add children
-        children = [s for s in knowledge.sections if s.parent_id == section.id]
-        children.sort(key=lambda s: s.order_index)
-        for child in children:
-            add_section_tree(child, indent + 1)
+        for section_id in knowledge.hierarchy_index[level]:
+            summary = knowledge.hierarchical_summaries.get(section_id)
+            if summary:
+                prefix = "  " * indent + "- "
+                lines.append(f"{prefix}{summary.title}")
 
-    # Find root sections (no parent)
-    root_sections = [s for s in knowledge.sections if s.parent_id is None]
-    root_sections.sort(key=lambda s: s.order_index)
+                # Add children if they exist
+                children = knowledge.parent_child_map.get(section_id, [])
+                for child_id in children:
+                    child_summary = knowledge.hierarchical_summaries.get(child_id)
+                    if child_summary:
+                        child_prefix = "  " * (indent + 1) + "- "
+                        lines.append(f"{child_prefix}{child_summary.title}")
 
-    for root in root_sections:
-        add_section_tree(root)
+    # Start with root level (usually "0")
+    for level in sorted(knowledge.hierarchy_index.keys()):
+        if level == "0":  # Root level
+            add_hierarchy_level(level, 0)
+        elif level == "1":  # First level sections
+            add_hierarchy_level(level, 1)
 
     return "\n".join(lines)
 
