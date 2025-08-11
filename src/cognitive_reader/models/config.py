@@ -63,7 +63,7 @@ class CognitiveConfig(BaseModel):
     dry_run: bool = Field(default=False, description="Enable dry-run mode (no actual LLM calls)")
     mock_responses: bool = Field(default=False, description="Use mock responses for testing")
     validate_config_only: bool = Field(default=False, description="Only validate configuration")
-    
+
     # NOTE: max_hierarchy_depth is used for --structure-only --max-depth functionality
 
     @classmethod

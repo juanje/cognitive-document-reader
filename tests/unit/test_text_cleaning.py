@@ -250,7 +250,7 @@ class TestMarkdownToPlainText:
         """Test with complex real-world markdown content."""
         text = """# **Introducción al sedentarismo** {#intro}
 
-        Esta es una **introducción** con [enlaces](http://example.com) y 
+        Esta es una **introducción** con [enlaces](http://example.com) y
         `código inline`.
 
         - Lista item 1
@@ -259,11 +259,11 @@ class TestMarkdownToPlainText:
         > Cita importante
 
         ![Imagen](img.jpg)"""
-        
+
         # Note: {#intro} should be cleaned by clean_markdown_internal_links in clean_section_title
         # but markdown_to_plain_text alone won't handle it
         result = markdown_to_plain_text(text)
-        
+
         # Verify key components are cleaned correctly
         assert "Introducción al sedentarismo" in result
         assert "Esta es una introducción con enlaces" in result
@@ -272,7 +272,7 @@ class TestMarkdownToPlainText:
         assert "Lista item 2 con énfasis" in result
         assert "Cita importante" in result
         assert "Imagen" in result
-        
+
         # Verify markdown is removed
         assert "**" not in result
         assert "*" not in result or result.count("*") == 0  # Allow for edge cases
@@ -386,7 +386,7 @@ class TestStructureDetectorIntegration:
         assert len(sections) == 1
         section = sections[0]
 
-        # Both title and content should be cleaned completely 
+        # Both title and content should be cleaned completely
         assert section.title == "Introduction"
         assert section.content == "Introduction"
         assert "{#introduction}" not in section.title
