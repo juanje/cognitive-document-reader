@@ -707,6 +707,104 @@ Resultado Primera Pasada
 Salida de Conocimiento Cognitivo
 ```
 
+### **Algoritmo de Procesamiento Jerárquico**
+
+El proceso de lectura cognitiva implementa un algoritmo de **síntesis jerárquica bottom-up** que procesa la estructura del documento desde las hojas hasta la raíz, combinando el contenido de cada sección con los resúmenes de sus hijos en cada nivel.
+
+#### **Visión General del Algoritmo**
+
+```
+1. Análisis de Estructura
+   ├── Detectar profundidad máxima de jerarquía (o usar límite especificado por usuario)
+   └── Identificar secciones hoja (nivel más profundo, sin hijos)
+
+2. Procesamiento Bottom-Up
+   ├── PASO 1: Procesar Secciones Hoja
+   │   ├── Leer contenido de sección (encabezado + párrafos)
+   │   ├── Generar resumen de sección
+   │   └── Extraer conceptos clave
+   │
+   ├── PASO 2: Procesar Secciones Contenedoras (nivel por nivel, bottom-up)
+   │   ├── Combinar: Contenido propio de sección + Resúmenes de hijos
+   │   ├── Generar resumen contenedor del contenido combinado
+   │   └── Extraer/fusionar conceptos de contenedor + hijos
+   │
+   └── PASO 3: Generar Resumen de Documento
+       ├── Combinar: Título del documento + Todos los resúmenes de nivel superior
+       ├── Generar resumen a nivel de documento
+       └── Crear glosario final de conceptos
+
+3. Generación de Salida
+   └── Conocimiento Jerárquico con árbol completo de secciones
+```
+
+#### **Ejemplo de Orden de Procesamiento**
+
+Para una estructura de documento como:
+```
+# Título del Libro
+## Capítulo 1: Introducción
+### Sección 1.1: Antecedentes
+### Sección 1.2: Propósito
+## Capítulo 2: Métodos
+### Sección 2.1: Enfoque
+```
+
+**Secuencia de procesamiento:**
+1. **Procesamiento de hojas**: `Sección 1.1`, `Sección 1.2`, `Sección 2.1` (nivel más profundo primero)
+2. **Procesamiento de contenedores**: `Capítulo 1` (contenido + resúmenes de 1.1, 1.2), `Capítulo 2` (contenido + resumen de 2.1)
+3. **Procesamiento de documento**: `Título del Libro` (contenido + resúmenes de Capítulo 1, Capítulo 2)
+
+#### **Reglas de Composición de Contenido**
+
+**Para Secciones Hoja:**
+- Entrada: `section.content` (encabezado + párrafos siguientes)
+- Generar: Resumen de sección + conceptos clave
+
+**Para Secciones Contenedoras:**
+- Entrada: `section.content + child_summaries`
+- Formato: `"Contenido de sección:\n{section.content}\n\nResúmenes de subsecciones:\n{child_summaries}"`
+- Generar: Resumen contenedor que sintetiza contenido propio con insights de hijos
+
+**Para Nivel de Documento:**
+- Entrada: `document_title + top_level_summaries`
+- Generar: Resumen de documento + glosario global de conceptos
+
+#### **Implementación Técnica**
+
+```python
+async def process_hierarchically(sections: List[DocumentSection]) -> CognitiveKnowledge:
+    """Procesar documento usando síntesis jerárquica bottom-up."""
+    
+    # 1. Organizar secciones por nivel de jerarquía
+    levels = organize_by_level(sections)
+    max_level = max(levels.keys())
+    
+    # 2. Procesar desde el nivel más profundo hasta la raíz
+    summaries = {}
+    
+    for level in range(max_level, 0, -1):  # Procesamiento bottom-up
+        for section in levels[level]:
+            if section.children_ids:  # Sección contenedora
+                content = combine_section_and_children_content(section, summaries)
+            else:  # Sección hoja
+                content = section.content
+                
+            summary = await generate_summary(content, section.title)
+            summaries[section.id] = summary
+    
+    # 3. Generar síntesis a nivel de documento
+    document_summary = await generate_document_summary(document_title, top_level_summaries)
+    
+    return CognitiveKnowledge(...)
+```
+
+Este algoritmo asegura que:
+- ✅ **Cada sección** recibe contenido apropiado (texto propio + contexto de hijos)
+- ✅ **Orden de procesamiento** sigue dependencia lógica (hijos antes que padres)
+- ✅ **Escalabilidad** funciona para cualquier profundidad de estructura de documento
+- ✅ **Preservación de contexto** mantiene relaciones jerárquicas
+
 ### **Requisitos de Primera Pasada**
 
 **Requisitos Funcionales:**

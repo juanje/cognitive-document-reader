@@ -736,6 +736,104 @@ First Pass Result
 Cognitive Knowledge Output
 ```
 
+### **Hierarchical Processing Algorithm**
+
+The cognitive reading process implements a **bottom-up hierarchical synthesis** algorithm that processes document structure from leaves to root, combining section content with child summaries at each level.
+
+#### **Algorithm Overview**
+
+```
+1. Structure Analysis
+   ├── Detect maximum hierarchy depth (or use user-specified limit)
+   └── Identify leaf sections (deepest level, no children)
+
+2. Bottom-Up Processing
+   ├── STEP 1: Process Leaf Sections
+   │   ├── Read section content (header + paragraphs)
+   │   ├── Generate section summary
+   │   └── Extract key concepts
+   │
+   ├── STEP 2: Process Container Sections (level by level, bottom-up)
+   │   ├── Combine: Section's own content + Child summaries
+   │   ├── Generate container summary from combined content
+   │   └── Extract/merge concepts from container + children
+   │
+   └── STEP 3: Generate Document Summary
+       ├── Combine: Document title + All top-level section summaries
+       ├── Generate document-level summary
+       └── Create final concept glossary
+
+3. Output Generation
+   └── Hierarchical Knowledge with complete section tree
+```
+
+#### **Processing Order Example**
+
+For a document structure like:
+```
+# Book Title
+## Chapter 1: Introduction
+### Section 1.1: Background
+### Section 1.2: Purpose
+## Chapter 2: Methods
+### Section 2.1: Approach
+```
+
+**Processing sequence:**
+1. **Leaf processing**: `Section 1.1`, `Section 1.2`, `Section 2.1` (deepest level first)
+2. **Container processing**: `Chapter 1` (content + summaries of 1.1, 1.2), `Chapter 2` (content + summary of 2.1)
+3. **Document processing**: `Book Title` (content + summaries of Chapter 1, Chapter 2)
+
+#### **Content Composition Rules**
+
+**For Leaf Sections:**
+- Input: `section.content` (header + following paragraphs)
+- Generate: Section summary + key concepts
+
+**For Container Sections:**
+- Input: `section.content + child_summaries`
+- Format: `"Section content:\n{section.content}\n\nSubsection summaries:\n{child_summaries}"`
+- Generate: Container summary that synthesizes own content with child insights
+
+**For Document Level:**
+- Input: `document_title + top_level_summaries`
+- Generate: Document summary + global concept glossary
+
+#### **Technical Implementation**
+
+```python
+async def process_hierarchically(sections: List[DocumentSection]) -> CognitiveKnowledge:
+    """Process document using bottom-up hierarchical synthesis."""
+    
+    # 1. Organize sections by hierarchy level
+    levels = organize_by_level(sections)
+    max_level = max(levels.keys())
+    
+    # 2. Process from deepest level to root
+    summaries = {}
+    
+    for level in range(max_level, 0, -1):  # Bottom-up processing
+        for section in levels[level]:
+            if section.children_ids:  # Container section
+                content = combine_section_and_children_content(section, summaries)
+            else:  # Leaf section
+                content = section.content
+                
+            summary = await generate_summary(content, section.title)
+            summaries[section.id] = summary
+    
+    # 3. Generate document-level synthesis
+    document_summary = await generate_document_summary(document_title, top_level_summaries)
+    
+    return CognitiveKnowledge(...)
+```
+
+This algorithm ensures that:
+- ✅ **Each section** receives appropriate content (own text + child context)
+- ✅ **Processing order** follows logical dependency (children before parents)
+- ✅ **Context preservation** maintains hierarchical relationships
+- ✅ **Scalability** works for any document structure depth
+
 ### **First Pass Requirements**
 
 **Functional Requirements:**
