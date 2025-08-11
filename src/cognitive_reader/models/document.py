@@ -77,7 +77,7 @@ class CognitiveKnowledge(BaseModel):
 
     # Document Statistics (useful for apps consuming the data)
     total_sections: int = Field(description="Total number of sections processed")
-    avg_summary_length: int = Field(description="Average summary length in characters")
+    avg_summary_length: float = Field(description="Average summary length in characters")
     total_concepts: int = Field(description="Total number of concepts identified")
 
     def get_summary_by_id(self, section_id: str) -> SectionSummary | None:
