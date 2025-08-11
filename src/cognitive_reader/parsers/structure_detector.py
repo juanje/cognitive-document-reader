@@ -37,28 +37,72 @@ class StructureDetector:
 
         sections = []
         section_stack: list[DocumentSection] = []  # Stack to track hierarchy
+        i = 0
 
-        for element in document_elements:
+        while i < len(document_elements):
+            element = document_elements[i]
             element_type = element.get("type", "")
             text = element.get("text", "").strip()
             level = element.get("level", 0)
 
             if not text:
+                i += 1
                 continue
 
             # Create section for headers and significant content blocks
             if element_type.startswith("heading") or self._is_significant_content(
                 element
             ):
-                section = self._create_section(
-                    text=text,
-                    level=level if element_type.startswith("heading") else level + 1,
-                    element_type=element_type,
-                )
+                # For headers, collect following paragraphs as content
+                if element_type.startswith("heading"):
+                    header_title = text
+                    content_parts = [text]  # Start with header text
+
+                    # Look ahead for paragraphs that belong to this header
+                    j = i + 1
+                    while j < len(document_elements):
+                        next_element = document_elements[j]
+                        next_type = next_element.get("type", "")
+                        next_text = next_element.get("text", "").strip()
+
+                        # Stop if we hit another header or significant content
+                        if (next_type.startswith("heading") or
+                            self._is_significant_content(next_element)):
+                            break
+
+                        # Add paragraphs and other content to this section
+                        if next_text and next_type == "paragraph":
+                            content_parts.append(next_text)
+                            j += 1
+                        else:
+                            j += 1
+
+                    # Create section with separated title and content
+                    combined_content = "\n\n".join(content_parts)
+                    section = self._create_section_with_content(
+                        title=header_title,
+                        content=combined_content,
+                        level=level,
+                        element_type=element_type,
+                    )
+
+                    # Skip the processed paragraphs
+                    i = j
+                else:
+                    # Non-header significant content
+                    section = self._create_section(
+                        text=text,
+                        level=level + 1,
+                        element_type=element_type,
+                    )
+                    i += 1
 
                 # Update hierarchy relationships
                 self._update_hierarchy(section, section_stack)
                 sections.append(section)
+            else:
+                # Skip non-significant content that wasn't grouped with a header
+                i += 1
 
         return sections
 
@@ -92,6 +136,36 @@ class StructureDetector:
             id=section_id,
             title=title,
             content=content,
+            level=level,
+            order_index=self._section_counter,
+            is_heading=element_type.startswith("heading"),
+        )
+
+    def _create_section_with_content(
+        self, title: str, content: str, level: int, element_type: str
+    ) -> DocumentSection:
+        """Create a DocumentSection with explicit title and content.
+
+        Args:
+            title: The section title (header text only).
+            content: The complete section content (header + paragraphs).
+            level: The hierarchical level.
+            element_type: The type of document element.
+
+        Returns:
+            A new DocumentSection instance with separated title and content.
+        """
+        self._section_counter += 1
+        section_id = f"section_{self._section_counter}_{uuid.uuid4().hex[:8]}"
+
+        # Clean title and content separately
+        clean_title = clean_section_title(title)
+        clean_content = clean_section_title(content)
+
+        return DocumentSection(
+            id=section_id,
+            title=clean_title,
+            content=clean_content,
             level=level,
             order_index=self._section_counter,
             is_heading=element_type.startswith("heading"),
@@ -134,7 +208,7 @@ class StructureDetector:
 
         # Only consider true structural elements as standalone sections
         # Paragraphs should NEVER be standalone sections - they belong to their parent section
-        
+
         # Code blocks and tables can be standalone sections when substantial
         significant_types = {"code_block", "table"}
         min_content_length = 100

@@ -398,12 +398,12 @@ class TestStructureDetectorIntegration:
 
         detector = StructureDetector()
 
-        # Mock heading content with internal links 
+        # Mock heading content with internal links
         content_with_links = "Advanced Topic {#advanced-topic} with Links {#links}"
 
         elements = [
             {
-                "type": "heading_2", 
+                "type": "heading_2",
                 "text": content_with_links,
                 "level": 2
             }

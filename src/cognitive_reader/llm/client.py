@@ -223,14 +223,14 @@ class LLMClient:
 
         if language == LanguageCode.ES:
             if prompt_type == "document_summary":
-                return f"Resumen del Documento: Este documento contiene información importante sobre varios temas. El contenido analizado incluye: {content_preview}. Los puntos clave se han identificado y sintetizado para proporcionar una visión general coherente."
+                return f"Este documento contiene información importante sobre varios temas. El contenido analizado incluye: {content_preview}. Los puntos clave se han identificado y sintetizado para proporcionar una visión general coherente."
             else:
-                return f"Resumen: Esta sección contiene información relevante sobre el tema presentado. El contenido incluye: {content_preview}. Se han identificado conceptos clave importantes.\nConceptos Clave: [concepto1, concepto2, concepto3]"
+                return f"Esta sección presenta información detallada sobre {content_preview}. Se analiza el contenido de manera integral, proporcionando insights valiosos para la comprensión del tema tratado."
         else:
             if prompt_type == "document_summary":
-                return f"Document Summary: This document contains important information about various topics. The analyzed content includes: {content_preview}. Key points have been identified and synthesized to provide a coherent overview."
+                return f"This document contains important information about various topics. The analyzed content includes: {content_preview}. Key points have been identified and synthesized to provide a coherent overview."
             else:
-                return f"Summary: This section contains relevant information about the presented topic. The content includes: {content_preview}. Important key concepts have been identified.\nKey Concepts: [concept1, concept2, concept3]"
+                return f"This section provides detailed information about {content_preview}. The content is analyzed comprehensively, offering valuable insights for understanding the topic at hand."
 
     def _get_mock_concepts(self, content: str) -> list[str]:
         """Generate mock concepts for development/testing.

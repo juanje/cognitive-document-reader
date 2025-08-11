@@ -193,15 +193,15 @@ class Synthesizer:
 
         # Combine section's own content with child summaries (true hierarchical synthesis)
         content_parts = []
-        
+
         # Add section's own content if it has any
         if section.content and section.content.strip():
             content_parts.append(f"Section content:\n{section.content}")
-            
+
         # Add child summaries
         if child_summaries:
-            content_parts.append(f"Subsection summaries:\n" + "\n\n".join(child_summaries))
-        
+            content_parts.append("Subsection summaries:\n" + "\n\n".join(child_summaries))
+
         combined_content = "\n\n".join(content_parts)
 
         try:
