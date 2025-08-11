@@ -547,35 +547,8 @@ def _format_markdown_output(knowledge: CognitiveKnowledge) -> str:
                 lines.append(f"**Found in sections**: {sections_text}")
                 lines.append("")
 
-    # Document Structure (using hierarchy_index and parent_child_map)
-    lines.append("## Document Structure")
-    lines.append("")
-
-    # Build hierarchical view from hierarchy_index
-    def add_hierarchy_level(level: str, indent: int = 0) -> None:
-        if level not in knowledge.hierarchy_index:
-            return
-
-        for section_id in knowledge.hierarchy_index[level]:
-            summary = knowledge.hierarchical_summaries.get(section_id)
-            if summary:
-                prefix = "  " * indent + "- "
-                lines.append(f"{prefix}{summary.title}")
-
-                # Add children if they exist
-                children = knowledge.parent_child_map.get(section_id, [])
-                for child_id in children:
-                    child_summary = knowledge.hierarchical_summaries.get(child_id)
-                    if child_summary:
-                        child_prefix = "  " * (indent + 1) + "- "
-                        lines.append(f"{child_prefix}{child_summary.title}")
-
-    # Start with root level (usually "0")
-    for level in sorted(knowledge.hierarchy_index.keys()):
-        if level == "0":  # Root level
-            add_hierarchy_level(level, 0)
-        elif level == "1":  # First level sections
-            add_hierarchy_level(level, 1)
+    # TODO: Phase 2 - Document Structure using hierarchy_index and parent_child_map
+    # Removed empty structure section until Phase 2 implementation
 
     return "\n".join(lines)
 
