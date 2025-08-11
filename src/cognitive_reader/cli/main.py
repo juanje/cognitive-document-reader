@@ -140,6 +140,7 @@ def cli(
         # Development modes
 
         cognitive-reader document.md --dry-run
+
         cognitive-reader --validate-config
 
         # Show only document structure (fast, no LLM processing)
