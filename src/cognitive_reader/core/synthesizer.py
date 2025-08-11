@@ -80,16 +80,21 @@ class Synthesizer:
         # For now, create a basic CognitiveKnowledge structure
         hierarchical_summaries = {s.section_id: s for s in all_summaries.values()}
 
+        # Collect all unique concepts from sections (MVP: basic concept counting)
+        all_concepts = set()
+        for summary in all_summaries.values():
+            all_concepts.update(summary.key_concepts)
+
         return CognitiveKnowledge(
             document_title=clean_section_title(document_title),
             detected_language=detected_language,
             hierarchical_summaries=hierarchical_summaries,
-            concepts=[],  # TODO: Phase 2 - implement concept extraction
+            concepts=[],  # TODO: Phase 2 - convert concepts to ConceptDefinition objects
             hierarchy_index={},  # TODO: Phase 2 - implement hierarchy index
             parent_child_map={},  # TODO: Phase 2 - implement parent-child mapping
             total_sections=len(sections),
             avg_summary_length=sum(len(s.summary) for s in all_summaries.values()) / max(len(all_summaries), 1),
-            total_concepts=0,  # TODO: Phase 2 - implement concept counting
+            total_concepts=len(all_concepts),  # Count unique concepts from all sections
         )
 
     async def _synthesize_container_sections(
