@@ -249,6 +249,7 @@ async def test_json_output_structure_compliance(fast_pass_config: CognitiveConfi
 
     # Required top-level fields
     assert hasattr(knowledge, 'document_title')
+    assert hasattr(knowledge, 'document_summary')  # Now required in SPECS v2.0
     assert hasattr(knowledge, 'detected_language')
     assert hasattr(knowledge, 'hierarchical_summaries')
     assert hasattr(knowledge, 'concepts')
@@ -259,13 +260,13 @@ async def test_json_output_structure_compliance(fast_pass_config: CognitiveConfi
     assert hasattr(knowledge, 'total_concepts')
 
     # Should NOT have deprecated fields
-    assert not hasattr(knowledge, 'document_summary')
     assert not hasattr(knowledge, 'sections')
     assert not hasattr(knowledge, 'section_summaries')
     assert not hasattr(knowledge, 'processing_metadata')
 
     # Verify types
     assert isinstance(knowledge.document_title, str)
+    assert isinstance(knowledge.document_summary, str)
     assert isinstance(knowledge.detected_language, LanguageCode)
     assert isinstance(knowledge.hierarchical_summaries, dict)
     assert isinstance(knowledge.concepts, list)

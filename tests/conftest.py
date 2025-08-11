@@ -218,6 +218,7 @@ def mock_cognitive_knowledge():
 
     return CognitiveKnowledge(
         document_title="Test Document",
+        document_summary="This is a comprehensive test document with multiple sections for validation purposes.",
         detected_language=LanguageCode.EN,
         hierarchical_summaries=summaries,
         concepts=[],  # Empty for basic test

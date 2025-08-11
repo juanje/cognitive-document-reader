@@ -63,6 +63,7 @@ class CognitiveReader:
                 # Return empty knowledge for validation-only mode
                 return CognitiveKnowledge(
                     document_title="Configuration Validation",
+                    document_summary="Configuration validation completed successfully.",
                     detected_language=LanguageCode.EN,
                     hierarchical_summaries={},
                     concepts=[],
@@ -82,6 +83,7 @@ class CognitiveReader:
             logger.warning(f"No sections found in document: {file_path}")
             return CognitiveKnowledge(
                 document_title=document_title,
+                document_summary=f"Empty document: {document_title}. No content sections were found for processing.",
                 detected_language=LanguageCode.EN,
                 hierarchical_summaries={},
                 concepts=[],
@@ -132,6 +134,7 @@ class CognitiveReader:
                 logger.info("Configuration validation successful")
                 return CognitiveKnowledge(
                     document_title="Configuration Validation",
+                    document_summary="Text configuration validation completed successfully.",
                     detected_language=LanguageCode.EN,
                     hierarchical_summaries={},
                     concepts=[],
@@ -151,6 +154,7 @@ class CognitiveReader:
             logger.warning("No sections found in text content")
             return CognitiveKnowledge(
                 document_title=document_title,
+                document_summary=f"Empty text content: {document_title}. No sections were identified for processing.",
                 detected_language=LanguageCode.EN,
                 hierarchical_summaries={},
                 concepts=[],

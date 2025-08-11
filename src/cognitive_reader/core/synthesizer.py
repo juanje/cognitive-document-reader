@@ -57,10 +57,10 @@ class Synthesizer:
         )
         all_summaries.update(container_summaries)
 
-        # TODO: Phase 2 - Generate document-level summary
-        # document_summary = await self._generate_document_summary(
-        #     document_title, sections, all_summaries, detected_language
-        # )
+        # Generate document-level summary (core map-reduce functionality)
+        document_summary = await self._generate_document_summary(
+            document_title, sections, all_summaries, detected_language
+        )
 
         # TODO: Phase 2 - Create processing metadata
         # processing_metadata = {
@@ -87,6 +87,7 @@ class Synthesizer:
 
         return CognitiveKnowledge(
             document_title=clean_section_title(document_title),
+            document_summary=document_summary,
             detected_language=detected_language,
             hierarchical_summaries=hierarchical_summaries,
             concepts=[],  # TODO: Phase 2 - convert concepts to ConceptDefinition objects

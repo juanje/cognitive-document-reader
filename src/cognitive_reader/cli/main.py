@@ -446,6 +446,7 @@ def _format_json_output(knowledge: CognitiveKnowledge) -> str:
     # Convert to dict for JSON serialization using v2.0 structure
     output_dict = {
         "document_title": knowledge.document_title,
+        "document_summary": knowledge.document_summary,
         "detected_language": knowledge.detected_language.value,
         "hierarchical_summaries": {
             section_id: {
@@ -487,6 +488,12 @@ def _format_markdown_output(knowledge: CognitiveKnowledge) -> str:
 
     # Title
     lines.append(f"# {knowledge.document_title}")
+    lines.append("")
+
+    # Document Summary
+    lines.append("## Document Summary")
+    lines.append("")
+    lines.append(knowledge.document_summary)
     lines.append("")
 
     # Processing Information

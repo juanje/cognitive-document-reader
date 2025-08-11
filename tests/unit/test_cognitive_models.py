@@ -184,6 +184,7 @@ class TestCognitiveKnowledge:
         """Test basic cognitive knowledge creation."""
         knowledge = CognitiveKnowledge(
             document_title="3 pasos contra el sedentarismo",
+            document_summary="Este libro explica cómo salir del sedentarismo en 3 pasos fundamentales.",
             detected_language=LanguageCode.ES,
             total_sections=8,
             avg_summary_length=740,
@@ -219,6 +220,7 @@ class TestCognitiveKnowledge:
 
         knowledge = CognitiveKnowledge(
             document_title="3 pasos contra el sedentarismo",
+            document_summary="Este libro explica los problemas del sedentarismo y propone 3 pasos para superarlo.",
             detected_language=LanguageCode.ES,
             hierarchical_summaries={"book": summary},
             concepts=[concept],
@@ -239,6 +241,7 @@ class TestCognitiveKnowledge:
         """Test helper methods for navigation."""
         knowledge = CognitiveKnowledge(
             document_title="Test",
+            document_summary="This is a test document for validating helper methods.",
             detected_language=LanguageCode.EN,
             total_sections=1,
             avg_summary_length=100,
@@ -265,6 +268,7 @@ class TestModelIntegration:
         # Create knowledge with config-appropriate values
         knowledge = CognitiveKnowledge(
             document_title="Test Document",
+            document_summary="This document integrates configuration with knowledge creation models.",
             detected_language=config.document_language,
             total_sections=1,
             avg_summary_length=config.target_summary_length,

@@ -55,6 +55,7 @@ class CognitiveKnowledge(BaseModel):
 
     # Document Metadata
     document_title: str = Field(description="Title of the processed document")
+    document_summary: str = Field(description="Cognitive-enhanced document-level summary")
     detected_language: LanguageCode = Field(description="Auto-detected or specified language")
 
     # Hierarchical Summaries (optimized for RAG chunks)
