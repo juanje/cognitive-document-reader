@@ -132,11 +132,12 @@ class StructureDetector:
         element_type = element.get("type", "")
         text = element.get("text", "").strip()
 
-        # Consider paragraphs, lists, and code blocks as significant
-        significant_types = {"paragraph", "list", "code_block", "table"}
-
-        # Must have substantial text content
-        min_content_length = 50
+        # Only consider true structural elements as standalone sections
+        # Paragraphs should NEVER be standalone sections - they belong to their parent section
+        
+        # Code blocks and tables can be standalone sections when substantial
+        significant_types = {"code_block", "table"}
+        min_content_length = 100
 
         return element_type in significant_types and len(text) >= min_content_length
 

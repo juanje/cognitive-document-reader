@@ -392,20 +392,20 @@ class TestStructureDetectorIntegration:
         assert "{#introduction}" not in section.title
         assert "{#introduction}" not in section.content
 
-    def test_paragraph_content_cleaning(self) -> None:
-        """Test that both title and content are cleaned for paragraph sections."""
+    def test_heading_content_cleaning_with_links(self) -> None:
+        """Test that both title and content are cleaned for heading sections with internal links."""
         from cognitive_reader.parsers.structure_detector import StructureDetector
 
         detector = StructureDetector()
 
-        # Mock paragraph content with internal links (needs to be >= 50 chars)
-        content_with_links = "Short title {#short}. This is some content that also has {#another-link} in the middle. And more text here {#final-link} to meet minimum length requirement."
+        # Mock heading content with internal links 
+        content_with_links = "Advanced Topic {#advanced-topic} with Links {#links}"
 
         elements = [
             {
-                "type": "paragraph",
+                "type": "heading_2", 
                 "text": content_with_links,
-                "level": 1
+                "level": 2
             }
         ]
 
@@ -414,20 +414,19 @@ class TestStructureDetectorIntegration:
         assert len(sections) == 1
         section = sections[0]
 
-        # Title should be cleaned version of first line
-        assert section.title.startswith("Short title .")
-        assert "{#short}" not in section.title
-        assert "{#another-link}" not in section.title
-        assert "{#final-link}" not in section.title
+        # Title should be cleaned version
+        assert section.title == "Advanced Topic with Links"
+        assert "{#advanced-topic}" not in section.title
+        assert "{#links}" not in section.title
 
-        # Content should be completely cleaned
-        assert "{#another-link}" not in section.content
-        assert "{#final-link}" not in section.content
-        assert "{#short}" not in section.content
+        # Content should be completely cleaned (same as title for headers)
+        assert "{#advanced-topic}" not in section.content
+        assert "{#links}" not in section.content
+        assert section.content == "Advanced Topic with Links"
 
-        # Verify that the content still makes sense
-        assert "Short title" in section.content
-        assert "This is some content" in section.content
+        # Verify section properties
+        assert section.is_heading is True
+        assert section.level == 2
 
     def test_complex_link_patterns_in_content(self) -> None:
         """Test cleaning of complex link patterns in content."""

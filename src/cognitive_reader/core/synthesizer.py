@@ -191,11 +191,21 @@ class Synthesizer:
             )
             return None
 
-        # Combine child summaries for synthesis
-        combined_content = "\n\n".join(child_summaries)
+        # Combine section's own content with child summaries (true hierarchical synthesis)
+        content_parts = []
+        
+        # Add section's own content if it has any
+        if section.content and section.content.strip():
+            content_parts.append(f"Section content:\n{section.content}")
+            
+        # Add child summaries
+        if child_summaries:
+            content_parts.append(f"Subsection summaries:\n" + "\n\n".join(child_summaries))
+        
+        combined_content = "\n\n".join(content_parts)
 
         try:
-            # Generate container summary from children
+            # Generate container summary from own content + children (hierarchical reduce)
             summary_text = await llm_client.generate_summary(
                 content=combined_content,
                 context="",  # Container sections don't need progressive context
