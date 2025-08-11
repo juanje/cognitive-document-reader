@@ -96,74 +96,85 @@ knowledge = await reader.read_document_text(text, title)
 
 ## 📋 Configuration
 
-Configure via environment variables or Python:
+Configure via environment variables or Python. All settings have sensible defaults and are optional.
 
 ### Environment Variables
 
+**📄 Complete Reference**: See `env.example` for all available variables with documentation.
+
 ```bash
-# LLM Configuration - Dual Model System
-COGNITIVE_READER_FAST_MODEL=llama3.1:8b       # Fast processing model 
-COGNITIVE_READER_QUALITY_MODEL=qwen3:8b       # High-quality analysis model
-COGNITIVE_READER_FAST_MODE=false              # false=quality, true=fast
-COGNITIVE_READER_TEMPERATURE=0.1
-COGNITIVE_READER_LANGUAGE=auto
+# Copy the example configuration
+cp env.example .env
 
-# Legacy support (sets both models to same value)
-# COGNITIVE_READER_MODEL=your-model
+# Edit with your preferred values
+nano .env
+```
 
-# Document Processing
-COGNITIVE_READER_CHUNK_SIZE=1000
-COGNITIVE_READER_CHUNK_OVERLAP=200
-COGNITIVE_READER_CONTEXT_WINDOW=4096
+**🔧 Key Settings:**
 
-# Performance
-COGNITIVE_READER_TIMEOUT_SECONDS=120
-COGNITIVE_READER_MAX_RETRIES=3
+```bash
+# Dual-Pass Cognitive Reading (default setup)
+COGNITIVE_READER_FAST_PASS_MODEL=llama3.1:8b    # Fast initial scan
+COGNITIVE_READER_MAIN_MODEL=qwen3:8b             # Quality refinement
+COGNITIVE_READER_ENABLE_FAST_FIRST_PASS=true    # Enable dual-pass
+COGNITIVE_READER_ENABLE_SECOND_PASS=true        # Enable refinement
 
-# Development Modes
-COGNITIVE_READER_DRY_RUN=false
-COGNITIVE_READER_MOCK_RESPONSES=false
+# Model temperatures
+COGNITIVE_READER_FAST_PASS_TEMPERATURE=0.1      # Fast pass (consistent)
+COGNITIVE_READER_MAIN_PASS_TEMPERATURE=0.3      # Main pass (balanced)
 
-# Development & Testing Features
-COGNITIVE_READER_SAVE_PARTIALS=false
-COGNITIVE_READER_PARTIALS_DIR=./partial_results
-COGNITIVE_READER_MAX_SECTIONS=             # No limit by default
-COGNITIVE_READER_MAX_DEPTH=                # No limit by default
+# Development modes
+COGNITIVE_READER_DRY_RUN=false                  # Use mock responses
+COGNITIVE_READER_MOCK_RESPONSES=false           # Deterministic testing
+COGNITIVE_READER_LANGUAGE=auto                  # auto, en, es
+
+# Summary optimization for RAG/Fine-tuning
+COGNITIVE_READER_TARGET_SUMMARY_LENGTH=800
+COGNITIVE_READER_MIN_SUMMARY_LENGTH=400
+COGNITIVE_READER_MAX_SUMMARY_LENGTH=1200
 ```
 
 ### Python Configuration
 
 ```python
-from cognitive_reader.models import ReadingConfig
+from cognitive_reader.models import CognitiveConfig
 from cognitive_reader.models.knowledge import LanguageCode
 
-# Quality mode (default) - uses qwen3:8b
-config = ReadingConfig(
-    fast_mode=False,  # Use quality model for best results
-    temperature=0.1,
-    chunk_size=1000,
+# Dual-pass cognitive reading (default)
+config = CognitiveConfig(
+    enable_fast_first_pass=True,        # Enable dual-pass approach
+    enable_second_pass=True,            # Enable refinement
+    fast_pass_model="llama3.1:8b",      # Fast initial scan
+    main_model="qwen3:8b",              # Quality refinement
+    fast_pass_temperature=0.1,         # Fast pass settings
+    main_pass_temperature=0.3,         # Main pass settings
     document_language=LanguageCode.AUTO,
-    dry_run=False  # Set to True for development
+    dry_run=False                       # Set to True for development
 )
 
-# Fast mode - uses llama3.1:8b for quicker processing
-fast_config = config.enable_fast_mode()
+# Ultra-fast mode - uses llama3.1:8b for both passes
+ultra_fast_config = CognitiveConfig(
+    enable_fast_first_pass=True,
+    fast_pass_model="llama3.1:8b",
+    main_model="llama3.1:8b",           # Same fast model for both passes
+    fast_pass_temperature=0.1,
+    main_pass_temperature=0.1
+)
 
 # Development & testing configuration
-dev_config = ReadingConfig(
-    save_partial_results=True,     # Save section-by-section results
-    partial_results_dir="./debug", # Custom output directory
-    max_sections=10,               # Process only first 10 sections
-    max_section_depth=2,           # Limit to depth level 2
-    fast_mode=True                 # Use fast model for quick testing
+dev_config = CognitiveConfig(
+    dry_run=True,                       # No real LLM calls
+    mock_responses=True,                # Use deterministic mock data
+    validate_config_only=False,         # Process documents normally
+    max_hierarchy_depth=2               # Limit depth for testing
 )
 
-# Custom models
-custom_config = ReadingConfig(
-    fast_model="llama3.1:8b",      # Your preferred fast model
-    quality_model="qwen3:8b",      # Your preferred quality model
-    fast_mode=True,                # Start in fast mode
-    temperature=0.1
+# Custom models configuration
+custom_config = CognitiveConfig(
+    fast_pass_model="llama3.2:3b",      # Your preferred fast model
+    main_model="qwen3:14b",             # Your preferred quality model
+    fast_pass_temperature=0.05,         # Very consistent fast pass
+    main_pass_temperature=0.2           # Conservative main pass
 )
 ```
 
