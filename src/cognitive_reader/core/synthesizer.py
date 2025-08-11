@@ -80,17 +80,38 @@ class Synthesizer:
         # For now, create a basic CognitiveKnowledge structure
         hierarchical_summaries = {s.section_id: s for s in all_summaries.values()}
 
-        # Collect all unique concepts from sections (MVP: basic concept counting)
+        # Collect all unique concepts from sections and convert to ConceptDefinition objects
         all_concepts = set()
+        concept_to_sections = {}  # Track which sections mention each concept
+        concept_first_mention = {}  # Track first mention of each concept
+
         for summary in all_summaries.values():
-            all_concepts.update(summary.key_concepts)
+            for concept in summary.key_concepts:
+                all_concepts.add(concept)
+                # Track sections where this concept appears
+                if concept not in concept_to_sections:
+                    concept_to_sections[concept] = []
+                    concept_first_mention[concept] = summary.section_id  # First mention
+                concept_to_sections[concept].append(summary.section_id)
+
+        # Convert unique concepts to ConceptDefinition objects (MVP: basic definitions)
+        from ..models.knowledge import ConceptDefinition
+        concept_definitions = []
+        for concept in sorted(all_concepts):  # Sort for consistent output
+            concept_definitions.append(ConceptDefinition(
+                concept_id=concept.lower().replace(" ", "_").replace(":", ""),
+                name=concept,
+                definition=f"Key concept identified in the document: {concept}",  # Basic definition for MVP
+                first_mentioned_in=concept_first_mention[concept],
+                relevant_sections=concept_to_sections[concept][:5]  # Limit to first 5 sections
+            ))
 
         return CognitiveKnowledge(
             document_title=clean_section_title(document_title),
             document_summary=document_summary,
             detected_language=detected_language,
             hierarchical_summaries=hierarchical_summaries,
-            concepts=[],  # TODO: Phase 2 - convert concepts to ConceptDefinition objects
+            concepts=concept_definitions,  # Now includes actual ConceptDefinition objects
             hierarchy_index={},  # TODO: Phase 2 - implement hierarchy index
             parent_child_map={},  # TODO: Phase 2 - implement parent-child mapping
             total_sections=len(sections),
