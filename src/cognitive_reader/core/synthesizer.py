@@ -8,6 +8,7 @@ from ..llm.client import LLMClient
 from ..models.config import CognitiveConfig
 from ..models.document import CognitiveKnowledge, DocumentSection, SectionSummary
 from ..models.knowledge import LanguageCode
+from ..utils.text_cleaning import clean_section_title
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class Synthesizer:
         hierarchical_summaries = {s.section_id: s for s in all_summaries.values()}
 
         return CognitiveKnowledge(
-            document_title=document_title,
+            document_title=clean_section_title(document_title),
             detected_language=detected_language,
             hierarchical_summaries=hierarchical_summaries,
             concepts=[],  # TODO: Phase 2 - implement concept extraction
