@@ -97,13 +97,17 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Show only document structure without processing summaries",
 )
+@click.option(
+    "--fast-mode",
+    is_flag=True,
+    help="Use fast model for both passes (faster processing, lower quality)",
+)
 @click.version_option()
 def cli(
     document: Path | None,
     output: str,
     language: str,
     model: str | None,
-    # fast_mode: bool,             # TODO: Phase 2 - replaced by dual model strategy
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
@@ -116,6 +120,7 @@ def cli(
     # max_sections: int | None,  # TODO: Phase 2
     max_depth: int | None,       # ✅ WORKING: for --structure-only
     structure_only: bool,
+    fast_mode: bool,
 ) -> None:
     """Cognitive Document Reader - Human-like document understanding.
 
@@ -173,7 +178,6 @@ def cli(
                 output=output,
                 language=language,
                 model=model,
-                # fast_mode=fast_mode,             # TODO: Phase 2 - replaced by dual model strategy
                 temperature=temperature,
                 dry_run=dry_run,
                 mock_responses=mock_responses,
@@ -186,6 +190,7 @@ def cli(
                 # max_sections=max_sections,      # TODO: Phase 2
                 max_depth=max_depth,             # ✅ WORKING
                 structure_only=structure_only,
+                fast_mode=fast_mode,
             )
         )
     except KeyboardInterrupt:
@@ -207,7 +212,6 @@ async def _async_main(
     output: str,
     language: str,
     model: str | None,
-    # fast_mode: bool,             # TODO: Phase 2 - replaced by dual model strategy
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
@@ -220,6 +224,7 @@ async def _async_main(
     # max_sections: int | None,  # TODO: Phase 2
     max_depth: int | None,       # ✅ WORKING
     structure_only: bool,
+    fast_mode: bool,
 ) -> None:
     """Async main function for CLI operations."""
 
@@ -227,7 +232,6 @@ async def _async_main(
     config = _build_config(
         language=language,
         model=model,
-        # fast_mode=fast_mode,             # TODO: Phase 2 - replaced by dual model strategy
         temperature=temperature,
         dry_run=dry_run,
         mock_responses=mock_responses,
@@ -236,6 +240,7 @@ async def _async_main(
         # partials_dir=partials_dir,      # TODO: Phase 2
         # max_sections=max_sections,      # TODO: Phase 2
         max_depth=max_depth,             # ✅ WORKING
+        fast_mode=fast_mode,
     )
 
     # Initialize reader
@@ -369,7 +374,6 @@ async def _async_main(
 def _build_config(
     language: str,
     model: str | None,
-    # fast_mode: bool,             # TODO: Phase 2 - replaced by dual model strategy
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
@@ -378,6 +382,7 @@ def _build_config(
     # partials_dir: Path | None, # TODO: Phase 2
     # max_sections: int | None,  # TODO: Phase 2
     max_depth: int | None,       # ✅ WORKING
+    fast_mode: bool,
 ) -> CognitiveConfig:
     """Build configuration from CLI options and environment."""
 
@@ -390,8 +395,17 @@ def _build_config(
         # If --model is specified, override both models in dual strategy
         config_dict["main_model"] = model
         config_dict["fast_pass_model"] = model
-    # TODO: Phase 2 - fast_mode is now replaced by dual model strategy
-    # The enable_fast_first_pass config controls this behavior
+
+    # Fast mode: use fast model for both passes (ultra-fast mode)
+    if fast_mode:
+        # Get fast model from config or use default
+        fast_model = "llama3.1:8b"  # Default fast model from SPECS v2.0
+        config_dict["main_model"] = fast_model
+        config_dict["fast_pass_model"] = fast_model
+        # Use fast temperature for both passes
+        config_dict["fast_pass_temperature"] = 0.1
+        config_dict["main_pass_temperature"] = 0.1
+
     if temperature is not None:
         config_dict["temperature"] = temperature
     if language != "auto":
