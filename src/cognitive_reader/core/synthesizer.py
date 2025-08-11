@@ -7,7 +7,7 @@ import logging
 from ..llm.client import LLMClient
 from ..models.config import CognitiveConfig
 from ..models.document import CognitiveKnowledge, DocumentSection, SectionSummary
-from ..models.knowledge import LanguageCode
+from ..models.knowledge import ConceptDefinition, LanguageCode
 from ..utils.text_cleaning import clean_section_title
 
 logger = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ class Synthesizer:
 
         # Collect all unique concepts from sections and convert to ConceptDefinition objects
         all_concepts = set()
-        concept_to_sections = {}  # Track which sections mention each concept
+        concept_to_sections: dict[str, list[str]] = {}  # Track which sections mention each concept
         concept_first_mention = {}  # Track first mention of each concept
 
         for summary in all_summaries.values():
@@ -94,17 +94,17 @@ class Synthesizer:
                     concept_first_mention[concept] = summary.section_id  # First mention
                 concept_to_sections[concept].append(summary.section_id)
 
-        # Convert unique concepts to ConceptDefinition objects (MVP: basic definitions)
-        from ..models.knowledge import ConceptDefinition
+        # Convert unique concepts to ConceptDefinition objects with real definitions
         concept_definitions = []
-        for concept in sorted(all_concepts):  # Sort for consistent output
-            concept_definitions.append(ConceptDefinition(
-                concept_id=concept.lower().replace(" ", "_").replace(":", ""),
-                name=concept,
-                definition=f"Key concept identified in the document: {concept}",  # Basic definition for MVP
-                first_mentioned_in=concept_first_mention[concept],
-                relevant_sections=concept_to_sections[concept][:5]  # Limit to first 5 sections
-            ))
+
+        # Generate real definitions for concepts using LLM
+        concept_definitions = await self._generate_concept_definitions(
+            list(sorted(all_concepts)),
+            all_summaries,
+            concept_first_mention,
+            concept_to_sections,
+            detected_language
+        )
 
         return CognitiveKnowledge(
             document_title=clean_section_title(document_title),
@@ -155,6 +155,142 @@ class Synthesizer:
                         existing_summaries[section.id] = summary
 
         return container_summaries
+
+    async def _generate_concept_definitions(
+        self,
+        concepts: list[str],
+        all_summaries: dict[str, SectionSummary],
+        concept_first_mention: dict[str, str],
+        concept_to_sections: dict[str, list[str]],
+        language: LanguageCode
+    ) -> list[ConceptDefinition]:
+        """Generate real definitions for concepts using LLM.
+
+        Args:
+            concepts: List of unique concepts to define.
+            all_summaries: All section summaries for context.
+            concept_first_mention: First mention section for each concept.
+            concept_to_sections: Sections where each concept appears.
+            language: Document language.
+
+        Returns:
+            List of ConceptDefinition objects with real definitions.
+        """
+        from ..llm.client import LLMClient
+
+        concept_definitions = []
+
+        # Use LLM to generate real definitions
+        async with LLMClient(self.config) as llm_client:
+            for concept in concepts:
+                try:
+                    # Get context from sections where this concept appears
+                    context_sections = []
+                    for section_id in concept_to_sections[concept][:3]:  # Use first 3 sections for context
+                        if section_id in all_summaries:
+                            summary = all_summaries[section_id]
+                            context_sections.append(f"{summary.title}: {summary.summary}")
+
+                    context = "\n\n".join(context_sections)
+
+                    # Generate definition using LLM
+                    if self.config.dry_run or self.config.mock_responses:
+                        # Use varied mock definitions for development
+                        mock_definitions = {
+                            # Core concepts
+                            "processing": "The systematic handling, analysis, or transformation of data or information through defined procedures.",
+                            "language": "A structured system of communication using words, symbols, or patterns to convey meaning.",
+                            "detection": "The automated process of identifying, discovering, or recognizing specific elements or patterns.",
+                            "architecture": "The fundamental structural design and organizational framework of a system or application.",
+                            "components": "Modular parts or elements that work together to form a complete functional system.",
+                            "flow": "The sequential movement, progression, or routing of data, processes, or information through a system.",
+                            "output": "The final result, product, or information generated by a system or computational process.",
+                            "structured": "Information or data organized in a systematic, standardized, or methodical format.",
+                            "document": "A digital or written record containing structured information, content, or instructions.",
+                            "example": "A representative sample or demonstration that illustrates a concept, process, or functionality.",
+                            "automatic": "Processes or operations that execute independently without manual intervention.",
+                            "generates": "The action of creating, producing, or outputting content, results, or data.",
+                            "reader": "A software component or system designed to process, interpret, and extract information from documents.",
+                            "cognitive": "Relating to mental processes of understanding, analysis, and knowledge extraction similar to human thinking.",
+                            "introduction": "An opening section that provides context, overview, and foundational information about a topic.",
+                            "conclusion": "A final section that summarizes findings, insights, and key takeaways from the analysis.",
+                            "technical": "Relating to specialized knowledge, methods, or implementation details of a system or process.",
+                            "core": "Essential, fundamental, or central elements that form the foundation of a system.",
+                            "purpose": "The intended goal, objective, or reason for existence of a system, feature, or process.",
+                            "features": "Distinct capabilities, functionalities, or characteristics provided by a system or application.",
+                            "json": "JavaScript Object Notation - a lightweight, text-based data interchange format for structured information.",
+                            "markdown": "A lightweight markup language used for formatting plain text documents with simple syntax.",
+                            "integration": "The process of combining different systems, components, or data sources to work together seamlessly.",
+                            "humans": "Human users who interact with, benefit from, or are the intended audience for system outputs."
+                        }
+
+                        # Smart matching for concept definitions
+                        definition = None
+                        concept_lower = concept.lower()
+
+                        # Direct match
+                        if concept_lower in mock_definitions:
+                            definition = mock_definitions[concept_lower]
+                        else:
+                            # Try to find matching keywords within the concept
+                            for key, def_text in mock_definitions.items():
+                                if key in concept_lower:
+                                    definition = def_text
+                                    break
+
+                        # Fallback to contextual definition
+                        if not definition:
+                            definition = f"A key concept in the document referring to {concept.replace('_', ' ').replace('concept ', '').strip()}."
+                    else:
+                        # Real LLM call for definition generation
+                        definition_prompt = f"""Based on the following context from the document, provide a clear and concise definition for the concept "{concept}":
+
+Context:
+{context}
+
+Provide only the definition (1-2 sentences maximum), focusing on how this concept is used in the document context."""
+
+                        definition_response = await llm_client.generate_summary(
+                            content=definition_prompt,
+                            context="",
+                            prompt_type="section_summary",
+                            language=language,
+                            section_title=f"Definition for {concept}"
+                        )
+
+                        # Extract definition from response and clean formatting
+                        if definition_response:
+                            # Remove "Summary: " prefix and other common prefixes
+                            definition = definition_response.strip()
+                            for prefix in ["Summary: ", "Definition: ", "Concept: ", "This section provides detailed information about "]:
+                                if definition.startswith(prefix):
+                                    definition = definition[len(prefix):].strip()
+                            # Ensure first letter is capitalized
+                            if definition:
+                                definition = definition[0].upper() + definition[1:] if len(definition) > 1 else definition.upper()
+                        else:
+                            definition = f"Key concept: {concept}"
+
+                    concept_definitions.append(ConceptDefinition(
+                        concept_id=concept.lower().replace(" ", "_").replace(":", "").replace("-", "_"),
+                        name=concept,
+                        definition=definition,
+                        first_mentioned_in=concept_first_mention[concept],
+                        relevant_sections=concept_to_sections[concept][:5]  # Limit to first 5 sections
+                    ))
+
+                except Exception as e:
+                    logger.warning(f"Failed to generate definition for concept '{concept}': {e}")
+                    # Fallback to basic definition
+                    concept_definitions.append(ConceptDefinition(
+                        concept_id=concept.lower().replace(" ", "_").replace(":", "").replace("-", "_"),
+                        name=concept,
+                        definition=f"Key concept: {concept}",
+                        first_mentioned_in=concept_first_mention[concept],
+                        relevant_sections=concept_to_sections[concept][:5]
+                    ))
+
+        return concept_definitions
 
     async def _synthesize_container_section(
         self,

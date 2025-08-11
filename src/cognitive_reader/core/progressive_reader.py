@@ -187,20 +187,22 @@ class CognitiveReader:
     async def _progressive_reading(
         self, sections: list[DocumentSection], language: LanguageCode
     ) -> dict[str, SectionSummary]:
-        """Perform progressive reading of document sections.
+        """Perform hierarchical bottom-up processing of document sections.
 
-        Uses dual-pass approach when enabled:
-        1. Fast First Pass: Quick initial reading with fast model (llama3.1:8b)
-        2. Quality Pass: Detailed analysis with main model (qwen3:8b)
+        Implements the algorithm defined in SPECS v2.0:
+        1. Organize sections by hierarchy level
+        2. Process from deepest level to root (bottom-up)
+        3. For leaf sections: use section.content
+        4. For container sections: combine section.content + child_summaries
 
         Args:
             sections: Document sections to process.
             language: Detected document language.
 
         Returns:
-            Dictionary of section summaries for content sections.
+            Dictionary of section summaries for all sections.
         """
-        logger.info(f"Starting progressive reading of {len(sections)} sections")
+        logger.info(f"Starting hierarchical processing of {len(sections)} sections")
 
         # Sort sections by order_index to maintain document flow
         ordered_sections = sorted(sections, key=lambda s: s.order_index)
@@ -208,18 +210,10 @@ class CognitiveReader:
         # Apply development filters if configured
         filtered_sections = self._apply_section_filters(ordered_sections)
 
-        # Filter to content sections only (sections without children)
-        content_sections = [s for s in filtered_sections if not s.children_ids]
+        logger.info(f"Processing {len(filtered_sections)} sections using hierarchical algorithm")
 
-        logger.info(f"Processing {len(content_sections)} content sections")
-
-        # Determine processing strategy based on configuration
-        if self.config.enable_fast_first_pass:
-            logger.info("Using dual-pass approach: Fast First Pass + Quality Pass")
-            return await self._dual_pass_reading(content_sections, language)
-        else:
-            logger.info("Using single-pass approach with main model")
-            return await self._single_pass_reading(content_sections, language)
+        # Use hierarchical bottom-up processing instead of sequential
+        return await self._hierarchical_processing(filtered_sections, language)
 
     async def _dual_pass_reading(
         self, content_sections: list[DocumentSection], language: LanguageCode
@@ -339,6 +333,7 @@ class CognitiveReader:
         llm_client: LLMClient,
         model: str | None = None,
         temperature: float | None = None,
+        content: str | None = None,
     ) -> SectionSummary | None:
         """Process a single section to generate its summary.
 
@@ -349,14 +344,18 @@ class CognitiveReader:
             llm_client: LLM client for generation.
             model: Optional model to use (overrides config).
             temperature: Optional temperature to use (overrides config).
+            content: Optional content to use (overrides section.content for hierarchical processing).
 
         Returns:
             SectionSummary for the section, or None if processing fails.
         """
         try:
+            # Use provided content or fall back to section.content
+            effective_content = content or section.content
+
             # Generate summary using LLM
             summary_response = await llm_client.generate_summary(
-                content=section.content,
+                content=effective_content,
                 context=accumulated_context,
                 prompt_type="section_summary",
                 language=language,
@@ -368,7 +367,7 @@ class CognitiveReader:
             # Extract key concepts
             key_concepts = await llm_client.extract_concepts(
                 section_title=section.title,
-                section_content=section.content,
+                section_content=effective_content,
                 language=language,
                 model=model,
                 temperature=temperature,
@@ -475,6 +474,185 @@ class CognitiveReader:
             combined_context = truncated_context
 
         return combined_context
+
+    async def _hierarchical_processing(
+        self, sections: list[DocumentSection], language: LanguageCode
+    ) -> dict[str, SectionSummary]:
+        """Process sections using hierarchical bottom-up algorithm.
+
+        Implements the algorithm defined in SPECS v2.0:
+        1. Organize sections by hierarchy level
+        2. Process from deepest level to root (bottom-up)
+        3. For leaf sections: use section.content
+        4. For container sections: combine section.content + child_summaries
+
+        Args:
+            sections: Document sections to process.
+            language: Detected document language.
+
+        Returns:
+            Dictionary of section summaries for all sections.
+        """
+        # Step 1: Organize sections by hierarchy level
+        levels = self._organize_by_level(sections)
+        max_level = max(levels.keys()) if levels else 0
+
+        logger.info(f"Hierarchical structure: {len(levels)} levels (max depth: {max_level})")
+        for level, level_sections in levels.items():
+            section_titles = [s.title for s in level_sections]
+            logger.info(f"  Level {level}: {len(level_sections)} sections - {section_titles}")
+
+        # Step 2: Process from deepest level to root (bottom-up)
+        summaries: dict[str, SectionSummary] = {}
+
+        for level in range(max_level, 0, -1):  # Bottom-up processing
+            if level not in levels:
+                continue
+
+            level_sections = levels[level]
+            logger.info(f"Processing level {level}: {len(level_sections)} sections")
+
+            for section in level_sections:
+                # Determine content based on section type
+                if section.children_ids:  # Container section
+                    content = self._combine_section_and_children_content(section, summaries)
+                    logger.debug(f"Container section '{section.title}': own content + {len(section.children_ids)} child summaries")
+                else:  # Leaf section
+                    content = section.content
+                    logger.debug(f"Leaf section '{section.title}': using section content")
+
+                # Generate summary using dual-pass or single-pass approach
+                if self.config.enable_fast_first_pass:
+                    summary = await self._process_section_dual_pass(section, content, language)
+                else:
+                    summary = await self._process_section_single_pass(section, content, language)
+
+                if summary:
+                    summaries[section.id] = summary
+                    logger.info(f"✅ Processed '{section.title}' (level {level})")
+                else:
+                    logger.warning(f"❌ Failed to process '{section.title}' (level {level})")
+
+        logger.info(f"Hierarchical processing completed: {len(summaries)} sections processed")
+        return summaries
+
+    def _organize_by_level(self, sections: list[DocumentSection]) -> dict[int, list[DocumentSection]]:
+        """Organize sections by hierarchy level.
+
+        Args:
+            sections: Document sections to organize.
+
+        Returns:
+            Dictionary mapping level to list of sections at that level.
+        """
+        levels: dict[int, list[DocumentSection]] = {}
+
+        for section in sections:
+            level = section.level
+            if level not in levels:
+                levels[level] = []
+            levels[level].append(section)
+
+        # Sort sections within each level by order_index
+        for level_sections in levels.values():
+            level_sections.sort(key=lambda s: s.order_index)
+
+        return levels
+
+    def _combine_section_and_children_content(
+        self, section: DocumentSection, summaries: dict[str, SectionSummary]
+    ) -> str:
+        """Combine section's own content with child summaries.
+
+        Args:
+            section: Container section to process.
+            summaries: Existing section summaries.
+
+        Returns:
+            Combined content for LLM processing.
+        """
+        content_parts = []
+
+        # Add section's own content if it has any
+        if section.content and section.content.strip():
+            content_parts.append(f"Section content:\n{section.content}")
+
+        # Add child summaries
+        child_summaries = []
+        for child_id in section.children_ids:
+            if child_id in summaries:
+                child_summary = summaries[child_id]
+                child_summaries.append(f"{child_summary.title}: {child_summary.summary}")
+
+        if child_summaries:
+            content_parts.append("Subsection summaries:\n" + "\n\n".join(child_summaries))
+
+        return "\n\n".join(content_parts)
+
+    async def _process_section_dual_pass(
+        self, section: DocumentSection, content: str, language: LanguageCode
+    ) -> SectionSummary | None:
+        """Process a section using dual-pass approach.
+
+        Args:
+            section: Section to process.
+            content: Content to summarize.
+            language: Document language.
+
+        Returns:
+            Section summary from dual-pass processing.
+        """
+        async with LLMClient(self.config) as llm_client:
+            # Fast first pass
+            logger.debug(f"[FAST PASS] Processing '{section.title}' with {self.config.get_model_for_pass(1)}")
+            fast_summary = await self._process_section(
+                section,
+                "",  # No accumulated context for hierarchical processing
+                language,
+                llm_client,
+                model=self.config.get_model_for_pass(1),
+                temperature=self.config.get_temperature_for_pass(1),
+                content=content
+            )
+
+            if not fast_summary:
+                logger.warning(f"Fast pass failed for section: {section.title}")
+                return None
+
+            # Quality second pass with fast summary as context
+            logger.debug(f"[QUALITY PASS] Refining '{section.title}' with {self.config.get_model_for_pass(2)}")
+            context = f"Fast scan result: {fast_summary.summary}"
+            return await self._process_section(
+                section,
+                context,
+                language,
+                llm_client,
+                model=self.config.get_model_for_pass(2),
+                temperature=self.config.get_temperature_for_pass(2),
+                content=content
+            )
+
+    async def _process_section_single_pass(
+        self, section: DocumentSection, content: str, language: LanguageCode
+    ) -> SectionSummary | None:
+        """Process a section using single-pass approach.
+
+        Args:
+            section: Section to process.
+            content: Content to summarize.
+            language: Document language.
+
+        Returns:
+            Section summary from single-pass processing.
+        """
+        async with LLMClient(self.config) as llm_client:
+            return await self._process_section(
+                section,
+                "",  # No accumulated context for hierarchical processing
+                language,
+                llm_client,
+                content=content
+            )
 
     def _apply_section_filters(
         self, sections: list[DocumentSection]
