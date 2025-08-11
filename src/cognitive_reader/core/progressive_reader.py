@@ -185,8 +185,9 @@ class CognitiveReader:
     ) -> dict[str, SectionSummary]:
         """Perform progressive reading of document sections.
 
-        Processes sections in document order, accumulating context progressively
-        and generating summaries for content sections (leaves in the hierarchy).
+        Uses dual-pass approach when enabled:
+        1. Fast First Pass: Quick initial reading with fast model (llama3.1:8b)
+        2. Quality Pass: Detailed analysis with main model (qwen3:8b)
 
         Args:
             sections: Document sections to process.
@@ -196,9 +197,6 @@ class CognitiveReader:
             Dictionary of section summaries for content sections.
         """
         logger.info(f"Starting progressive reading of {len(sections)} sections")
-
-        section_summaries = {}
-        accumulated_context = ""
 
         # Sort sections by order_index to maintain document flow
         ordered_sections = sorted(sections, key=lambda s: s.order_index)
@@ -210,46 +208,122 @@ class CognitiveReader:
         content_sections = [s for s in filtered_sections if not s.children_ids]
 
         logger.info(f"Processing {len(content_sections)} content sections")
-        # TODO: Phase 2 - Re-implement section filtering
-        # if self.config.max_sections or self.config.max_section_depth:
-        #     logger.info(f"Filters applied - Original: {len(ordered_sections)}, Filtered: {len(filtered_sections)}")
+
+        # Determine processing strategy based on configuration
+        if self.config.enable_fast_first_pass:
+            logger.info("Using dual-pass approach: Fast First Pass + Quality Pass")
+            return await self._dual_pass_reading(content_sections, language)
+        else:
+            logger.info("Using single-pass approach with main model")
+            return await self._single_pass_reading(content_sections, language)
+
+    async def _dual_pass_reading(
+        self, content_sections: list[DocumentSection], language: LanguageCode
+    ) -> dict[str, SectionSummary]:
+        """Perform dual-pass reading: fast scan + quality refinement.
+
+        Args:
+            content_sections: Content sections to process.
+            language: Detected document language.
+
+        Returns:
+            Dictionary of refined section summaries.
+        """
+        logger.info("=== FAST FIRST PASS: Initial scan with fast model ===")
+
+        # First Pass: Fast model for initial understanding
+        fast_summaries = await self._single_pass_reading(
+            content_sections,
+            language,
+            pass_name="fast_pass",
+            model=self.config.fast_pass_model,
+            temperature=self.config.fast_pass_temperature
+        )
+
+        logger.info(f"Fast pass completed: {len(fast_summaries)} initial summaries")
+
+        # Check if second pass is enabled
+        if not self.config.enable_second_pass:
+            logger.info("Second pass disabled - returning fast pass results")
+            return fast_summaries
+
+        logger.info("=== QUALITY PASS: Refinement with main model ===")
+
+        # Second Pass: Main model for quality refinement
+        # Use fast summaries as additional context for refinement
+        quality_summaries = await self._single_pass_reading(
+            content_sections,
+            language,
+            pass_name="quality_pass",
+            model=self.config.main_model,
+            temperature=self.config.main_pass_temperature,
+            previous_summaries=fast_summaries
+        )
+
+        logger.info(f"Quality pass completed: {len(quality_summaries)} refined summaries")
+        return quality_summaries
+
+    async def _single_pass_reading(
+        self,
+        content_sections: list[DocumentSection],
+        language: LanguageCode,
+        pass_name: str = "single_pass",
+        model: str | None = None,
+        temperature: float | None = None,
+        previous_summaries: dict[str, SectionSummary] | None = None
+    ) -> dict[str, SectionSummary]:
+        """Perform single-pass reading with specified model.
+
+        Args:
+            content_sections: Content sections to process.
+            language: Detected document language.
+            pass_name: Name of this pass for logging.
+            model: Optional model to use.
+            temperature: Optional temperature to use.
+            previous_summaries: Previous summaries for context (refinement pass).
+
+        Returns:
+            Dictionary of section summaries.
+        """
+        section_summaries = {}
+        accumulated_context = ""
+
+        # Log which model we're using
+        effective_model = model or self.config.main_model or self.config.model_name
+        logger.info(f"{pass_name.title()}: Using model '{effective_model}'")
 
         async with LLMClient(self.config) as llm_client:
             for i, section in enumerate(content_sections):
                 logger.debug(
-                    f"Processing section {i + 1}/{len(content_sections)}: {section.title}"
+                    f"[{pass_name}] Processing section {i + 1}/{len(content_sections)}: {section.title}"
                 )
+
+                # For refinement pass, include previous summary as context
+                section_context = accumulated_context
+                if previous_summaries and section.id in previous_summaries:
+                    prev_summary = previous_summaries[section.id]
+                    section_context += f"\n\nPREVIOUS SUMMARY: {prev_summary.summary}"
 
                 # Generate section summary with accumulated context
                 summary = await self._process_section(
-                    section, accumulated_context, language, llm_client
+                    section, section_context, language, llm_client,
+                    model=model, temperature=temperature
                 )
 
                 if summary:
                     section_summaries[section.id] = summary
-
-                    # TODO: Phase 2 - Re-implement save partial results
-                    # Save partial result if configured
-                    # if self.config.save_partial_results:
-                    #     await self._save_partial_result(
-                    #         section_index=i + 1,
-                    #         total_sections=len(content_sections),
-                    #         section=section,
-                    #         summary=summary,
-                    #         accumulated_context=accumulated_context,
-                    #     )
 
                     # Update accumulated context for next sections
                     accumulated_context = self._update_accumulated_context(
                         accumulated_context, summary
                     )
 
-                    logger.debug(f"Section processed: {section.title}")
+                    logger.debug(f"[{pass_name}] Section processed: {section.title}")
                 else:
-                    logger.warning(f"Failed to process section: {section.title}")
+                    logger.warning(f"[{pass_name}] Failed to process section: {section.title}")
 
         logger.info(
-            f"Progressive reading completed: {len(section_summaries)} summaries generated"
+            f"{pass_name.title()} completed: {len(section_summaries)} summaries generated"
         )
         return section_summaries
 
@@ -259,6 +333,8 @@ class CognitiveReader:
         accumulated_context: str,
         language: LanguageCode,
         llm_client: LLMClient,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> SectionSummary | None:
         """Process a single section to generate its summary.
 
@@ -267,6 +343,8 @@ class CognitiveReader:
             accumulated_context: Context from previously processed sections.
             language: Document language.
             llm_client: LLM client for generation.
+            model: Optional model to use (overrides config).
+            temperature: Optional temperature to use (overrides config).
 
         Returns:
             SectionSummary for the section, or None if processing fails.
@@ -279,6 +357,8 @@ class CognitiveReader:
                 prompt_type="section_summary",
                 language=language,
                 section_title=section.title,
+                model=model,
+                temperature=temperature,
             )
 
             # Extract key concepts
@@ -286,6 +366,8 @@ class CognitiveReader:
                 section_title=section.title,
                 section_content=section.content,
                 language=language,
+                model=model,
+                temperature=temperature,
             )
 
             # Parse the summary response

@@ -52,6 +52,8 @@ class LLMClient:
         prompt_type: str = "section_summary",
         language: LanguageCode = LanguageCode.EN,
         section_title: str = "Untitled Section",
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> str:
         """Generate a summary for given content.
 
@@ -61,6 +63,8 @@ class LLMClient:
             prompt_type: Type of prompt to use for summarization.
             language: Target language for the summary.
             section_title: Title of the section being summarized.
+            model: Optional model to use (overrides config).
+            temperature: Optional temperature to use (overrides config).
 
         Returns:
             Generated summary text.
@@ -91,13 +95,15 @@ class LLMClient:
             raise ValueError(f"Unsupported prompt type: {prompt_type}")
 
         # Generate with retry logic
-        return await self._generate_with_retries(prompt)
+        return await self._generate_with_retries(prompt, model=model, temperature=temperature)
 
     async def extract_concepts(
         self,
         section_title: str,
         section_content: str,
         language: LanguageCode = LanguageCode.EN,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> list[str]:
         """Extract key concepts from section content.
 
@@ -105,6 +111,8 @@ class LLMClient:
             section_title: Title of the section.
             section_content: Content to analyze.
             language: Target language for extraction.
+            model: Optional model to use (overrides config).
+            temperature: Optional temperature to use (overrides config).
 
         Returns:
             List of extracted key concepts.
@@ -119,16 +127,18 @@ class LLMClient:
             language=language,
         )
 
-        response = await self._generate_with_retries(prompt)
+        response = await self._generate_with_retries(prompt, model=model, temperature=temperature)
 
         # Parse concepts from response
         return self._parse_concepts_response(response)
 
-    async def _generate_with_retries(self, prompt: str) -> str:
+    async def _generate_with_retries(self, prompt: str, model: str | None = None, temperature: float | None = None) -> str:
         """Generate response with retry logic.
 
         Args:
             prompt: The prompt to send to the LLM.
+            model: Optional model to use (overrides config).
+            temperature: Optional temperature to use (overrides config).
 
         Returns:
             Generated response text.
@@ -140,7 +150,7 @@ class LLMClient:
 
         for attempt in range(self.config.max_retries + 1):
             try:
-                return await self._call_ollama(prompt)
+                return await self._call_ollama(prompt, model=model, temperature=temperature)
             except Exception as e:
                 last_error = e
                 logger.warning(f"LLM call attempt {attempt + 1} failed: {e}")
@@ -155,11 +165,13 @@ class LLMClient:
             f"LLM generation failed after {self.config.max_retries + 1} attempts: {last_error}"
         )
 
-    async def _call_ollama(self, prompt: str) -> str:
+    async def _call_ollama(self, prompt: str, model: str | None = None, temperature: float | None = None) -> str:
         """Make actual call to Ollama API.
 
         Args:
             prompt: The prompt to send.
+            model: Optional model to use (overrides config).
+            temperature: Optional temperature to use (overrides config).
 
         Returns:
             Response text from Ollama.
@@ -169,12 +181,16 @@ class LLMClient:
                 "LLM client not properly initialized. Use async context manager."
             )
 
+        # Use provided parameters or fall back to config
+        selected_model = model or self.config.main_model or self.config.model_name
+        selected_temperature = temperature if temperature is not None else self.config.temperature
+
         payload = {
-            "model": self.config.main_model or self.config.model_name,
+            "model": selected_model,
             "prompt": prompt,
             "stream": False,
             "options": {
-                "temperature": self.config.temperature,
+                "temperature": selected_temperature,
                 "num_ctx": self.config.context_window,
             },
         }
