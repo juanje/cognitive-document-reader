@@ -114,7 +114,7 @@ class Synthesizer:
             concepts=concept_definitions,  # Now includes actual ConceptDefinition objects
             hierarchy_index={},  # TODO: Phase 2 - implement hierarchy index
             parent_child_map={},  # TODO: Phase 2 - implement parent-child mapping
-            total_sections=len(sections),
+            total_sections=len(section_summaries),  # Use summaries count (reflects filtered sections)
             avg_summary_length=sum(len(s.summary) for s in all_summaries.values()) / max(len(all_summaries), 1),
             total_concepts=len(all_concepts),  # Count unique concepts from all sections
         )

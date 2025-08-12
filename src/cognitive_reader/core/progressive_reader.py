@@ -607,16 +607,17 @@ class CognitiveReader:
         """
         filtered_sections = sections
 
-        # TODO: Phase 2 - Re-implement filtering logic
         # Apply depth filter if configured
-        # if self.config.max_section_depth is not None:
-        #     filtered_sections = self._filter_by_depth(
-        #         filtered_sections, self.config.max_section_depth
-        #     )
-        #     logger.info(
-        #         f"Depth filter applied (max depth: {self.config.max_section_depth}): "
-        #         f"{len(sections)} -> {len(filtered_sections)} sections"
-        #     )
+        if self.config.max_hierarchy_depth is not None and self.config.max_hierarchy_depth < 10:  # Avoid filtering default high values
+            original_count = len(filtered_sections)
+            filtered_sections = self._filter_by_depth(
+                filtered_sections, self.config.max_hierarchy_depth
+            )
+            if len(filtered_sections) < original_count:
+                logger.info(
+                    f"🔧 Depth filter applied (max depth: {self.config.max_hierarchy_depth}): "
+                    f"{original_count} -> {len(filtered_sections)} sections"
+                )
 
         # Apply section count limit if configured
         # if self.config.max_sections is not None:

@@ -277,8 +277,8 @@ async def _async_main(
             # if config.max_sections:
             #     dev_modes.append(f"max-sections={config.max_sections}")
 
-            # ✅ WORKING: Show max-depth when used with --structure-only
-            if config.max_hierarchy_depth and config.max_hierarchy_depth != 3:  # Don't show default
+            # Show max-depth when filtering is active (not default high value)
+            if config.max_hierarchy_depth and config.max_hierarchy_depth < 10:  # Show when filtering
                 dev_modes.append(f"max-depth={config.max_hierarchy_depth}")
 
             click.echo(f"Development mode: {', '.join(dev_modes)}")

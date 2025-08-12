@@ -57,7 +57,7 @@ class CognitiveConfig(BaseModel):
     target_summary_length: int = Field(default=800, gt=100, description="Target summary length in characters")
     min_summary_length: int = Field(default=400, gt=50, description="Minimum summary length in characters")
     max_summary_length: int = Field(default=1200, gt=100, description="Maximum summary length in characters")
-    max_hierarchy_depth: int = Field(default=3, ge=1, description="Maximum hierarchy depth (0=book, 1=chapter, 2=section)")
+    max_hierarchy_depth: int = Field(default=10, ge=1, description="Maximum hierarchy depth for processing (high default = no filtering)")
 
     # Development Features
     dry_run: bool = Field(default=False, description="Enable dry-run mode (no actual LLM calls)")
@@ -109,7 +109,7 @@ class CognitiveConfig(BaseModel):
             target_summary_length=int(os.getenv("COGNITIVE_READER_TARGET_SUMMARY_LENGTH", "800")),
             min_summary_length=int(os.getenv("COGNITIVE_READER_MIN_SUMMARY_LENGTH", "400")),
             max_summary_length=int(os.getenv("COGNITIVE_READER_MAX_SUMMARY_LENGTH", "1200")),
-            max_hierarchy_depth=int(os.getenv("COGNITIVE_READER_MAX_HIERARCHY_DEPTH", "3")),
+            max_hierarchy_depth=int(os.getenv("COGNITIVE_READER_MAX_HIERARCHY_DEPTH", "10")),
 
             # Development features
             dry_run=os.getenv("COGNITIVE_READER_DRY_RUN", "false").lower() == "true",
