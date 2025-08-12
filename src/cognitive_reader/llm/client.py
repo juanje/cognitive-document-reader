@@ -7,8 +7,8 @@ import logging
 from typing import Any
 
 import aiohttp
-from langchain_core.language_models.base import BaseLanguageModel
-from langchain_ollama import OllamaLLM
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_ollama import ChatOllama
 
 from ..models.config import CognitiveConfig
 from ..models.knowledge import LanguageCode
@@ -39,27 +39,32 @@ class LLMClient:
         self._llm = self._create_llm_provider()
         self._fast_llm = self._create_fast_llm_provider() if config.fast_pass_model else None
 
-    def _create_llm_provider(self) -> BaseLanguageModel[str]:
-        """Create LangChain LLM provider based on configuration.
+    def _create_llm_provider(self) -> BaseChatModel:
+        """Create LangChain Chat Model provider based on configuration.
 
         Returns:
-            Configured LangChain LLM instance.
+            Configured LangChain Chat Model instance.
 
         Raises:
             ValueError: If unsupported provider is specified.
         """
         if self.config.llm_provider == "ollama":
             main_model = self.config.main_model or self.config.model_name
-            return OllamaLLM(
+
+            # Configure reasoning parameter for reasoning models
+            reasoning_param = None if not self.config.disable_reasoning else False
+
+            return ChatOllama(
                 model=main_model,
                 base_url=self.config.ollama_base_url,
                 temperature=self.config.main_pass_temperature or self.config.temperature,
                 num_ctx=self.config.context_window,
+                reasoning=reasoning_param,
             )
         else:
             raise ValueError(f"Unsupported LLM provider: {self.config.llm_provider}")
 
-    def _create_fast_llm_provider(self) -> BaseLanguageModel[str] | None:
+    def _create_fast_llm_provider(self) -> BaseChatModel | None:
         """Create fast pass LLM provider if configured.
 
         Returns:
@@ -69,11 +74,15 @@ class LLMClient:
             return None
 
         if self.config.llm_provider == "ollama":
-            return OllamaLLM(
+            # Configure reasoning parameter for reasoning models
+            reasoning_param = None if not self.config.disable_reasoning else False
+
+            return ChatOllama(
                 model=self.config.fast_pass_model,
                 base_url=self.config.ollama_base_url,
                 temperature=self.config.fast_pass_temperature or self.config.temperature,
                 num_ctx=self.config.context_window,
+                reasoning=reasoning_param,
             )
         else:
             raise ValueError(f"Unsupported LLM provider: {self.config.llm_provider}")
@@ -89,6 +98,8 @@ class LLMClient:
         """Async context manager exit."""
         if self._session:
             await self._session.close()
+
+
 
     async def generate_summary(
         self,
@@ -244,17 +255,25 @@ class LLMClient:
                 if not model_name:
                     raise ValueError("Model name cannot be None")
 
-                selected_llm = OllamaLLM(
+                # Configure reasoning parameter for reasoning models
+                reasoning_param = None if not self.config.disable_reasoning else False
+
+                selected_llm = ChatOllama(
                     model=model_name,
                     base_url=self.config.ollama_base_url,
                     temperature=temperature,
                     num_ctx=self.config.context_window,
+                    reasoning=reasoning_param,
                 )
 
         # Make the call using LangChain
         try:
             response = await selected_llm.ainvoke(prompt)
-            return str(response).strip()
+            # ChatOllama returns AIMessage objects, extract content
+            if hasattr(response, 'content'):
+                return str(response.content).strip()
+            else:
+                return str(response).strip()
         except Exception as e:
             raise ValueError(f"LangChain LLM call failed: {e}") from e
 

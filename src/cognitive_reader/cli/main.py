@@ -103,6 +103,11 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Use fast model for processing - optimizes for speed over quality",
 )
+@click.option(
+    "--disable-reasoning",
+    is_flag=True,
+    help="Disable reasoning mode for reasoning models (faster processing, direct answers)",
+)
 @click.version_option()
 def cli(
     document: Path | None,
@@ -122,6 +127,7 @@ def cli(
     max_depth: int | None,       # ✅ WORKING: for --structure-only
     structure_only: bool,
     fast_mode: bool,
+    disable_reasoning: bool,
 ) -> None:
     """Cognitive Document Reader - Human-like document understanding.
 
@@ -200,6 +206,7 @@ def cli(
                 max_depth=max_depth,             # ✅ WORKING
                 structure_only=structure_only,
                 fast_mode=fast_mode,
+                disable_reasoning=disable_reasoning,
             )
         )
     except KeyboardInterrupt:
@@ -234,6 +241,7 @@ async def _async_main(
     max_depth: int | None,       # ✅ WORKING
     structure_only: bool,
     fast_mode: bool,
+    disable_reasoning: bool,
 ) -> None:
     """Async main function for CLI operations."""
 
@@ -250,6 +258,7 @@ async def _async_main(
         max_sections=max_sections,
         max_depth=max_depth,             # ✅ WORKING
         fast_mode=fast_mode,
+        disable_reasoning=disable_reasoning,
     )
 
     # Initialize reader
@@ -392,6 +401,7 @@ def _build_config(
     max_sections: int | None,
     max_depth: int | None,       # ✅ WORKING
     fast_mode: bool,
+    disable_reasoning: bool,
 ) -> CognitiveConfig:
     """Build configuration from CLI options and environment."""
 
@@ -425,6 +435,7 @@ def _build_config(
     config_dict["dry_run"] = dry_run
     config_dict["mock_responses"] = mock_responses
     config_dict["validate_config_only"] = validate_config
+    config_dict["disable_reasoning"] = disable_reasoning
 
     # Development and testing features
     # Apply CLI overrides
