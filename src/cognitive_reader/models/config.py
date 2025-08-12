@@ -24,8 +24,8 @@ class CognitiveConfig(BaseModel):
     max_passes: int = Field(default=2, ge=1, le=10, description="Maximum number of cognitive passes")
     convergence_threshold: float = Field(default=0.1, ge=0.01, le=1.0, description="Threshold to detect when additional passes add minimal value")
 
-    # Dual model strategy: fast first scan + quality processing
-    enable_fast_first_pass: bool = Field(default=True, description="Use fast model for initial scan")
+    # Dual model strategy: fast first scan + quality processing (Phase 2)
+    enable_fast_first_pass: bool = Field(default=True, description="Use fast model for initial scan (always enabled)")
     fast_pass_model: str | None = Field(default="llama3.1:8b", description="Fast model for initial document scan")
     main_model: str | None = Field(default="qwen3:8b", description="Quality model for detailed cognitive processing")
 
@@ -34,7 +34,7 @@ class CognitiveConfig(BaseModel):
     main_pass_temperature: float | None = Field(default=0.3, ge=0.0, le=2.0, description="Temperature for quality processing")
 
     # Cognitive Features
-    enable_second_pass: bool = Field(default=True, description="Enable second pass processing")
+    enable_second_pass: bool = Field(default=False, description="Enable second pass processing (disabled for Phase 1)")
     enable_refinement: bool = Field(default=True, description="Enable refinement during reading")
     refinement_threshold: float = Field(
         default=0.4,
@@ -83,7 +83,7 @@ class CognitiveConfig(BaseModel):
             max_passes=int(os.getenv("COGNITIVE_READER_MAX_PASSES", "2")),
             convergence_threshold=float(os.getenv("COGNITIVE_READER_CONVERGENCE_THRESHOLD", "0.1")),
 
-            # Dual model settings (fast scan + quality processing)
+            # Dual model settings (fast scan + quality processing) - Always enable fast pass, control second pass
             enable_fast_first_pass=os.getenv("COGNITIVE_READER_ENABLE_FAST_FIRST_PASS", "true").lower() == "true",
             fast_pass_model=os.getenv("COGNITIVE_READER_FAST_PASS_MODEL", "llama3.1:8b"),
             main_model=os.getenv("COGNITIVE_READER_MAIN_MODEL", "qwen3:8b"),
@@ -91,7 +91,7 @@ class CognitiveConfig(BaseModel):
             main_pass_temperature=float(os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE", "0.3")) if os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE") else None,
 
             # Cognitive features
-            enable_second_pass=os.getenv("COGNITIVE_READER_ENABLE_SECOND_PASS", "true").lower() == "true",
+            enable_second_pass=os.getenv("COGNITIVE_READER_ENABLE_SECOND_PASS", "false").lower() == "true",
             enable_refinement=os.getenv("COGNITIVE_READER_ENABLE_REFINEMENT", "true").lower() == "true",
             refinement_threshold=float(os.getenv("COGNITIVE_READER_REFINEMENT_THRESHOLD", "0.4")),
 

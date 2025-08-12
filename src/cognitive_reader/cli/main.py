@@ -49,10 +49,6 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--model", "-m", type=str, help="LLM model to use (overrides environment config)"
 )
-# TODO: Phase 2 - fast_mode replaced by dual model strategy (enable_fast_first_pass)
-# @click.option(
-#     "--fast-mode", is_flag=True, help="Use fast model for quicker processing"
-# )
 @click.option(
     "--temperature", "-t", type=float, help="Temperature for LLM generation (0.0-2.0)"
 )
@@ -100,7 +96,7 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--fast-mode",
     is_flag=True,
-    help="Use fast model for both passes (faster processing, lower quality)",
+    help="Use fast model for processing - optimizes for speed over quality",
 )
 @click.version_option()
 def cli(
@@ -386,25 +382,26 @@ def _build_config(
 ) -> CognitiveConfig:
     """Build configuration from CLI options and environment."""
 
+    # Create configuration
+    base_config = CognitiveConfig.from_env()
+
     # Start with environment configuration
     config_dict: dict[str, Any] = {}
 
     # Override with CLI options
     if model:
         config_dict["model_name"] = model
-        # If --model is specified, override both models in dual strategy
-        config_dict["main_model"] = model
+        # If --model is specified, override fast_pass_model
         config_dict["fast_pass_model"] = model
+        # If --model is specified, override the main model
+        config_dict["main_model"] = model
 
-    # Fast mode: use fast model for both passes (ultra-fast mode)
+    # Fast mode: use fast model for processing (optimizes for speed over quality)
     if fast_mode:
-        # Get fast model from config or use default
-        fast_model = "llama3.1:8b"  # Default fast model from SPECS v2.0
+        fast_model = base_config.fast_pass_model
         config_dict["main_model"] = fast_model
-        config_dict["fast_pass_model"] = fast_model
-        # Use fast temperature for both passes
-        config_dict["fast_pass_temperature"] = 0.1
-        config_dict["main_pass_temperature"] = 0.1
+        # Use fast temperature settings
+        config_dict["main_pass_temperature"] = base_config.fast_pass_temperature
 
     if temperature is not None:
         config_dict["temperature"] = temperature
@@ -428,9 +425,6 @@ def _build_config(
     # ✅ WORKING: max_depth with --structure-only
     if max_depth is not None:
         config_dict["max_hierarchy_depth"] = max_depth
-
-    # Create configuration
-    base_config = CognitiveConfig.from_env()
 
     # Apply overrides
     if config_dict:

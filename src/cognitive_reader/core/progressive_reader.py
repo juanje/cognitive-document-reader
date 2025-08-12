@@ -35,7 +35,14 @@ class CognitiveReader:
         self.synthesizer = Synthesizer(self.config)
         self.language_detector = LanguageDetector()
 
-        logger.info(f"CognitiveReader initialized with models: fast={self.config.fast_pass_model}, main={self.config.main_model}")
+        # Log the actual processing strategy being used
+        if self.config.enable_second_pass:
+            logger.info(f"CognitiveReader initialized with dual-pass: fast={self.config.fast_pass_model}, main={self.config.main_model}")
+        else:
+            # Single-pass: only fast first pass enabled
+            active_model = self.config.fast_pass_model or self.config.model_name
+            logger.info(f"CognitiveReader initialized with single-pass (fast model): {active_model}")
+
         if self.config.is_development_mode():
             logger.info("Development mode enabled - no real LLM calls will be made")
 
@@ -215,51 +222,7 @@ class CognitiveReader:
         # Use hierarchical bottom-up processing instead of sequential
         return await self._hierarchical_processing(filtered_sections, language)
 
-    async def _dual_pass_reading(
-        self, content_sections: list[DocumentSection], language: LanguageCode
-    ) -> dict[str, SectionSummary]:
-        """Perform dual-pass reading: fast scan + quality refinement.
-
-        Args:
-            content_sections: Content sections to process.
-            language: Detected document language.
-
-        Returns:
-            Dictionary of refined section summaries.
-        """
-        logger.info("=== FAST FIRST PASS: Initial scan with fast model ===")
-
-        # First Pass: Fast model for initial understanding
-        fast_summaries = await self._single_pass_reading(
-            content_sections,
-            language,
-            pass_name="fast_pass",
-            model=self.config.fast_pass_model,
-            temperature=self.config.fast_pass_temperature
-        )
-
-        logger.info(f"Fast pass completed: {len(fast_summaries)} initial summaries")
-
-        # Check if second pass is enabled
-        if not self.config.enable_second_pass:
-            logger.info("Second pass disabled - returning fast pass results")
-            return fast_summaries
-
-        logger.info("=== QUALITY PASS: Refinement with main model ===")
-
-        # Second Pass: Main model for quality refinement
-        # Use fast summaries as additional context for refinement
-        quality_summaries = await self._single_pass_reading(
-            content_sections,
-            language,
-            pass_name="quality_pass",
-            model=self.config.main_model,
-            temperature=self.config.main_pass_temperature,
-            previous_summaries=fast_summaries
-        )
-
-        logger.info(f"Quality pass completed: {len(quality_summaries)} refined summaries")
-        return quality_summaries
+    # TODO: Phase 2 - Implement proper dual-pass with hierarchical order and specialized prompts
 
     async def _single_pass_reading(
         self,
@@ -287,7 +250,19 @@ class CognitiveReader:
         accumulated_context = ""
 
         # Log which model we're using
-        effective_model = model or self.config.main_model or self.config.model_name
+        effective_model: str
+        if model:
+            effective_model = model
+        elif self.config.enable_fast_first_pass:
+            # Dual-pass: determine model based on pass name
+            if "fast" in pass_name.lower():
+                effective_model = self.config.fast_pass_model or "llama3.1:8b"
+            else:
+                effective_model = self.config.main_model or "qwen3:8b"
+        else:
+            # Single-pass: use fast model for efficiency
+            effective_model = self.config.fast_pass_model or self.config.model_name
+
         logger.info(f"{pass_name.title()}: Using model '{effective_model}'")
 
         async with LLMClient(self.config) as llm_client:
@@ -305,7 +280,7 @@ class CognitiveReader:
                 # Generate section summary with accumulated context
                 summary = await self._process_section(
                     section, section_context, language, llm_client,
-                    model=model, temperature=temperature
+                    model=effective_model, temperature=temperature
                 )
 
                 if summary:
@@ -505,12 +480,15 @@ class CognitiveReader:
         # Step 2: Process from deepest level to root (bottom-up)
         summaries: dict[str, SectionSummary] = {}
 
+        # Log which model will be used for this level
+        processing_model = self.config.fast_pass_model or self.config.model_name
+        logger.info(f"🧠 Processing document with model: {processing_model}")
+
         for level in range(max_level, 0, -1):  # Bottom-up processing
             if level not in levels:
                 continue
 
             level_sections = levels[level]
-            logger.info(f"Processing level {level}: {len(level_sections)} sections")
 
             for section in level_sections:
                 # Determine content based on section type
@@ -521,11 +499,8 @@ class CognitiveReader:
                     content = section.content
                     logger.debug(f"Leaf section '{section.title}': using section content")
 
-                # Generate summary using dual-pass or single-pass approach
-                if self.config.enable_fast_first_pass:
-                    summary = await self._process_section_dual_pass(section, content, language)
-                else:
-                    summary = await self._process_section_single_pass(section, content, language)
+                # Process with single-pass approach (Phase 1: dual-pass disabled)
+                summary = await self._process_section_single_pass(section, content, language)
 
                 if summary:
                     summaries[section.id] = summary
@@ -589,48 +564,7 @@ class CognitiveReader:
 
         return "\n\n".join(content_parts)
 
-    async def _process_section_dual_pass(
-        self, section: DocumentSection, content: str, language: LanguageCode
-    ) -> SectionSummary | None:
-        """Process a section using dual-pass approach.
-
-        Args:
-            section: Section to process.
-            content: Content to summarize.
-            language: Document language.
-
-        Returns:
-            Section summary from dual-pass processing.
-        """
-        async with LLMClient(self.config) as llm_client:
-            # Fast first pass
-            logger.debug(f"[FAST PASS] Processing '{section.title}' with {self.config.get_model_for_pass(1)}")
-            fast_summary = await self._process_section(
-                section,
-                "",  # No accumulated context for hierarchical processing
-                language,
-                llm_client,
-                model=self.config.get_model_for_pass(1),
-                temperature=self.config.get_temperature_for_pass(1),
-                content=content
-            )
-
-            if not fast_summary:
-                logger.warning(f"Fast pass failed for section: {section.title}")
-                return None
-
-            # Quality second pass with fast summary as context
-            logger.debug(f"[QUALITY PASS] Refining '{section.title}' with {self.config.get_model_for_pass(2)}")
-            context = f"Fast scan result: {fast_summary.summary}"
-            return await self._process_section(
-                section,
-                context,
-                language,
-                llm_client,
-                model=self.config.get_model_for_pass(2),
-                temperature=self.config.get_temperature_for_pass(2),
-                content=content
-            )
+    # TODO: Phase 2 - Implement proper dual-pass with specialized prompts and context
 
     async def _process_section_single_pass(
         self, section: DocumentSection, content: str, language: LanguageCode
@@ -645,12 +579,18 @@ class CognitiveReader:
         Returns:
             Section summary from single-pass processing.
         """
+        # For single-pass, use fast model (optimized for speed/cost)
+        model = self.config.fast_pass_model or self.config.model_name
+        temperature = self.config.fast_pass_temperature or self.config.temperature
+
         async with LLMClient(self.config) as llm_client:
             return await self._process_section(
                 section,
                 "",  # No accumulated context for hierarchical processing
                 language,
                 llm_client,
+                model=model,
+                temperature=temperature,
                 content=content
             )
 

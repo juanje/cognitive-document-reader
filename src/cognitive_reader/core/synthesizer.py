@@ -178,6 +178,10 @@ class Synthesizer:
         """
         from ..llm.client import LLMClient
 
+        # Log concept generation process
+        concept_model = self.config.fast_pass_model or self.config.model_name
+        logger.info(f"📚 Generating definitions for {len(concepts)} concepts with model: {concept_model}")
+
         concept_definitions = []
 
         # Use LLM to generate real definitions
@@ -255,7 +259,9 @@ Provide only the definition (1-2 sentences maximum), focusing on how this concep
                             context="",
                             prompt_type="section_summary",
                             language=language,
-                            section_title=f"Definition for {concept}"
+                            section_title=f"Definition for {concept}",
+                            model=concept_model,
+                            temperature=self.config.fast_pass_temperature or self.config.temperature
                         )
 
                         # Extract definition from response and clean formatting

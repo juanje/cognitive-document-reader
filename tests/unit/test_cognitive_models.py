@@ -34,8 +34,8 @@ class TestCognitiveConfig:
         assert config.fast_pass_temperature == 0.1
         assert config.main_pass_temperature == 0.3
 
-        # Cognitive features
-        assert config.enable_second_pass is True
+        # Cognitive features (Phase 1: second pass disabled by default)
+        assert config.enable_second_pass is False
         assert config.enable_refinement is True
         assert config.refinement_threshold == 0.4
 
