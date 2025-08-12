@@ -13,7 +13,7 @@ class PromptManager:
     """
 
     # Prompt version for tracking changes
-    PROMPT_VERSION = "v1.1.0"  # Updated for unified prompt system
+    PROMPT_VERSION = "v1.2.0"  # Updated for direct synthesis style and improved quality
 
     # Language code to full name mapping
     LANGUAGE_NAMES = {
@@ -179,13 +179,22 @@ ACCUMULATED CONTEXT FROM PREVIOUS SECTIONS:
 
 INSTRUCTIONS:
 1. Create a clear, concise summary (2-4 sentences) that captures the main ideas
-2. Consider how this section relates to the previous context
-3. Identify 2-3 key concepts that are central to this section
-4. Maintain consistency with the accumulated understanding
-5. Focus on information that would be valuable for human understanding
+2. Write in DIRECT SYNTHESIS style - present the content as facts, not meta-descriptions
+3. AVOID meta-references like "The section explains...", "The document states...", "The author says..."
+4. Consider how this section relates to the previous context
+5. Identify 2-3 key concepts that are central to this section
+6. Maintain consistency with the accumulated understanding
+7. Focus on information that would be valuable for human understanding
+
+STYLE EXAMPLES:
+❌ BAD: "In this section, the document explains that sedentarism is not just sitting..."
+✅ GOOD: "Sedentarism is not just prolonged sitting but represents a lack of movement variety..."
+
+❌ BAD: "The author describes how our ancestors lived as nomads..."
+✅ GOOD: "For over two million years, human ancestors lived as nomads, constantly moving to hunt and gather..."
 
 RESPONSE FORMAT:
-Summary: [Your 2-4 sentence summary here]
+Summary: [Your 2-4 sentence direct synthesis here]
 Key Concepts: [concept1, concept2, concept3]
 
 **IMPORTANT: Respond in {{language}}.**
@@ -203,13 +212,22 @@ SECTION SUMMARIES:
 
 INSTRUCTIONS:
 1. Create a comprehensive summary (4-6 sentences) that synthesizes all sections
-2. Maintain the logical flow and narrative structure of the document
-3. Highlight the most important insights and conclusions
-4. Ensure the summary is valuable for human reading and understanding
-5. Connect related concepts across sections
+2. Write in DIRECT SYNTHESIS style - present the content as unified knowledge, not meta-descriptions
+3. AVOID meta-references like "The document discusses...", "This text covers...", "The sections explain..."
+4. Maintain the logical flow and narrative structure of the document
+5. Highlight the most important insights and conclusions
+6. Ensure the summary is valuable for human reading and understanding
+7. Connect related concepts across sections
+
+STYLE EXAMPLES:
+❌ BAD: "This document explores the concept of sedentarism and explains how..."
+✅ GOOD: "Sedentarism represents more than prolonged sitting - it reflects the lack of movement variety that characterized human evolution..."
+
+❌ BAD: "The text describes various movement patterns and discusses..."
+✅ GOOD: "Human ancestors engaged in diverse movement patterns including walking, climbing, and carrying objects..."
 
 RESPONSE FORMAT:
-Document Summary: [Your comprehensive 4-6 sentence summary here]
+Document Summary: [Your comprehensive 4-6 sentence direct synthesis here]
 
 **IMPORTANT: Respond in {{language}}.**
 
@@ -248,15 +266,21 @@ CONTEXT FROM DOCUMENT:
 
 INSTRUCTIONS:
 1. Create a clear, precise definition (1-2 sentences maximum)
-2. Focus on how this concept is used specifically in this document
-3. Avoid generic dictionary definitions - be context-specific
-4. Do not include reasoning process or thinking steps
-5. Provide only the definition, no prefixes or additional commentary
+2. Write in DIRECT DEFINITION style - state what the concept IS, not what "the document says it is"
+3. Focus on how this concept is used specifically in this document
+4. Avoid generic dictionary definitions - be context-specific
+5. AVOID meta-references like "According to the text...", "The document defines this as..."
+6. Do not include reasoning process or thinking steps
+7. Provide only the definition, no prefixes or additional commentary
 
 **IMPORTANT: Respond in {{language}}.**
 
 RESPONSE FORMAT:
 Provide ONLY the definition text. Do not include "Definition:", "Summary:", or any other prefixes.
+
+STYLE EXAMPLES:
+❌ BAD: "According to the document, sedentarism is defined as..."
+✅ GOOD: "A lifestyle characterized by prolonged periods of physical inactivity and lack of movement variety."
 
 Example: "A systematic approach to processing information that mimics human cognitive patterns for enhanced understanding."
 

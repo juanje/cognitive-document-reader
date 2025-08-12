@@ -162,11 +162,74 @@ class TestUnifiedPromptSystem:
             assert "RESPONSE FORMAT:" in template or "Generate the definition now:" in template
 
     def test_version_updated(self):
-        """Test that prompt version was updated to reflect unified system."""
-        assert self.prompt_manager.PROMPT_VERSION == "v1.1.0"
+        """Test that prompt version was updated to reflect direct synthesis improvements."""
+        assert self.prompt_manager.PROMPT_VERSION == "v1.2.0"
 
     def test_language_names_mapping(self):
         """Test that language names mapping is correct."""
         assert self.prompt_manager.LANGUAGE_NAMES[LanguageCode.EN] == "English"
         assert self.prompt_manager.LANGUAGE_NAMES[LanguageCode.ES] == "Spanish"
         assert self.prompt_manager.LANGUAGE_NAMES[LanguageCode.AUTO] == "English"
+
+    def test_direct_synthesis_instructions_in_prompts(self):
+        """Test that all prompts include direct synthesis style instructions."""
+        prompt_types = ["section_summary", "document_summary", "concept_definition"]
+
+        for prompt_type in prompt_types:
+            template = self.prompt_manager._prompts[prompt_type]
+
+            # Should contain direct synthesis instructions
+            assert "DIRECT" in template and ("SYNTHESIS" in template or "DEFINITION" in template)
+
+            # Should contain avoidance of meta-references
+            assert "AVOID meta-references" in template
+
+            # Should contain style examples
+            assert "STYLE EXAMPLES:" in template
+            assert "❌ BAD:" in template
+            assert "✅ GOOD:" in template
+
+    def test_section_summary_prompt_quality_instructions(self):
+        """Test that section summary prompt has quality instructions."""
+        prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.EN)
+
+        # Should contain specific bad examples to avoid
+        assert '"The section explains..."' in prompt
+        assert '"The document states..."' in prompt
+        assert '"The author says..."' in prompt
+
+        # Should contain good examples to follow
+        assert "Sedentarism is not just" in prompt
+        assert "For over two million years" in prompt
+
+        # Should emphasize direct synthesis
+        assert "direct synthesis" in prompt.lower()
+
+    def test_document_summary_prompt_quality_instructions(self):
+        """Test that document summary prompt has quality instructions."""
+        prompt = self.prompt_manager.get_prompt("document_summary", LanguageCode.EN)
+
+        # Should contain specific bad examples to avoid
+        assert '"The document discusses..."' in prompt
+        assert '"This text covers..."' in prompt
+
+        # Should contain good examples to follow
+        assert "Sedentarism represents more than" in prompt
+        assert "Human ancestors engaged in" in prompt
+
+        # Should emphasize direct synthesis
+        assert "direct synthesis" in prompt.lower()
+
+    def test_concept_definition_prompt_quality_instructions(self):
+        """Test that concept definition prompt has quality instructions."""
+        prompt = self.prompt_manager.get_prompt("concept_definition", LanguageCode.EN)
+
+        # Should contain specific bad examples to avoid
+        assert '"According to the text..."' in prompt
+        assert '"The document defines this as..."' in prompt
+
+        # Should contain good examples
+        assert "A lifestyle characterized by" in prompt
+
+        # Should emphasize direct definition style
+        assert "DIRECT DEFINITION style" in prompt
