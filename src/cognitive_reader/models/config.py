@@ -74,6 +74,14 @@ class CognitiveConfig(BaseModel):
     disable_reasoning: bool = Field(default=False, description="Disable reasoning mode for reasoning models (faster, direct answers)")
     skip_glossary: bool = Field(default=False, description="Skip concept definitions generation (faster processing, summaries only)")
 
+    # Concept filtering parameters for glossary quality
+    max_glossary_concepts: int = Field(default=50, description="Maximum number of concepts in glossary")
+    min_glossary_concepts: int = Field(default=10, description="Minimum number of concepts in glossary")
+    cross_section_score_cap: float = Field(default=0.5, description="Maximum score for cross-section relevance (0.0-1.0)")
+    complexity_score_multiplier: float = Field(default=0.2, description="Multiplier for word count in complexity scoring")
+    complexity_score_cap: float = Field(default=0.3, description="Maximum score for concept complexity (0.0-1.0)")
+    base_concept_score: float = Field(default=0.2, description="Base score for LLM-selected concepts (0.0-1.0)")
+
     # NOTE: max_hierarchy_depth is used for --structure-only --max-depth functionality
 
     @classmethod
@@ -134,6 +142,14 @@ class CognitiveConfig(BaseModel):
             max_sections=int(env_val) if (env_val := os.getenv("COGNITIVE_READER_MAX_SECTIONS")) else None,
             disable_reasoning=os.getenv("COGNITIVE_READER_DISABLE_REASONING", "false").lower() == "true",
             skip_glossary=os.getenv("COGNITIVE_READER_SKIP_GLOSSARY", "false").lower() == "true",
+
+            # Concept filtering parameters
+            max_glossary_concepts=int(os.getenv("COGNITIVE_READER_MAX_GLOSSARY_CONCEPTS", "50")),
+            min_glossary_concepts=int(os.getenv("COGNITIVE_READER_MIN_GLOSSARY_CONCEPTS", "10")),
+            cross_section_score_cap=float(os.getenv("COGNITIVE_READER_CROSS_SECTION_SCORE_CAP", "0.5")),
+            complexity_score_multiplier=float(os.getenv("COGNITIVE_READER_COMPLEXITY_SCORE_MULTIPLIER", "0.2")),
+            complexity_score_cap=float(os.getenv("COGNITIVE_READER_COMPLEXITY_SCORE_CAP", "0.3")),
+            base_concept_score=float(os.getenv("COGNITIVE_READER_BASE_CONCEPT_SCORE", "0.2")),
         )
 
     def get_model_for_pass(self, pass_number: int) -> str:

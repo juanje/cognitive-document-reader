@@ -108,13 +108,16 @@ class Synthesizer:
                     concept_first_mention[concept] = summary.section_id  # First mention
                 concept_to_sections[concept].append(summary.section_id)
 
+        # Filter concepts for quality glossary - prioritize concepts with broader relevance
+        filtered_concepts = self._filter_concepts_for_glossary(all_concepts, concept_to_sections)
+
         # Convert unique concepts to ConceptDefinition objects with real definitions
         concept_definitions = []
 
         # Generate real definitions for concepts using LLM (unless skipped)
         if not self.config.skip_glossary:
             concept_definitions = await self._generate_concept_definitions(
-                list(sorted(all_concepts)),
+                list(sorted(filtered_concepts)),
                 all_summaries,
                 concept_first_mention,
                 concept_to_sections,
@@ -545,3 +548,59 @@ class Synthesizer:
             summary = response.strip()
 
         return summary, concepts[:5]  # Limit to 5 concepts
+
+    def _filter_concepts_for_glossary(
+        self,
+        all_concepts: set[str],
+        concept_to_sections: dict[str, list[str]]
+    ) -> set[str]:
+        """Filter concepts to create a high-quality glossary.
+
+        Args:
+            all_concepts: All unique concepts extracted from sections.
+            concept_to_sections: Mapping of concepts to sections where they appear.
+
+        Returns:
+            Filtered set of concepts prioritized for glossary creation.
+        """
+        if not all_concepts:
+            return set()
+
+        # Convert to list for analysis
+        concept_list = list(all_concepts)
+
+        # Calculate concept scores based on multiple factors
+        concept_scores = {}
+        total_sections = len(set().union(*concept_to_sections.values())) or 1
+
+        for concept in concept_list:
+            sections_count = len(concept_to_sections.get(concept, []))
+
+                        # Scoring factors:
+            # 1. Cross-section relevance (appears in multiple sections)
+            cross_section_score = min(sections_count / total_sections, self.config.cross_section_score_cap)
+
+            # 2. Term complexity (multi-word concepts are often more valuable)
+            word_count = len(concept.split())
+            complexity_score = min(word_count * self.config.complexity_score_multiplier, self.config.complexity_score_cap)
+
+            # 3. Base score for being selected (LLM already filtered once)
+            base_score = self.config.base_concept_score
+
+            concept_scores[concept] = cross_section_score + complexity_score + base_score
+
+        # Sort by score and select top concepts
+        sorted_concepts = sorted(concept_scores.items(), key=lambda x: x[1], reverse=True)
+
+        # Limit to reasonable glossary size (configurable limits)
+        max_concepts = min(self.config.max_glossary_concepts, len(all_concepts))
+
+        # Also ensure we don't filter too aggressively for small documents
+        min_concepts = min(self.config.min_glossary_concepts, len(all_concepts))
+        final_count = max(min_concepts, max_concepts)
+
+        selected_concepts = {concept for concept, _ in sorted_concepts[:final_count]}
+
+        logger.info(f"Filtered concepts for glossary: {len(selected_concepts)} from {len(all_concepts)} total")
+
+        return selected_concepts

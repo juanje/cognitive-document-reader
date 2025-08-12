@@ -13,7 +13,7 @@ class PromptManager:
     """
 
     # Prompt version for tracking changes
-    PROMPT_VERSION = "v1.2.0"  # Updated for direct synthesis style and improved quality
+    PROMPT_VERSION = "v1.4.0"  # Fixed concept contamination and improved definition accuracy
 
     # Language code to full name mapping
     LANGUAGE_NAMES = {
@@ -235,18 +235,36 @@ Provide only the document summary, no additional commentary."""
 
     def _get_concept_extraction_prompt(self) -> str:
         """Unified prompt for concept extraction."""
-        return """You are an expert at identifying key concepts in text. Extract the most important concepts from this section that would be valuable for creating a glossary or knowledge base.
+        return """You are an expert at identifying key concepts for glossary creation. Extract concepts that represent specialized knowledge, methodologies, or domain-specific terms that would benefit from definition.
 
 SECTION TO ANALYZE:
 Title: {section_title}
 Content: {section_content}
 
 INSTRUCTIONS:
-1. Identify 3-5 key concepts that are central to this section
-2. Focus on concepts that are defined, explained, or given significant attention
-3. Prefer concepts that would be useful in a glossary or for cross-referencing
-4. Avoid overly common terms unless they have specific meaning in this context
-5. Present concepts as clear, concise terms
+1. Identify 3-5 key concepts that are central to this section's meaning
+2. PRIORITIZE concepts that are:
+   - Technical terms or specialized vocabulary
+   - Processes, methodologies, or systematic approaches
+   - Domain-specific concepts that require context to understand
+   - Ideas that are defined, explained, or developed in detail
+   - Multi-word concepts that represent unified ideas
+3. AVOID concepts that are:
+   - Common words (unless they have specialized meaning here)
+   - Generic actions or states without specific context
+   - Overly broad categories that lack precision
+   - Single words that are self-explanatory
+4. Consider SEMANTIC IMPORTANCE over word frequency
+5. Present concepts as precise, meaningful terms (can be 1-3 words)
+
+CONCEPT SELECTION EXAMPLES:
+✅ GOOD TYPES: [technical terms], [specialized methodologies], [domain-specific processes], [compound concepts]
+❌ BAD TYPES: [common nouns], [generic verbs], [overly broad terms], [everyday words], [basic concepts]
+
+EXAMPLE PATTERNS (adapt to your document's domain):
+✅ For health/fitness: [specific conditions], [exercise techniques], [medical terms], [therapeutic approaches]
+✅ For technology: [technical algorithms], [system architectures], [specialized tools], [domain frameworks]
+❌ AVOID: generic words like "time", "people", "important", "system", "process" unless domain-specific
 
 RESPONSE FORMAT:
 Key Concepts: [concept1, concept2, concept3, concept4, concept5]
@@ -265,13 +283,15 @@ CONTEXT FROM DOCUMENT:
 {context}
 
 INSTRUCTIONS:
-1. Create a clear, precise definition (1-2 sentences maximum)
-2. Write in DIRECT DEFINITION style - state what the concept IS, not what "the document says it is"
-3. Focus on how this concept is used specifically in this document
-4. Avoid generic dictionary definitions - be context-specific
-5. AVOID meta-references like "According to the text...", "The document defines this as..."
-6. Do not include reasoning process or thinking steps
-7. Provide only the definition, no prefixes or additional commentary
+1. CAREFULLY READ the concept name and context to understand what you're defining
+2. Create a clear, precise definition (1-2 sentences maximum) that accurately reflects the concept
+3. Write in DIRECT DEFINITION style - state what the concept IS, not what "the document says it is"
+4. Focus on how this concept is used specifically in this document context
+5. Ensure the definition matches the CONCEPT NAME - do not confuse it with other concepts
+6. Avoid generic dictionary definitions - be context-specific and accurate
+7. AVOID meta-references like "According to the text...", "The document defines this as..."
+8. Do not include reasoning process or thinking steps
+9. Provide only the definition, no prefixes or additional commentary
 
 **IMPORTANT: Respond in {{language}}.**
 

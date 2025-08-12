@@ -162,8 +162,8 @@ class TestUnifiedPromptSystem:
             assert "RESPONSE FORMAT:" in template or "Generate the definition now:" in template
 
     def test_version_updated(self):
-        """Test that prompt version was updated to reflect direct synthesis improvements."""
-        assert self.prompt_manager.PROMPT_VERSION == "v1.2.0"
+        """Test that prompt version was updated to reflect concept contamination fixes."""
+        assert self.prompt_manager.PROMPT_VERSION == "v1.4.0"
 
     def test_language_names_mapping(self):
         """Test that language names mapping is correct."""
@@ -233,3 +233,42 @@ class TestUnifiedPromptSystem:
 
         # Should emphasize direct definition style
         assert "DIRECT DEFINITION style" in prompt
+
+    def test_concept_extraction_prompt_quality_instructions(self):
+        """Test that concept extraction prompt has enhanced quality instructions."""
+        prompt = self.prompt_manager.get_prompt("concept_extraction", LanguageCode.EN)
+
+        # Should contain semantic prioritization instructions
+        assert "SEMANTIC IMPORTANCE over word frequency" in prompt
+
+        # Should prioritize specialized terms
+        assert "Technical terms or specialized vocabulary" in prompt
+        assert "Processes, methodologies, or systematic approaches" in prompt
+        assert "Domain-specific concepts" in prompt
+
+        # Should avoid common words
+        assert "Common words" in prompt
+        assert "Generic actions" in prompt
+        assert "self-explanatory" in prompt
+
+                # Should contain concept selection guidance
+        assert "CONCEPT SELECTION EXAMPLES:" in prompt or "EXAMPLE PATTERNS" in prompt
+        assert "technical terms" in prompt.lower()
+        assert "specialized" in prompt.lower()
+
+        # Should show what to avoid in general terms
+        assert "generic" in prompt.lower() or "common" in prompt.lower()
+        assert "avoid" in prompt.lower()
+
+    def test_concept_extraction_multilingual_examples(self):
+        """Test that concept extraction has proper guidance in multiple languages."""
+        prompt_en = self.prompt_manager.get_prompt("concept_extraction", LanguageCode.EN)
+        prompt_es = self.prompt_manager.get_prompt("concept_extraction", LanguageCode.ES)
+
+        # Both should contain proper language instruction and guidance
+        for prompt, lang in [(prompt_en, "English"), (prompt_es, "Spanish")]:
+            assert f"**IMPORTANT: Respond in {lang}.**" in prompt
+            assert "GOOD TYPES:" in prompt
+            assert "BAD TYPES:" in prompt
+            assert "domain-specific" in prompt.lower()
+            assert "technical" in prompt.lower()
