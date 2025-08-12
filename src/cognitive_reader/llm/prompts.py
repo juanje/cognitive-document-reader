@@ -13,7 +13,14 @@ class PromptManager:
     """
 
     # Prompt version for tracking changes
-    PROMPT_VERSION = "v1.0.0"
+    PROMPT_VERSION = "v1.1.0"  # Updated for unified prompt system
+
+    # Language code to full name mapping
+    LANGUAGE_NAMES = {
+        LanguageCode.EN: "English",
+        LanguageCode.ES: "Spanish",
+        LanguageCode.AUTO: "English",  # Default to English for auto-detection
+    }
 
     def __init__(self) -> None:
         """Initialize the prompt manager."""
@@ -29,25 +36,20 @@ class PromptManager:
             language: The target language for the prompt.
 
         Returns:
-            The prompt template string.
+            The prompt template string formatted with the target language.
 
         Raises:
-            ValueError: If prompt type or language is not supported.
+            ValueError: If the prompt type or language is not supported.
         """
         if prompt_type not in self._prompts:
             raise ValueError(f"Unsupported prompt type: {prompt_type}")
 
-        lang_prompts = self._prompts[prompt_type]
+        # Get the unified template and format with target language
+        template = self._prompts[prompt_type]
+        language_name = self.LANGUAGE_NAMES.get(language, "English")
 
-        # Try exact language match first, then fall back to English
-        if language in lang_prompts:
-            return lang_prompts[language]
-        elif LanguageCode.EN in lang_prompts:
-            return lang_prompts[LanguageCode.EN]
-        else:
-            raise ValueError(
-                f"No prompt available for type '{prompt_type}' in language '{language}'"
-            )
+        # Replace the language placeholder
+        return template.replace("{{language}}", language_name)
 
     def format_section_summary_prompt(
         self,
@@ -151,33 +153,21 @@ class PromptManager:
             concept_name=concept_name, context=context
         )
 
-    def _initialize_prompts(self) -> dict[str, dict[LanguageCode, str]]:
+    def _initialize_prompts(self) -> dict[str, str]:
         """Initialize all prompt templates.
 
         Returns:
-            Dictionary of prompt templates organized by type and language.
+            Dictionary of unified prompt templates by type.
         """
         return {
-            "section_summary": {
-                LanguageCode.EN: self._get_section_summary_prompt_en(),
-                LanguageCode.ES: self._get_section_summary_prompt_es(),
-            },
-            "document_summary": {
-                LanguageCode.EN: self._get_document_summary_prompt_en(),
-                LanguageCode.ES: self._get_document_summary_prompt_es(),
-            },
-            "concept_extraction": {
-                LanguageCode.EN: self._get_concept_extraction_prompt_en(),
-                LanguageCode.ES: self._get_concept_extraction_prompt_es(),
-            },
-            "concept_definition": {
-                LanguageCode.EN: self._get_concept_definition_prompt_en(),
-                LanguageCode.ES: self._get_concept_definition_prompt_es(),
-            },
+            "section_summary": self._get_section_summary_prompt(),
+            "document_summary": self._get_document_summary_prompt(),
+            "concept_extraction": self._get_concept_extraction_prompt(),
+            "concept_definition": self._get_concept_definition_prompt(),
         }
 
-    def _get_section_summary_prompt_en(self) -> str:
-        """English prompt for section summarization."""
+    def _get_section_summary_prompt(self) -> str:
+        """Unified prompt for section summarization."""
         return """You are an expert document analyst performing cognitive reading. Your task is to create a concise, high-quality summary of a document section while considering the broader context.
 
 SECTION TO SUMMARIZE:
@@ -198,34 +188,12 @@ RESPONSE FORMAT:
 Summary: [Your 2-4 sentence summary here]
 Key Concepts: [concept1, concept2, concept3]
 
+**IMPORTANT: Respond in {{language}}.**
+
 Provide only the summary and key concepts, no additional commentary."""
 
-    def _get_section_summary_prompt_es(self) -> str:
-        """Spanish prompt for section summarization."""
-        return """Eres un analista experto de documentos realizando lectura cognitiva. Tu tarea es crear un resumen conciso y de alta calidad de una sección del documento considerando el contexto más amplio.
-
-SECCIÓN A RESUMIR:
-Título: {section_title}
-Contenido: {section_content}
-
-CONTEXTO ACUMULADO DE SECCIONES ANTERIORES:
-{accumulated_context}
-
-INSTRUCCIONES:
-1. Crea un resumen claro y conciso (2-4 oraciones) que capture las ideas principales
-2. Considera cómo esta sección se relaciona con el contexto previo
-3. Identifica 2-3 conceptos clave que son centrales en esta sección
-4. Mantén consistencia con la comprensión acumulada
-5. Enfócate en información valiosa para la comprensión humana
-
-FORMATO DE RESPUESTA:
-Resumen: [Tu resumen de 2-4 oraciones aquí]
-Conceptos Clave: [concepto1, concepto2, concepto3]
-
-Proporciona solo el resumen y los conceptos clave, sin comentarios adicionales."""
-
-    def _get_document_summary_prompt_en(self) -> str:
-        """English prompt for document-level summarization."""
+    def _get_document_summary_prompt(self) -> str:
+        """Unified prompt for document-level summarization."""
         return """You are an expert document analyst creating a comprehensive document summary. Synthesize the section summaries into a coherent overview that captures the document's main narrative and key insights.
 
 DOCUMENT TITLE: {document_title}
@@ -243,31 +211,12 @@ INSTRUCTIONS:
 RESPONSE FORMAT:
 Document Summary: [Your comprehensive 4-6 sentence summary here]
 
+**IMPORTANT: Respond in {{language}}.**
+
 Provide only the document summary, no additional commentary."""
 
-    def _get_document_summary_prompt_es(self) -> str:
-        """Spanish prompt for document-level summarization."""
-        return """Eres un analista experto de documentos creando un resumen integral del documento. Sintetiza los resúmenes de secciones en una visión general coherente que capture la narrativa principal y las ideas clave del documento.
-
-TÍTULO DEL DOCUMENTO: {document_title}
-
-RESÚMENES DE SECCIONES:
-{section_summaries}
-
-INSTRUCCIONES:
-1. Crea un resumen integral (4-6 oraciones) que sintetice todas las secciones
-2. Mantén el flujo lógico y la estructura narrativa del documento
-3. Destaca las ideas y conclusiones más importantes
-4. Asegúrate de que el resumen sea valioso para la lectura y comprensión humana
-5. Conecta conceptos relacionados entre secciones
-
-FORMATO DE RESPUESTA:
-Resumen del Documento: [Tu resumen integral de 4-6 oraciones aquí]
-
-Proporciona solo el resumen del documento, sin comentarios adicionales."""
-
-    def _get_concept_extraction_prompt_en(self) -> str:
-        """English prompt for concept extraction."""
+    def _get_concept_extraction_prompt(self) -> str:
+        """Unified prompt for concept extraction."""
         return """You are an expert at identifying key concepts in text. Extract the most important concepts from this section that would be valuable for creating a glossary or knowledge base.
 
 SECTION TO ANALYZE:
@@ -284,30 +233,12 @@ INSTRUCTIONS:
 RESPONSE FORMAT:
 Key Concepts: [concept1, concept2, concept3, concept4, concept5]
 
+**IMPORTANT: Respond in {{language}}.**
+
 Provide only the key concepts list, no additional commentary."""
 
-    def _get_concept_extraction_prompt_es(self) -> str:
-        """Spanish prompt for concept extraction."""
-        return """Eres un experto en identificar conceptos clave en textos. Extrae los conceptos más importantes de esta sección que serían valiosos para crear un glosario o base de conocimiento.
-
-SECCIÓN A ANALIZAR:
-Título: {section_title}
-Contenido: {section_content}
-
-INSTRUCCIONES:
-1. Identifica 3-5 conceptos clave que son centrales en esta sección
-2. Enfócate en conceptos que son definidos, explicados o reciben atención significativa
-3. Prefiere conceptos que serían útiles en un glosario o para referencias cruzadas
-4. Evita términos demasiado comunes a menos que tengan significado específico en este contexto
-5. Presenta conceptos como términos claros y concisos
-
-FORMATO DE RESPUESTA:
-Conceptos Clave: [concepto1, concepto2, concepto3, concepto4, concepto5]
-
-Proporciona solo la lista de conceptos clave, sin comentarios adicionales."""
-
-    def _get_concept_definition_prompt_en(self) -> str:
-        """English prompt for concept definition generation."""
+    def _get_concept_definition_prompt(self) -> str:
+        """Unified prompt for concept definition generation."""
         return """You are an expert at creating clear, concise definitions for key concepts. Generate a precise definition for the given concept based on how it's used in the document context.
 
 CONCEPT TO DEFINE: {concept_name}
@@ -322,35 +253,14 @@ INSTRUCTIONS:
 4. Do not include reasoning process or thinking steps
 5. Provide only the definition, no prefixes or additional commentary
 
+**IMPORTANT: Respond in {{language}}.**
+
 RESPONSE FORMAT:
 Provide ONLY the definition text. Do not include "Definition:", "Summary:", or any other prefixes.
 
 Example: "A systematic approach to processing information that mimics human cognitive patterns for enhanced understanding."
 
 Generate the definition now:"""
-
-    def _get_concept_definition_prompt_es(self) -> str:
-        """Spanish prompt for concept definition generation."""
-        return """Eres un experto en crear definiciones claras y concisas para conceptos clave. Genera una definición precisa para el concepto dado basándote en cómo se usa en el contexto del documento.
-
-CONCEPTO A DEFINIR: {concept_name}
-
-CONTEXTO DEL DOCUMENTO:
-{context}
-
-INSTRUCCIONES:
-1. Crea una definición clara y precisa (máximo 1-2 oraciones)
-2. Enfócate en cómo se usa este concepto específicamente en este documento
-3. Evita definiciones genéricas de diccionario - sé específico al contexto
-4. No incluyas proceso de razonamiento o pasos de pensamiento
-5. Proporciona solo la definición, sin prefijos o comentarios adicionales
-
-FORMATO DE RESPUESTA:
-Proporciona SOLO el texto de la definición. No incluyas "Definición:", "Resumen:", u otros prefijos.
-
-Ejemplo: "Un enfoque sistemático para procesar información que imita patrones cognitivos humanos para mejorar la comprensión."
-
-Genera la definición ahora:"""
 
     def get_available_prompt_types(self) -> list[str]:
         """Get list of available prompt types.
