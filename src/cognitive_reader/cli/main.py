@@ -77,11 +77,11 @@ logger = logging.getLogger(__name__)
     type=click.Path(path_type=Path),
     help="Directory to save partial results (default: ./partial_results)",
 )
-# @click.option(
-#     "--max-sections",
-#     type=int,
-#     help="Maximum number of sections to process (for testing with large docs)",
-# )
+@click.option(
+    "--max-sections",
+    type=int,
+    help="Maximum number of sections to process (for testing with large docs)",
+)
 @click.option(
     "--max-depth",
     type=int,
@@ -112,7 +112,7 @@ def cli(
     quiet: bool,
     save_partials: bool,
     partials_dir: Path | None,
-    # max_sections: int | None,  # TODO: Phase 2
+    max_sections: int | None,
     max_depth: int | None,       # ✅ WORKING: for --structure-only
     structure_only: bool,
     fast_mode: bool,
@@ -182,7 +182,7 @@ def cli(
                 quiet=quiet,
                 save_partials=save_partials,
                 partials_dir=partials_dir,
-                # max_sections=max_sections,      # TODO: Phase 2
+                max_sections=max_sections,
                 max_depth=max_depth,             # ✅ WORKING
                 structure_only=structure_only,
                 fast_mode=fast_mode,
@@ -216,7 +216,7 @@ async def _async_main(
     quiet: bool,
     save_partials: bool,
     partials_dir: Path | None,
-    # max_sections: int | None,  # TODO: Phase 2
+    max_sections: int | None,
     max_depth: int | None,       # ✅ WORKING
     structure_only: bool,
     fast_mode: bool,
@@ -233,7 +233,7 @@ async def _async_main(
         validate_config=validate_config,
         save_partials=save_partials,
         partials_dir=partials_dir,
-        # max_sections=max_sections,      # TODO: Phase 2
+        max_sections=max_sections,
         max_depth=max_depth,             # ✅ WORKING
         fast_mode=fast_mode,
     )
@@ -273,8 +273,8 @@ async def _async_main(
             # TODO: Phase 2 - Re-implement these development features:
             # if config.save_partial_results:
             #     dev_modes.append("save-partials")
-            # if config.max_sections:
-            #     dev_modes.append(f"max-sections={config.max_sections}")
+            if config.max_sections:
+                dev_modes.append(f"max-sections={config.max_sections}")
 
             # Show max-depth when filtering is active (not default high value)
             if config.max_hierarchy_depth and config.max_hierarchy_depth < 10:  # Show when filtering
@@ -375,7 +375,7 @@ def _build_config(
     validate_config: bool,
     save_partials: bool,
     partials_dir: Path | None,
-    # max_sections: int | None,  # TODO: Phase 2
+    max_sections: int | None,
     max_depth: int | None,       # ✅ WORKING
     fast_mode: bool,
 ) -> CognitiveConfig:
@@ -417,8 +417,8 @@ def _build_config(
     config_dict["save_partial_results"] = save_partials
     if partials_dir is not None:
         config_dict["partial_results_dir"] = str(partials_dir)
-    # if max_sections is not None:
-    #     config_dict["max_sections"] = max_sections
+    if max_sections is not None:
+        config_dict["max_sections"] = max_sections
 
     # ✅ WORKING: max_depth with --structure-only
     if max_depth is not None:

@@ -631,13 +631,14 @@ class CognitiveReader:
                 )
 
         # Apply section count limit if configured
-        # if self.config.max_sections is not None:
-        #     original_count = len(filtered_sections)
-        #     filtered_sections = filtered_sections[: self.config.max_sections]
-        #     logger.info(
-        #         f"Section count limit applied (max: {self.config.max_sections}): "
-        #         f"{original_count} -> {len(filtered_sections)} sections"
-        #     )
+        if self.config.max_sections is not None:
+            original_count = len(filtered_sections)
+            filtered_sections = filtered_sections[: self.config.max_sections]
+            if len(filtered_sections) < original_count:
+                logger.info(
+                    f"🔧 Section count limit applied (max: {self.config.max_sections}): "
+                    f"{original_count} -> {len(filtered_sections)} sections"
+                )
 
         return filtered_sections
 
