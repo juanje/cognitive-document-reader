@@ -129,6 +129,28 @@ class PromptManager:
             section_title=section_title, section_content=section_content
         )
 
+    def format_concept_definition_prompt(
+        self,
+        concept_name: str,
+        context: str,
+        language: LanguageCode = LanguageCode.EN,
+    ) -> str:
+        """Format a prompt for concept definition generation.
+
+        Args:
+            concept_name: Name of the concept to define.
+            context: Contextual information about the concept.
+            language: Target language for the prompt.
+
+        Returns:
+            Formatted prompt ready for LLM.
+        """
+        template = self.get_prompt("concept_definition", language)
+
+        return template.format(
+            concept_name=concept_name, context=context
+        )
+
     def _initialize_prompts(self) -> dict[str, dict[LanguageCode, str]]:
         """Initialize all prompt templates.
 
@@ -147,6 +169,10 @@ class PromptManager:
             "concept_extraction": {
                 LanguageCode.EN: self._get_concept_extraction_prompt_en(),
                 LanguageCode.ES: self._get_concept_extraction_prompt_es(),
+            },
+            "concept_definition": {
+                LanguageCode.EN: self._get_concept_definition_prompt_en(),
+                LanguageCode.ES: self._get_concept_definition_prompt_es(),
             },
         }
 
@@ -279,6 +305,52 @@ FORMATO DE RESPUESTA:
 Conceptos Clave: [concepto1, concepto2, concepto3, concepto4, concepto5]
 
 Proporciona solo la lista de conceptos clave, sin comentarios adicionales."""
+
+    def _get_concept_definition_prompt_en(self) -> str:
+        """English prompt for concept definition generation."""
+        return """You are an expert at creating clear, concise definitions for key concepts. Generate a precise definition for the given concept based on how it's used in the document context.
+
+CONCEPT TO DEFINE: {concept_name}
+
+CONTEXT FROM DOCUMENT:
+{context}
+
+INSTRUCTIONS:
+1. Create a clear, precise definition (1-2 sentences maximum)
+2. Focus on how this concept is used specifically in this document
+3. Avoid generic dictionary definitions - be context-specific
+4. Do not include reasoning process or thinking steps
+5. Provide only the definition, no prefixes or additional commentary
+
+RESPONSE FORMAT:
+Provide ONLY the definition text. Do not include "Definition:", "Summary:", or any other prefixes.
+
+Example: "A systematic approach to processing information that mimics human cognitive patterns for enhanced understanding."
+
+Generate the definition now:"""
+
+    def _get_concept_definition_prompt_es(self) -> str:
+        """Spanish prompt for concept definition generation."""
+        return """Eres un experto en crear definiciones claras y concisas para conceptos clave. Genera una definición precisa para el concepto dado basándote en cómo se usa en el contexto del documento.
+
+CONCEPTO A DEFINIR: {concept_name}
+
+CONTEXTO DEL DOCUMENTO:
+{context}
+
+INSTRUCCIONES:
+1. Crea una definición clara y precisa (máximo 1-2 oraciones)
+2. Enfócate en cómo se usa este concepto específicamente en este documento
+3. Evita definiciones genéricas de diccionario - sé específico al contexto
+4. No incluyas proceso de razonamiento o pasos de pensamiento
+5. Proporciona solo la definición, sin prefijos o comentarios adicionales
+
+FORMATO DE RESPUESTA:
+Proporciona SOLO el texto de la definición. No incluyas "Definición:", "Resumen:", u otros prefijos.
+
+Ejemplo: "Un enfoque sistemático para procesar información que imita patrones cognitivos humanos para mejorar la comprensión."
+
+Genera la definición ahora:"""
 
     def get_available_prompt_types(self) -> list[str]:
         """Get list of available prompt types.

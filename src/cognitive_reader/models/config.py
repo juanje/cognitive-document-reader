@@ -53,6 +53,11 @@ class CognitiveConfig(BaseModel):
     max_retries: int = Field(default=3, ge=0, description="Maximum retry attempts")
     document_language: LanguageCode = Field(default=LanguageCode.AUTO, description="Document language")
 
+    # LLM Provider Configuration
+    llm_provider: str = Field(default="ollama", description="LLM provider (ollama, openai, anthropic, etc.)")
+    ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama server base URL")
+    # Future: openai_api_key, anthropic_api_key, etc.
+
     # Summary Optimization for RAG/Fine-tuning
     target_summary_length: int = Field(default=800, gt=100, description="Target summary length in characters")
     min_summary_length: int = Field(default=400, gt=50, description="Minimum summary length in characters")
@@ -107,6 +112,10 @@ class CognitiveConfig(BaseModel):
             timeout_seconds=int(os.getenv("COGNITIVE_READER_TIMEOUT_SECONDS", "120")),
             max_retries=int(os.getenv("COGNITIVE_READER_MAX_RETRIES", "3")),
             document_language=LanguageCode(os.getenv("COGNITIVE_READER_LANGUAGE", "auto")),
+
+            # LLM Provider configuration
+            llm_provider=os.getenv("COGNITIVE_READER_LLM_PROVIDER", "ollama"),
+            ollama_base_url=os.getenv("COGNITIVE_READER_OLLAMA_BASE_URL", "http://localhost:11434"),
 
             # Summary optimization for RAG/Fine-tuning
             target_summary_length=int(os.getenv("COGNITIVE_READER_TARGET_SUMMARY_LENGTH", "800")),

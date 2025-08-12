@@ -21,11 +21,13 @@ classifiers = [
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.0,<3.0",      # Data validation and settings
-    "aiohttp>=3.8,<4.0",       # Async HTTP client  
+    "aiohttp>=3.8,<4.0",       # Async HTTP client (still needed for direct calls)
     "click>=8.0,<9.0",         # CLI framework
     "docling>=2.40,<3.0",      # Universal document parsing
     "langdetect>=1.0,<2.0",    # Language detection
     "python-dotenv>=1.0,<2.0", # .env file support
+    "langchain-core>=0.3,<1.0", # LangChain core functionality
+    "langchain-ollama>=0.2,<1.0", # Ollama integration for LangChain
 ]
 
 # Configure package discovery for src layout

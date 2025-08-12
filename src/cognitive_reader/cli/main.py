@@ -25,6 +25,12 @@ from ..utils.structure_formatter import (
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
+
+# Suppress noisy HTTP logs by default (only show in verbose mode)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("langsmith").setLevel(logging.WARNING)
+logging.getLogger("langchain").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
@@ -163,7 +169,15 @@ def cli(
     if quiet:
         logging.getLogger().setLevel(logging.ERROR)
     elif verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+        # Enable DEBUG for cognitive_reader logs only, keep HTTP libs minimal
+        logging.getLogger().setLevel(logging.INFO)  # Keep root at INFO
+        logging.getLogger("cognitive_reader").setLevel(logging.DEBUG)
+
+        # In verbose mode, allow some HTTP logs but not the noisy DEBUG ones
+        logging.getLogger("httpcore").setLevel(logging.WARNING)  # Still quiet
+        logging.getLogger("httpx").setLevel(logging.INFO)        # Show HTTP requests
+        logging.getLogger("langsmith").setLevel(logging.WARNING)  # Still quiet
+        logging.getLogger("langchain").setLevel(logging.INFO)
 
     try:
         # Run the async main function

@@ -1,4 +1,4 @@
-"""LLM client abstraction with focus on Ollama integration."""
+"""LLM client abstraction with LangChain integration and multi-provider support."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ import logging
 from typing import Any
 
 import aiohttp
+from langchain_core.language_models.base import BaseLanguageModel
+from langchain_ollama import OllamaLLM
 
 from ..models.config import CognitiveConfig
 from ..models.knowledge import LanguageCode
@@ -16,10 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    """Simple LLM abstraction with Ollama focus and development-friendly features.
+    """LangChain-powered LLM abstraction with multi-provider support and development features.
 
-    Provides a clean interface for LLM operations with built-in retry logic,
-    error handling, and support for development modes (dry-run, mocking).
+    Provides a clean interface for LLM operations using LangChain under the hood.
+    Supports multiple providers (currently Ollama, extensible for OpenAI, Anthropic, etc.)
+    with built-in retry logic, error handling, and development modes (dry-run, mocking).
     """
 
     def __init__(self, config: CognitiveConfig) -> None:
@@ -30,8 +33,50 @@ class LLMClient:
         """
         self.config = config
         self.prompt_manager = PromptManager()
-        self._base_url = "http://localhost:11434"  # Default Ollama URL
         self._session: aiohttp.ClientSession | None = None
+
+        # Initialize LangChain LLM based on provider
+        self._llm = self._create_llm_provider()
+        self._fast_llm = self._create_fast_llm_provider() if config.fast_pass_model else None
+
+    def _create_llm_provider(self) -> BaseLanguageModel[str]:
+        """Create LangChain LLM provider based on configuration.
+
+        Returns:
+            Configured LangChain LLM instance.
+
+        Raises:
+            ValueError: If unsupported provider is specified.
+        """
+        if self.config.llm_provider == "ollama":
+            main_model = self.config.main_model or self.config.model_name
+            return OllamaLLM(
+                model=main_model,
+                base_url=self.config.ollama_base_url,
+                temperature=self.config.main_pass_temperature or self.config.temperature,
+                num_ctx=self.config.context_window,
+            )
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.config.llm_provider}")
+
+    def _create_fast_llm_provider(self) -> BaseLanguageModel[str] | None:
+        """Create fast pass LLM provider if configured.
+
+        Returns:
+            Configured fast LangChain LLM instance or None.
+        """
+        if not self.config.fast_pass_model:
+            return None
+
+        if self.config.llm_provider == "ollama":
+            return OllamaLLM(
+                model=self.config.fast_pass_model,
+                base_url=self.config.ollama_base_url,
+                temperature=self.config.fast_pass_temperature or self.config.temperature,
+                num_ctx=self.config.context_window,
+            )
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.config.llm_provider}")
 
     async def __aenter__(self) -> LLMClient:
         """Async context manager entry."""
@@ -133,11 +178,11 @@ class LLMClient:
         return self._parse_concepts_response(response)
 
     async def _generate_with_retries(self, prompt: str, model: str | None = None, temperature: float | None = None) -> str:
-        """Generate response with retry logic.
+        """Generate response with retry logic using LangChain.
 
         Args:
             prompt: The prompt to send to the LLM.
-            model: Optional model to use (overrides config).
+            model: Optional model hint (selects fast vs main LLM).
             temperature: Optional temperature to use (overrides config).
 
         Returns:
@@ -150,7 +195,7 @@ class LLMClient:
 
         for attempt in range(self.config.max_retries + 1):
             try:
-                return await self._call_ollama(prompt, model=model, temperature=temperature)
+                return await self._call_langchain_llm(prompt, model=model, temperature=temperature)
             except Exception as e:
                 last_error = e
                 logger.warning(f"LLM call attempt {attempt + 1} failed: {e}")
@@ -165,46 +210,53 @@ class LLMClient:
             f"LLM generation failed after {self.config.max_retries + 1} attempts: {last_error}"
         )
 
-    async def _call_ollama(self, prompt: str, model: str | None = None, temperature: float | None = None) -> str:
-        """Make actual call to Ollama API.
+    async def _call_langchain_llm(self, prompt: str, model: str | None = None, temperature: float | None = None) -> str:
+        """Make actual call to LLM using LangChain.
 
         Args:
             prompt: The prompt to send.
-            model: Optional model to use (overrides config).
-            temperature: Optional temperature to use (overrides config).
+            model: Optional model hint (selects fast vs main LLM).
+            temperature: Optional temperature to use (overrides LLM config).
 
         Returns:
-            Response text from Ollama.
+            Response text from LLM.
         """
-        if not self._session:
-            raise RuntimeError(
-                "LLM client not properly initialized. Use async context manager."
-            )
+        # Select appropriate LLM (fast vs main)
+        # If specific model requested and matches fast model, use fast LLM
+        if (model and
+            self._fast_llm and
+            self.config.fast_pass_model and
+            model == self.config.fast_pass_model):
+            selected_llm = self._fast_llm
+        else:
+            selected_llm = self._llm
 
-        # Use provided parameters or fall back to config
-        selected_model = model or self.config.main_model or self.config.model_name
-        selected_temperature = temperature if temperature is not None else self.config.temperature
+        # Apply temperature override if specified
+        if temperature is not None:
+            # Create a copy of the LLM with different temperature
+            if self.config.llm_provider == "ollama":
+                if selected_llm == self._fast_llm:
+                    model_name = self.config.fast_pass_model
+                else:
+                    model_name = self.config.main_model or self.config.model_name
 
-        payload = {
-            "model": selected_model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": selected_temperature,
-                "num_ctx": self.config.context_window,
-            },
-        }
+                # Ensure model_name is not None
+                if not model_name:
+                    raise ValueError("Model name cannot be None")
 
-        url = f"{self._base_url}/api/generate"
+                selected_llm = OllamaLLM(
+                    model=model_name,
+                    base_url=self.config.ollama_base_url,
+                    temperature=temperature,
+                    num_ctx=self.config.context_window,
+                )
 
-        async with self._session.post(url, json=payload) as response:
-            if response.status != 200:
-                error_text = await response.text()
-                raise ValueError(f"Ollama API error {response.status}: {error_text}")
-
-            data = await response.json()
-            response_text = data.get("response", "")
-            return str(response_text).strip()
+        # Make the call using LangChain
+        try:
+            response = await selected_llm.ainvoke(prompt)
+            return str(response).strip()
+        except Exception as e:
+            raise ValueError(f"LangChain LLM call failed: {e}") from e
 
     def _get_mock_summary(
         self, content: str, prompt_type: str, language: LanguageCode
@@ -326,7 +378,7 @@ class LLMClient:
             return False
 
         try:
-            url = f"{self._base_url}/api/tags"
+            url = f"{self.config.ollama_base_url}/api/tags"
             async with self._session.get(url) as response:
                 if response.status == 200:
                     data = await response.json()

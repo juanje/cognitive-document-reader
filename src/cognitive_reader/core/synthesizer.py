@@ -275,31 +275,22 @@ class Synthesizer:
                         if not definition:
                             definition = f"A key concept in the document referring to {concept.replace('_', ' ').replace('concept ', '').strip()}."
                     else:
-                        # Real LLM call for definition generation
-                        definition_prompt = f"""Based on the following context from the document, provide a clear and concise definition for the concept "{concept}":
+                        # Real LLM call for definition generation using dedicated prompt
+                        definition_prompt = llm_client.prompt_manager.format_concept_definition_prompt(
+                            concept_name=concept,
+                            context=context,
+                            language=language
+                        )
 
-Context:
-{context}
-
-Provide only the definition (1-2 sentences maximum), focusing on how this concept is used in the document context."""
-
-                        definition_response = await llm_client.generate_summary(
-                            content=definition_prompt,
-                            context="",
-                            prompt_type="section_summary",
-                            language=language,
-                            section_title=f"Definition for {concept}",
+                        definition_response = await llm_client._generate_with_retries(
+                            prompt=definition_prompt,
                             model=concept_model,
                             temperature=self.config.fast_pass_temperature or self.config.temperature
                         )
 
-                        # Extract definition from response and clean formatting
+                        # Clean the response - handle reasoning models that might include <think> tags
                         if definition_response:
-                            # Remove "Summary: " prefix and other common prefixes
-                            definition = definition_response.strip()
-                            for prefix in ["Summary: ", "Definition: ", "Concept: ", "This section provides detailed information about "]:
-                                if definition.startswith(prefix):
-                                    definition = definition[len(prefix):].strip()
+                            definition = self._clean_concept_definition_response(definition_response)
                             # Ensure first letter is capitalized
                             if definition:
                                 definition = definition[0].upper() + definition[1:] if len(definition) > 1 else definition.upper()
@@ -326,6 +317,44 @@ Provide only the definition (1-2 sentences maximum), focusing on how this concep
                     ))
 
         return concept_definitions
+
+    def _clean_concept_definition_response(self, response: str) -> str:
+        """Clean concept definition response from reasoning models.
+
+        Args:
+            response: Raw response from LLM that might contain <think> tags or prefixes.
+
+        Returns:
+            Cleaned definition text.
+        """
+        # Remove <think>...</think> blocks (for reasoning models like Qwen)
+        import re
+        cleaned_response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL)
+
+        # Remove common prefixes that shouldn't be in definitions
+        cleaned_response = cleaned_response.strip()
+        prefixes_to_remove = [
+            "Summary: ",
+            "Definition: ",
+            "Concept: ",
+            "This section provides detailed information about ",
+            "The concept of ",
+            "In this context, ",
+            "Based on the context, ",
+        ]
+
+        for prefix in prefixes_to_remove:
+            if cleaned_response.startswith(prefix):
+                cleaned_response = cleaned_response[len(prefix):].strip()
+
+        # Remove any remaining newlines and extra whitespace
+        cleaned_response = " ".join(cleaned_response.split())
+
+        # Ensure the definition ends with a period if it doesn't already
+        if cleaned_response and not cleaned_response.endswith(('.', '!', '?')):
+            cleaned_response += '.'
+
+        return cleaned_response
 
     async def _synthesize_container_section(
         self,
