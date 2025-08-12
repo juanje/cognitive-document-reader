@@ -63,6 +63,8 @@ class CognitiveConfig(BaseModel):
     dry_run: bool = Field(default=False, description="Enable dry-run mode (no actual LLM calls)")
     mock_responses: bool = Field(default=False, description="Use mock responses for testing")
     validate_config_only: bool = Field(default=False, description="Only validate configuration")
+    save_partial_results: bool = Field(default=False, description="Save intermediate results during processing")
+    partial_results_dir: str = Field(default="./partial_results", description="Directory to save partial results")
 
     # NOTE: max_hierarchy_depth is used for --structure-only --max-depth functionality
 
@@ -115,6 +117,8 @@ class CognitiveConfig(BaseModel):
             dry_run=os.getenv("COGNITIVE_READER_DRY_RUN", "false").lower() == "true",
             mock_responses=os.getenv("COGNITIVE_READER_MOCK_RESPONSES", "false").lower() == "true",
             validate_config_only=os.getenv("COGNITIVE_READER_VALIDATE_CONFIG_ONLY", "false").lower() == "true",
+            save_partial_results=os.getenv("COGNITIVE_READER_SAVE_PARTIAL_RESULTS", "false").lower() == "true",
+            partial_results_dir=os.getenv("COGNITIVE_READER_PARTIAL_RESULTS_DIR", "./partial_results"),
         )
 
     def get_model_for_pass(self, pass_number: int) -> str:

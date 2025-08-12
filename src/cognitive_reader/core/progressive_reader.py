@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
+from typing import Any
 
 from ..llm.client import LLMClient
 from ..models.config import CognitiveConfig
@@ -32,7 +34,7 @@ class CognitiveReader:
         """
         self.config = config or CognitiveConfig.from_env()
         self.parser = DoclingParser()
-        self.synthesizer = Synthesizer(self.config)
+        self.synthesizer = Synthesizer(self.config, save_partial_result_fn=self._save_partial_result)
         self.language_detector = LanguageDetector()
 
         # Log the actual processing strategy being used
@@ -505,6 +507,15 @@ class CognitiveReader:
                 if summary:
                     summaries[section.id] = summary
                     logger.info(f"✅ Processed '{section.title}' (level {level})")
+
+                    # Save partial result if enabled
+                    await self._save_partial_result(
+                        section_index=section.order_index,
+                        total_sections=len(summaries),  # Sections processed so far
+                        section=section,
+                        summary=summary,
+                        accumulated_context=content
+                    )
                 else:
                     logger.warning(f"❌ Failed to process '{section.title}' (level {level})")
 
@@ -649,32 +660,43 @@ class CognitiveReader:
         self,
         section_index: int,
         total_sections: int,
-        section: DocumentSection,
-        summary: SectionSummary,
-        accumulated_context: str,
+        section: DocumentSection | None = None,
+        summary: SectionSummary | None = None,
+        accumulated_context: str = "",
+        section_type: str = "section",
+        content: str = "",
+        processing_stage: str = "section_processing",
+        concepts: list[Any] | None = None,
     ) -> None:
         """Save partial processing result for debugging and evaluation.
-
-        NOTE: Temporarily disabled for Phase 1 MVP.
         """
-        # Temporarily disabled - no-op for Phase 1
-        pass
-
-        # TODO: Phase 2 - Re-implement this functionality
-        """
+        if not self.config.save_partial_results:
+            return
         try:
             # Create output directory if it doesn't exist
             output_dir = Path(self.config.partial_results_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
 
-            # Create partial result data
+            # Create partial result data based on type
             partial_result = {
                 "progress": {
                     "section_index": section_index,
                     "total_sections": total_sections,
                     "progress_percentage": round((section_index / total_sections) * 100, 1),
                 },
-                "section": {
+                "type": section_type,
+                "processing_stage": processing_stage,
+                "config": {
+                    "model_used": self.config.fast_pass_model or self.config.model_name,
+                    "enable_fast_first_pass": self.config.enable_fast_first_pass,
+                    "temperature": self.config.temperature,
+                },
+            }
+
+            # Add type-specific data
+            if section_type == "section" and section and summary:
+                # Traditional section processing
+                partial_result["section"] = {
                     "id": section.id,
                     "title": section.title,
                     "level": section.level,
@@ -682,25 +704,45 @@ class CognitiveReader:
                     "content_preview": section.content[:300] + "..."
                     if len(section.content) > 300
                     else section.content,
-                },
-                "summary": {
+                }
+                partial_result["summary"] = {
                     "title": summary.title,
                     "summary": summary.summary,
                     "key_concepts": summary.key_concepts,
-                    "confidence_score": summary.confidence_score,
-                },
-                "context": {
+                    "level": summary.level,
+                    "order_index": summary.order_index,
+                }
+                partial_result["context"] = {
                     "accumulated_context_length": len(accumulated_context),
                     "accumulated_context_preview": accumulated_context[:200] + "..."
                     if len(accumulated_context) > 200
                     else accumulated_context,
-                },
-                "config": {
-                    "model_used": self.config.main_model or self.config.model_name,
-                    "enable_fast_first_pass": self.config.enable_fast_first_pass,
-                    "temperature": self.config.temperature,
-                },
-            }
+                }
+            elif section_type == "document_summary":
+                # Document summary generation
+                partial_result["document_summary"] = {
+                    "content": content,
+                    "length": len(content),
+                }
+            elif section_type == "concept_definitions":
+                # Concept definitions generation - include full definitions for debugging
+                concept_details = []
+                if concepts:
+                    for concept in concepts:
+                        concept_details.append({
+                            "concept_id": concept.concept_id,
+                            "name": concept.name,
+                            "definition": concept.definition,
+                            "first_mentioned_in": concept.first_mentioned_in,
+                            "relevant_sections": concept.relevant_sections,
+                        })
+
+                partial_result["concept_definitions"] = {
+                    "count": len(concepts) if concepts else 0,
+                    "description": content,
+                    "concepts_preview": [c.concept_id for c in (concepts[:5] if concepts else [])],
+                    "full_definitions": concept_details,  # Complete definitions for debugging
+                }
 
             # Save to JSON file with zero-padded numbering
             filename = f"partial_{section_index:03d}_of_{total_sections:03d}.json"
@@ -713,8 +755,7 @@ class CognitiveReader:
 
         except Exception as e:
             # Don't fail the main process if partial saving fails
-            logger.warning(f"Failed to save partial result for section {section_index}: {e}")
-        """
+            logger.warning(f"Failed to save partial result for {section_type} {section_index}: {e}")
 
     def _detect_document_language(
         self, sections: list[DocumentSection]

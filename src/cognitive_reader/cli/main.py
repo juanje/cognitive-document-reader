@@ -69,15 +69,14 @@ logger = logging.getLogger(__name__)
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all output except results")
-# TODO: Phase 2 - Re-enable these development features when logic is implemented
-# @click.option(
-#     "--save-partials", is_flag=True, help="Save partial results as sections are processed"
-# )
-# @click.option(
-#     "--partials-dir",
-#     type=click.Path(path_type=Path),
-#     help="Directory to save partial results (default: ./partial_results)",
-# )
+@click.option(
+    "--save-partials", is_flag=True, help="Save partial results as sections are processed"
+)
+@click.option(
+    "--partials-dir",
+    type=click.Path(path_type=Path),
+    help="Directory to save partial results (default: ./partial_results)",
+)
 # @click.option(
 #     "--max-sections",
 #     type=int,
@@ -111,8 +110,8 @@ def cli(
     output_file: Path | None,
     verbose: bool,
     quiet: bool,
-    # save_partials: bool,       # TODO: Phase 2
-    # partials_dir: Path | None, # TODO: Phase 2
+    save_partials: bool,
+    partials_dir: Path | None,
     # max_sections: int | None,  # TODO: Phase 2
     max_depth: int | None,       # ✅ WORKING: for --structure-only
     structure_only: bool,
@@ -181,8 +180,8 @@ def cli(
                 output_file=output_file,
                 verbose=verbose,
                 quiet=quiet,
-                # save_partials=save_partials,    # TODO: Phase 2
-                # partials_dir=partials_dir,      # TODO: Phase 2
+                save_partials=save_partials,
+                partials_dir=partials_dir,
                 # max_sections=max_sections,      # TODO: Phase 2
                 max_depth=max_depth,             # ✅ WORKING
                 structure_only=structure_only,
@@ -215,8 +214,8 @@ async def _async_main(
     output_file: Path | None,
     verbose: bool,
     quiet: bool,
-    # save_partials: bool,       # TODO: Phase 2
-    # partials_dir: Path | None, # TODO: Phase 2
+    save_partials: bool,
+    partials_dir: Path | None,
     # max_sections: int | None,  # TODO: Phase 2
     max_depth: int | None,       # ✅ WORKING
     structure_only: bool,
@@ -232,8 +231,8 @@ async def _async_main(
         dry_run=dry_run,
         mock_responses=mock_responses,
         validate_config=validate_config,
-        # save_partials=save_partials,    # TODO: Phase 2
-        # partials_dir=partials_dir,      # TODO: Phase 2
+        save_partials=save_partials,
+        partials_dir=partials_dir,
         # max_sections=max_sections,      # TODO: Phase 2
         max_depth=max_depth,             # ✅ WORKING
         fast_mode=fast_mode,
@@ -374,8 +373,8 @@ def _build_config(
     dry_run: bool,
     mock_responses: bool,
     validate_config: bool,
-    # save_partials: bool,       # TODO: Phase 2
-    # partials_dir: Path | None, # TODO: Phase 2
+    save_partials: bool,
+    partials_dir: Path | None,
     # max_sections: int | None,  # TODO: Phase 2
     max_depth: int | None,       # ✅ WORKING
     fast_mode: bool,
@@ -415,10 +414,9 @@ def _build_config(
 
     # Development and testing features
     # Apply CLI overrides
-    # TODO: Phase 2 - Re-implement these development features:
-    # config_dict["save_partial_results"] = save_partials
-    # if partials_dir is not None:
-    #     config_dict["partial_results_dir"] = str(partials_dir)
+    config_dict["save_partial_results"] = save_partials
+    if partials_dir is not None:
+        config_dict["partial_results_dir"] = str(partials_dir)
     # if max_sections is not None:
     #     config_dict["max_sections"] = max_sections
 

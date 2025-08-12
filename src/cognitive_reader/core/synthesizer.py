@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from typing import Any
 
 from ..llm.client import LLMClient
 from ..models.config import CognitiveConfig
@@ -20,13 +22,15 @@ class Synthesizer:
     understanding, creating summaries at each level of the hierarchy.
     """
 
-    def __init__(self, config: CognitiveConfig) -> None:
+    def __init__(self, config: CognitiveConfig, save_partial_result_fn: Callable[..., Any] | None = None) -> None:
         """Initialize the synthesizer.
 
         Args:
             config: Reading configuration with synthesis settings.
+            save_partial_result_fn: Optional function to save partial results for debugging.
         """
         self.config = config
+        self.save_partial_result_fn = save_partial_result_fn
 
     async def synthesize_document(
         self,
@@ -61,6 +65,16 @@ class Synthesizer:
         document_summary = await self._generate_document_summary(
             document_title, sections, all_summaries, detected_language
         )
+
+        # Save partial result: document summary
+        if self.save_partial_result_fn and self.config.save_partial_results:
+            await self.save_partial_result_fn(
+                section_index=len(sections) + 1,  # After all sections
+                total_sections=len(sections) + 2,  # sections + doc_summary + concepts
+                section_type="document_summary",
+                content=document_summary,
+                processing_stage="document_synthesis"
+            )
 
         # TODO: Phase 2 - Create processing metadata
         # processing_metadata = {
@@ -105,6 +119,21 @@ class Synthesizer:
             concept_to_sections,
             detected_language
         )
+
+        # Save partial result: concept definitions (glossary)
+        if self.save_partial_result_fn and self.config.save_partial_results:
+            # Calculate proper indices: all_sections + document_summary + concept_definitions
+            total_stages = len(sections) + 2  # sections + doc_summary + concepts
+            concept_stage_index = len(sections) + 2  # This is the final stage
+
+            await self.save_partial_result_fn(
+                section_index=concept_stage_index,
+                total_sections=total_stages,
+                section_type="concept_definitions",
+                content=f"Generated {len(concept_definitions)} concept definitions",
+                processing_stage="concept_generation",
+                concepts=concept_definitions
+            )
 
         return CognitiveKnowledge(
             document_title=clean_section_title(document_title),
