@@ -72,6 +72,7 @@ class CognitiveConfig(BaseModel):
     partial_results_dir: str = Field(default="./partial_results", description="Directory to save partial results")
     max_sections: int | None = Field(default=None, description="Maximum number of sections to process (None = no limit)")
     disable_reasoning: bool = Field(default=False, description="Disable reasoning mode for reasoning models (faster, direct answers)")
+    skip_glossary: bool = Field(default=False, description="Skip concept definitions generation (faster processing, summaries only)")
 
     # NOTE: max_hierarchy_depth is used for --structure-only --max-depth functionality
 
@@ -132,6 +133,7 @@ class CognitiveConfig(BaseModel):
             partial_results_dir=os.getenv("COGNITIVE_READER_PARTIAL_RESULTS_DIR", "./partial_results"),
             max_sections=int(env_val) if (env_val := os.getenv("COGNITIVE_READER_MAX_SECTIONS")) else None,
             disable_reasoning=os.getenv("COGNITIVE_READER_DISABLE_REASONING", "false").lower() == "true",
+            skip_glossary=os.getenv("COGNITIVE_READER_SKIP_GLOSSARY", "false").lower() == "true",
         )
 
     def get_model_for_pass(self, pass_number: int) -> str:

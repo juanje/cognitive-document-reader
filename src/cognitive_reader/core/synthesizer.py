@@ -111,17 +111,24 @@ class Synthesizer:
         # Convert unique concepts to ConceptDefinition objects with real definitions
         concept_definitions = []
 
-        # Generate real definitions for concepts using LLM
-        concept_definitions = await self._generate_concept_definitions(
-            list(sorted(all_concepts)),
-            all_summaries,
-            concept_first_mention,
-            concept_to_sections,
-            detected_language
-        )
+        # Generate real definitions for concepts using LLM (unless skipped)
+        if not self.config.skip_glossary:
+            concept_definitions = await self._generate_concept_definitions(
+                list(sorted(all_concepts)),
+                all_summaries,
+                concept_first_mention,
+                concept_to_sections,
+                detected_language
+            )
+        else:
+            logger.info("Skipping concept definitions generation (--skip-glossary enabled)")
+            concept_definitions = []
 
-        # Save partial result: concept definitions (glossary)
-        if self.save_partial_result_fn and self.config.save_partial_results:
+        # Save partial result: concept definitions (glossary) - only if not skipped
+        if (self.save_partial_result_fn and
+            self.config.save_partial_results and
+            not self.config.skip_glossary and
+            concept_definitions):
             # Calculate proper indices: all_sections + document_summary + concept_definitions
             total_stages = len(sections) + 2  # sections + doc_summary + concepts
             concept_stage_index = len(sections) + 2  # This is the final stage
