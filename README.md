@@ -1,13 +1,13 @@
 # Cognitive Document Reader
 
-> Human-like document understanding through progressive reading and hierarchical synthesis
+> Human-like document understanding through multi-pass cognitive processing
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🧠 Overview
 
-**Cognitive Document Reader** is a Python library that simulates human-like document reading through progressive understanding and hierarchical synthesis. It addresses two primary use cases:
+**Cognitive Document Reader** is a Python library that simulates authentic human-like document reading through **multi-pass cognitive processing**. Unlike traditional document processors that fragment content, it reads documents sequentially with progressively richer context across multiple passes, just like humans do. It addresses two primary use cases:
 
 ### 🎯 Primary Uses
 
@@ -23,8 +23,9 @@
 
 ## ✨ Key Features
 
-- **🔄 Progressive Reading**: Processes documents in order, accumulating context like human reading
-- **🏗️ Hierarchical Synthesis**: Builds understanding from sections to complete document
+- **🧠 Multi-Pass Cognitive Reading**: Multiple reading passes with progressively richer context for deep understanding
+- **📖 Sequential Processing**: Reads documents in natural order with cumulative context
+- **🎯 Text Authority**: Original text always takes precedence over contextual information
 - **🌐 Multi-language Support**: English and Spanish with auto-detection
 - **⚡ Development Friendly**: Dry-run and mock modes for testing without LLM costs
 - **🛠️ Dual Interface**: Use as Python library or standalone CLI tool
@@ -113,87 +114,47 @@ nano .env
 **🔧 Key Settings:**
 
 ```bash
-# Dual-Pass Cognitive Reading (default setup)
-COGNITIVE_READER_FAST_PASS_MODEL=llama3.1:8b    # Fast initial scan
-COGNITIVE_READER_MAIN_MODEL=qwen3:8b             # Quality refinement
-COGNITIVE_READER_ENABLE_FAST_FIRST_PASS=true    # Enable dual-pass
-COGNITIVE_READER_ENABLE_SECOND_PASS=true        # Enable refinement
-
-# Model temperatures
-COGNITIVE_READER_FAST_PASS_TEMPERATURE=0.1      # Fast pass (consistent)
-COGNITIVE_READER_MAIN_PASS_TEMPERATURE=0.3      # Main pass (balanced)
+# Multi-Pass Cognitive Reading (default: 2 passes)
+COGNITIVE_READER_FAST_PASS_MODEL=llama3.1:8b    # Fast first pass
+COGNITIVE_READER_MAIN_MODEL=qwen3:8b            # Quality subsequent passes
+COGNITIVE_READER_ENABLE_SECOND_PASS=true        # Enable multi-pass processing
 
 # Development modes
-COGNITIVE_READER_DRY_RUN=false                  # Use mock responses
-COGNITIVE_READER_MOCK_RESPONSES=false           # Deterministic testing
+COGNITIVE_READER_DRY_RUN=false                  # Use mock responses for testing
 COGNITIVE_READER_LANGUAGE=auto                  # auto, en, es
-
-# Summary optimization for RAG/Fine-tuning
-COGNITIVE_READER_TARGET_SUMMARY_LENGTH=800
-COGNITIVE_READER_MIN_SUMMARY_LENGTH=400
-COGNITIVE_READER_MAX_SUMMARY_LENGTH=1200
 ```
 
 ### Python Configuration
 
 ```python
 from cognitive_reader.models import CognitiveConfig
-from cognitive_reader.models.knowledge import LanguageCode
 
-# Dual-pass cognitive reading (default)
+# Multi-pass cognitive reading (default: 2 passes)
 config = CognitiveConfig(
-    enable_fast_first_pass=True,        # Enable dual-pass approach
-    enable_second_pass=True,            # Enable refinement
-    fast_pass_model="llama3.1:8b",      # Fast initial scan
-    main_model="qwen3:8b",              # Quality refinement
-    fast_pass_temperature=0.1,         # Fast pass settings
-    main_pass_temperature=0.3,         # Main pass settings
-    document_language=LanguageCode.AUTO,
-    dry_run=False                       # Set to True for development
+    enable_second_pass=True,            # Enable multi-pass processing
+    fast_pass_model="llama3.1:8b",      # Fast first pass
+    main_model="qwen3:8b",              # Quality subsequent passes
+    document_language="auto"            # auto, en, es
 )
 
-# Ultra-fast mode - uses llama3.1:8b for both passes
-ultra_fast_config = CognitiveConfig(
-    enable_fast_first_pass=True,
-    fast_pass_model="llama3.1:8b",
-    main_model="llama3.1:8b",           # Same fast model for both passes
-    fast_pass_temperature=0.1,
-    main_pass_temperature=0.1
-)
-
-# Development & testing configuration
+# Development & testing
 dev_config = CognitiveConfig(
     dry_run=True,                       # No real LLM calls
-    mock_responses=True,                # Use deterministic mock data
-    validate_config_only=False,         # Process documents normally
-    max_hierarchy_depth=2               # Limit depth for testing
-)
-
-# Custom models configuration
-custom_config = CognitiveConfig(
-    fast_pass_model="llama3.2:3b",      # Your preferred fast model
-    main_model="qwen3:14b",             # Your preferred quality model
-    fast_pass_temperature=0.05,         # Very consistent fast pass
-    main_pass_temperature=0.2           # Conservative main pass
+    mock_responses=True                 # Use mock data for testing
 )
 ```
 
 ## 🏗️ Architecture
 
-### Core Components
-
-- **Progressive Reader**: Main engine for sequential document processing
-- **Structure Detector**: Extracts hierarchical document structure
-- **Synthesizer**: Performs bottom-up knowledge synthesis
-- **LLM Client**: Abstraction for language model interactions
-- **Prompt Manager**: Manages multi-language prompts with versioning
-
 ### Document Flow
 
 1. **Parse**: Extract structure and content from document
-2. **Detect**: Identify language and hierarchical relationships
-3. **Read**: Process sections progressively, accumulating context
-4. **Synthesize**: Build complete understanding from parts to whole
+2. **Multi-Pass Reading**: Progressive understanding through multiple sequential passes
+   - **Pass 1**: Initial reading with cumulative context
+   - **Pass 2+**: Re-reading with progressively enriched understanding
+3. **Synthesize**: Generate final knowledge optimized for RAG/Fine-tuning
+
+The system follows natural human reading patterns: understanding builds progressively through sequential processing, with each pass benefiting from richer context than the previous one.
 
 ## 📚 Examples
 
@@ -222,14 +183,14 @@ print(f"Parser info: {info}")
 
 ```bash
 # Works with any supported format
-cognitive-reader your_document.pdf --dry-run    # PDF (requires docling)
-cognitive-reader your_document.docx --dry-run   # DOCX (requires docling) 
-cognitive-reader your_document.html --dry-run   # HTML (requires docling)
-cognitive-reader examples/sample_document.md --dry-run     # Markdown (always works)
+cognitive-reader your_document.pdf --dry-run               # PDF processing
+cognitive-reader your_document.docx --dry-run              # DOCX processing 
+cognitive-reader your_document.html --dry-run              # HTML processing
+cognitive-reader examples/sample_document.md --dry-run     # Markdown processing
 
 # Automatic format detection and processing
-cognitive-reader your_document.pdf --output json   # Enhanced parsing with docling
-cognitive-reader examples/sample_document.md --output json    # Fallback parsing (built-in)
+cognitive-reader your_document.pdf --output json              # JSON output for any format
+cognitive-reader examples/sample_document.md --output json    # Consistent processing
 ```
 
 ## 🧪 Testing
@@ -287,32 +248,20 @@ uv run cognitive-reader examples/sample_document.md --dry-run
 
 ## 📖 Supported Formats
 
-### Enhanced Mode (with docling)
-- **PDF** (.pdf) - Full document parsing with layout preservation
-- **DOCX** (.docx) - Microsoft Word document processing
-- **HTML** (.html) - Web page content extraction
-- **Markdown** (.md, .markdown) - Native and enhanced processing
+The system processes multiple document formats using the **docling** library for universal document parsing:
 
-### Fallback Mode (MVP)
-- **Markdown** (.md, .markdown) - Built-in parser
+- **PDF** (.pdf) - Preserves layout and structure
+- **DOCX** (.docx) - Microsoft Word documents  
+- **HTML** (.html) - Web pages and HTML content
+- **Markdown** (.md, .markdown) - Native support with optimized processing
 
-### 🔧 Installation for Enhanced Support
+All formats are converted to a unified Markdown structure internally for consistent cognitive processing.
 
-```bash
-# For full multi-format support, install docling
-pip install 'docling>=2.40'
+### 🎯 Processing Strategy
 
-# The system automatically detects and enables enhanced capabilities
-# No configuration required - it just works!
-```
-
-### 🎯 Intelligent Parser Strategy
-
-The parser uses an intelligent fallback approach:
-- **Primary**: Uses docling for PDF, DOCX, HTML when available
-- **Fallback**: Built-in Markdown parser (always works)
-- **Output**: Consistent Markdown structure for all formats
-- **Detection**: Automatic library detection and graceful degradation
+- **Multi-format input**: Docling handles PDF, DOCX, HTML conversion
+- **Unified processing**: All content processed as structured Markdown
+- **Consistent output**: Same high-quality results regardless of input format
 
 ## 🌐 Language Support
 
@@ -322,40 +271,38 @@ The parser uses an intelligent fallback approach:
 
 ## ⚙️ LLM Integration
 
-### Dual Model System
+The system uses **LangChain** for LLM interactions and supports a **multi-model approach** that mirrors human reading patterns:
 
-**Quality Mode (Default):** `qwen3:8b`
-- Best results for deep document analysis
-- Reasoning-capable model with thinking mode
-- Ideal for: complex documents, research papers, detailed analysis
+- **First Pass:** `llama3.1:8b` for quick initial understanding
+- **Subsequent Passes:** `qwen3:8b` for deep analysis and progressive refinement
 
-**Fast Mode:** `llama3.1:8b` 
-- Faster processing for quick tasks
-- Direct response model without reasoning overhead
-- Ideal for: development, simple documents, quick previews
+### **Local Models via Ollama**
 
-**Usage:**
+The system is designed for **local LLM usage** through **Ollama**, ensuring privacy and control:
+
 ```bash
-# Quality mode (default)
-cognitive-reader document.md
-
-# Fast mode
-cognitive-reader document.md --fast-mode
-
-# Custom model (legacy support)
-cognitive-reader document.md --model custom-model
+# Install recommended models
+ollama pull llama3.1:8b    # Fast model for first pass
+ollama pull qwen3:8b       # Quality model for subsequent passes
 ```
 
-**Supported Providers:**
-- **Ollama**: Primary integration (qwen3:8b + llama3.1:8b recommended)
-- **Future**: OpenAI, Anthropic, and other providers
+### **Usage Examples**
 
-### Optimization Features
+```bash
+# Default: multi-pass cognitive processing
+cognitive-reader document.md
 
-- Smart batching to minimize API calls
-- Context window management
-- Retry logic with exponential backoff
-- Development modes for cost-free testing
+# Fast mode: single pass with fast model
+cognitive-reader document.md --fast-mode
+
+# Disable reasoning mode (for performance/comparison)
+cognitive-reader document.md --disable-reasoning
+
+# Development: no LLM calls
+cognitive-reader document.md --dry-run
+```
+
+**Primary Support:** Ollama with local models for privacy and performance
 
 ## 🛠️ Development & Testing Features
 
@@ -464,26 +411,6 @@ This project was developed with the assistance of artificial intelligence tools:
 
 **Collaboration philosophy**: AI tools served as a highly capable technical assistant, while all design decisions, educational objectives, and project directions were defined and validated by the human.
 
-## 🔮 Roadmap
-
-### Phase 1: MVP (Current)
-- ✅ Basic progressive reading
-- ✅ Hierarchical synthesis
-- ✅ Markdown support
-- ✅ CLI and library interfaces
-- ✅ Development modes
-
-### Phase 2: Enhanced Features
-- 🔄 Second-pass refinement
-- 📚 Concept extraction and glossaries
-- 📄 PDF/DOCX support
-- 🔍 Advanced export formats
-
-### Phase 3: Advanced Navigation
-- 🗺️ Structural maps
-- 🧭 Smart navigation
-- 🔍 Semantic search
-- 📈 Learning paths
 
 ## 📝 License
 
@@ -500,7 +427,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📚 Documentation
 
 For detailed documentation, examples, and API reference, visit the [project documentation](https://github.com/juanje/cognitive-document-reader).
-
----
-
-*Built with ❤️ for better document understanding*
