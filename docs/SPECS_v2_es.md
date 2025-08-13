@@ -18,17 +18,18 @@ La especificación original (preservada en el git tag `v0.1.1`) implementaba sol
 
 ### **La Brecha Cognitiva**
 Como se detalla en `MOTIVATION_es.md`, la lectura humana de documentos complejos involucra:
-1. **Primera pasada**: Lectura progresiva + **refinamiento continuo** de la comprensión
-2. **Segunda pasada**: Re-lectura con **contexto global** para enriquecer la comprensión
+1. **Primera pasada**: Procesamiento secuencial en orden del documento + **contexto acumulativo**
+2. **Segunda pasada**: Re-lectura con **contexto selectivo enriquecido** (resúmenes previos + glosario)
 
 Este proceso es **esencial** para el objetivo central del proyecto: generar datasets de alta calidad para el libro "3 pasos contra el sedentarismo" que preserven la voz y metodología del autor.
 
 ### **Solución v2.0**
-Implementar lo **absolutamente mínimo** para demostrar lectura cognitiva vs. chunks fragmentados:
-- ✅ Lectura de dos pasadas (progresiva + enriquecimiento simple)
-- ✅ Refinamiento básico de resúmenes cuando la comprensión cambia significativamente
-- ✅ Contexto acumulado en lugar de chunks aislados
-- ✅ Enriquecimiento simple de segunda pasada con contexto global
+Implementar el **algoritmo secuencial auténtico** para demostrar lectura cognitiva vs. chunks fragmentados:
+- ✅ Lectura secuencial en orden del documento (primera y segunda pasada)
+- ✅ Contexto acumulativo (padres + hermanos previos) en cada sección
+- ✅ Actualizaciones incrementales de niveles superiores
+- ✅ Principio de autoridad del texto fuente sobre cualquier contexto
+- ✅ Enriquecimiento selectivo en segunda pasada con glosario
 
 **Todo lo demás** (detección de emergencia, seguimiento complejo de refinamiento, grafos de conocimiento) permanece en fases futuras.
 
@@ -153,19 +154,19 @@ cognitive-document-reader/
 
 A diferencia de los procesadores de documentos tradicionales que fragmentan contenido, **Cognitive Document Reader v2** implementa el proceso completo de lectura humana:
 
-#### 🔄 **Primera Pasada: Construcción Progresiva + Refinamiento Continuo**
-1. **Lectura progresiva secuencial** con acumulación de contexto
-2. **Resúmenes evolutivos** que se actualizan cuando se encuentra nueva información
-3. **Refinamiento jerárquico** donde subsecciones actualizan secciones padre
-4. **Detección de conceptos emergentes** cuando las ideas se vuelven claras con contexto
-5. **Procesamiento rápido** usando modelo veloz para simular "primera lectura rápida" humana
+#### 🔄 **Primera Pasada: Procesamiento Secuencial con Contexto Acumulativo**
+1. **Procesamiento en orden del documento** siguiendo el flujo natural de lectura
+2. **Acumulación de contexto**: Cada sección recibe contexto de todos los padres + hermanos previos
+3. **Actualizaciones incrementales**: Los niveles padres evolucionan conforme se procesan los hijos
+4. **Principio de autoridad del texto**: El texto original siempre prevalece sobre cualquier contexto
+5. **Síntesis diferida**: Las secciones padre sin contenido esperan que todos sus hijos sean procesados
 
-#### 🔍 **Segunda Pasada: Enriquecimiento Contextual**
-1. **Re-lectura informada** con comprensión completa del documento
-2. **Identificación de conexiones profundas** entre conceptos previamente separados
-3. **Mejora de relaciones** que solo se vuelve visible con contexto completo
-4. **Síntesis final** integrando todo el conocimiento coherentemente
-5. **Procesamiento de calidad** usando modelo cuidadoso para simular "análisis reflexivo" humano
+#### 🔍 **Segunda Pasada: Enriquecimiento Selectivo con Contexto**
+1. **Mismo algoritmo secuencial** que la primera pasada, manteniendo el orden del documento
+2. **Contexto selectivo enriquecido**: Resúmenes actuales de padres + resumen previo del mismo nodo + glosario de conceptos
+3. **Preservación de autoridad**: El texto fuente sigue siendo autoridad suprema sobre toda información contextual
+4. **Integración conceptual**: El glosario proporciona marcos conceptuales especializados
+5. **Refinamiento controlado**: El contexto informa pero nunca contradice el texto original
 
 ### 🧠 **Estrategia de Modelo Dual: Simulando Patrones de Lectura Humana**
 
@@ -604,73 +605,77 @@ COGNITIVE_READER_ENV_VARS = {
 ```
 CognitiveReader (Motor Principal)
 ├── StructureDetector (análisis y detección de estructura de documentos)
-├── ProgressiveReader (mejorado con capacidad de refinamiento)
-├── ContextualEnricher (nuevo componente para segunda pasada)
-└── CognitiveSynthesizer (mejorado con metadatos cognitivos)
+├── SequentialProcessor (primera pasada con algoritmo secuencial)
+├── ContextualEnricher (segunda pasada con contexto enriquecido)
+└── CognitiveSynthesizer (síntesis final con conocimiento cognitivo)
 ```
 
 ### **Responsabilidades de Componentes**
 
 #### **CognitiveReader** (Orquestador Principal)
-**Propósito**: Coordinar proceso de lectura cognitiva de dos pasadas
+**Propósito**: Coordinar proceso de lectura cognitiva secuencial de dos pasadas
 
 **Responsabilidades**:
-- Orquestar flujo completo de lectura de dos pasadas
-- Gestionar configuración para características cognitivas (refinamiento, segunda pasada)
-- Coordinar entre procesamiento de primera pasada y segunda pasada
-- Proporcionar API limpia enfocada en características cognitivas
-- Rastrear y reportar métricas de procesamiento cognitivo
+- Orquestar flujo completo de lectura secuencial de dos pasadas
+- Gestionar configuración del algoritmo secuencial (segunda pasada, modelos duales)
+- Coordinar entre procesamiento de primera y segunda pasada
+- Proporcionar API limpia para lectura cognitiva secuencial
+- Generar conocimiento cognitivo final integrado
 
 **Requisitos de Interfaz**:
 - `read_document(file_path, config) -> CognitiveKnowledge`: Interfaz primaria para lectura cognitiva
-- API limpia enfocada en características cognitivas
-- Estadísticas comprehensivas de procesamiento cognitivo en resultados
+- API simple enfocada en procesamiento secuencial con dos pasadas
+- Resultados que muestren beneficios del procesamiento cognitivo vs. fragmentado
 
-#### **ProgressiveReader** (Mejorado)
-**Propósito**: Ejecutar primera pasada con lectura progresiva y capacidad de refinamiento
-
-**Responsabilidades**:
-- Procesar secciones secuencialmente con contexto acumulado
-- Detectar cuando nuevo contexto cambia significativamente comprensión de secciones previas
-- Actualizar resúmenes de secciones previas cuando se necesita refinamiento
-- Rastrear eventos de refinamiento y razones
-- Mantener acumulación de contexto a través del procesamiento de secciones
-
-**Requisitos**:
-- Capacidad de refinamiento configurable (habilitar/deshabilitar)
-- Configuración de umbral de refinamiento
-- Seguimiento completo de qué secciones fueron refinadas y por qué
-- Procesamiento eficiente con contexto acumulado
-
-#### **ContextualEnricher** (Nuevo Componente)
-**Propósito**: Ejecutar enriquecimiento de segunda pasada con contexto global del documento
+#### **SequentialProcessor** (Algoritmo Secuencial)
+**Propósito**: Ejecutar primera pasada usando algoritmo secuencial con contexto acumulativo
 
 **Responsabilidades**:
-- Re-leer secciones con comprensión completa del documento
-- Identificar oportunidades de enriquecimiento con contexto global
-- Generar resúmenes mejorados que incorporen perspectiva completa del documento
-- Distinguir entre enriquecimientos significativos y cambios triviales
-- Preservar refinamientos de primera pasada mientras añade insights de segunda pasada
+- Procesar secciones en orden del documento (flujo natural de lectura)
+- Mantener contexto acumulativo (padres + hermanos previos) para cada sección
+- Actualizar niveles superiores incrementalmente de forma automática
+- Aplicar principio de autoridad del texto fuente sobre cualquier contexto
+- Manejar síntesis diferida para secciones padre sin contenido propio
 
 **Requisitos**:
-- Debe ser configurable para habilitar/deshabilitar procesamiento de segunda pasada
-- Debe trabajar con resultados del ProgressiveReader de primera pasada
-- Debe rastrear eventos de enriquecimiento y valor añadido
-- Debe mantener eficiencia de procesamiento
+- Procesamiento estrictamente secuencial siguiendo orden del documento
+- Construcción eficiente de contexto acumulativo para cada sección
+- Actualizaciones incrementales automáticas (sin detección compleja)
+- Preservación del principio de autoridad: texto fuente > contexto
+- Manejo correcto de casos padre con/sin contenido propio
 
-#### **CognitiveSynthesizer** (Mejorado)
-**Propósito**: Generar síntesis final del documento con conciencia de procesamiento cognitivo
+#### **ContextualEnricher** (Segunda Pasada Secuencial)
+**Propósito**: Ejecutar segunda pasada usando mismo algoritmo secuencial + contexto enriquecido
 
 **Responsabilidades**:
-- Crear síntesis jerárquica del documento
-- Incorporar metadatos de procesamiento cognitivo en resultados finales
-- Notar qué secciones fueron sometidas a refinamiento o enriquecimiento
-- Generar resumen de procesamiento cognitivo para salida
+- Re-procesar secciones usando mismo algoritmo secuencial que primera pasada
+- Proporcionar contexto selectivo enriquecido (resúmenes actuales + resumen previo + glosario)
+- Mantener principio de autoridad del texto fuente sobre todo contexto enriquecido
+- Generar resúmenes finales que integren comprensión global del documento
+- Preservar orden secuencial y actualizaciones incrementales de primera pasada
 
 **Requisitos**:
-- Calidad superior de síntesis con características cognitivas
-- Indicación clara de todos los eventos de procesamiento cognitivo en salida
-- Resumen comprehensivo de beneficios y evolución del procesamiento cognitivo
+- Mismo algoritmo secuencial que SequentialProcessor (consistencia de enfoque)
+- Contexto enriquecido: resúmenes de padres + resumen previo del nodo + glosario
+- Principio de autoridad preservado: texto fuente > contexto enriquecido
+- Debe ser configurable para habilitar/deshabilitar segunda pasada
+- Integración fluida con resultados de primera pasada
+
+#### **CognitiveSynthesizer** (Síntesis de Conocimiento)
+**Propósito**: Generar conocimiento cognitivo final optimizado para RAG/Fine-tuning
+
+**Responsabilidades**:
+- Crear estructura jerárquica de resúmenes finales (document/section summaries)
+- Extraer y filtrar conceptos clave con definiciones refinadas
+- Generar índices de navegación jerárquica y mapas padre-hijo
+- Calcular estadísticas de procesamiento (total secciones, conceptos, longitudes)
+- Producir JSON limpio optimizado para consumo RAG/Fine-tuning
+
+**Requisitos**:
+- Output enfocado en valor para RAG/Fine-tuning (sin metadatos internos)
+- Calidad evidente que demuestre beneficios del procesamiento cognitivo
+- Estructura de datos clara y navegable jerárquicamente
+- Compatibilidad con schema JSON versionado para consumidores
 
 ---
 
@@ -707,53 +712,68 @@ Resultado Primera Pasada
 Salida de Conocimiento Cognitivo
 ```
 
-### **Algoritmo de Procesamiento Jerárquico**
+### **Algoritmo de Procesamiento Secuencial**
 
-El proceso de lectura cognitiva implementa un algoritmo de **síntesis jerárquica bottom-up** que procesa la estructura del documento desde las hojas hasta la raíz, combinando el contenido de cada sección con los resúmenes de sus hijos en cada nivel.
+El proceso de lectura cognitiva implementa un **algoritmo secuencial top-down con actualizaciones incrementales** que procesa secciones en el orden del documento, manteniendo contexto acumulativo y actualizando incrementalmente los niveles superiores.
 
 #### **Visión General del Algoritmo**
 
 ```
 1. Análisis de Estructura
-   ├── Detectar profundidad máxima de jerarquía (o usar límite especificado por usuario)
-   └── Identificar secciones hoja (nivel más profundo, sin hijos)
+   ├── Detectar estructura jerárquica completa
+   └── Clasificar secciones (padre con/sin contenido, hojas)
 
-2. Procesamiento Bottom-Up
-   ├── PASO 1: Procesar Secciones Hoja
-   │   ├── Leer contenido de sección (encabezado + párrafos)
-   │   ├── Generar resumen de sección
-   │   └── Extraer conceptos clave
-   │
-   ├── PASO 2: Procesar Secciones Contenedoras (nivel por nivel, bottom-up)
-   │   ├── Combinar: Contenido propio de sección + Resúmenes de hijos
-   │   ├── Generar resumen contenedor del contenido combinado
-   │   └── Extraer/fusionar conceptos de contenedor + hijos
-   │
-   └── PASO 3: Generar Resumen de Documento
-       ├── Combinar: Título del documento + Todos los resúmenes de nivel superior
-       ├── Generar resumen a nivel de documento
-       └── Crear glosario final de conceptos
+2. Primera Pasada: Procesamiento Secuencial
+   ├── PROCESAR secciones en orden del documento
+   ├── PARA cada sección:
+   │   ├── SI es padre CON contenido:
+   │   │   ├── Procesar texto del padre → resumen_padre
+   │   │   └── Almacenar como contexto para hijos
+   │   ├── SI es hoja:
+   │   │   ├── Recopilar contexto: padres + hermanos previos
+   │   │   ├── Procesar con contexto acumulativo → resumen_hoja
+   │   │   └── Actualizar niveles padres incrementalmente
+   │   └── SI es padre SIN contenido:
+   │       ├── Esperar hasta procesar todos los hijos
+   │       └── Sintetizar desde resúmenes de hijos + contexto
 
-3. Generación de Salida
-   └── Conocimiento Jerárquico con árbol completo de secciones
+3. Segunda Pasada: Enriquecimiento Selectivo
+   ├── MISMO orden secuencial que primera pasada
+   ├── CONTEXTO enriquecido para cada sección:
+   │   ├── Resúmenes actuales de padres
+   │   ├── Resumen previo del mismo nodo
+   │   └── Glosario de conceptos con definiciones
+   └── PRINCIPIO DE AUTORIDAD: Texto fuente > contexto
+
+4. Generación de Salida
+   └── Conocimiento Cognitivo con resúmenes enriquecidos
 ```
 
-#### **Ejemplo de Orden de Procesamiento**
+#### **Ejemplo de Orden de Procesamiento Secuencial**
 
 Para una estructura de documento como:
 ```
-# Título del Libro
-## Capítulo 1: Introducción
-### Sección 1.1: Antecedentes
-### Sección 1.2: Propósito
-## Capítulo 2: Métodos
-### Sección 2.1: Enfoque
+# Título del Libro (Padre CON contenido)
+## Capítulo 1: Introducción (Padre CON contenido)
+### Sección 1.1: Antecedentes (Hoja)
+### Sección 1.2: Propósito (Hoja)
+## Capítulo 2: Métodos (Padre SIN contenido)
+### Sección 2.1: Enfoque (Hoja)
 ```
 
-**Secuencia de procesamiento:**
-1. **Procesamiento de hojas**: `Sección 1.1`, `Sección 1.2`, `Sección 2.1` (nivel más profundo primero)
-2. **Procesamiento de contenedores**: `Capítulo 1` (contenido + resúmenes de 1.1, 1.2), `Capítulo 2` (contenido + resumen de 2.1)
-3. **Procesamiento de documento**: `Título del Libro` (contenido + resúmenes de Capítulo 1, Capítulo 2)
+**Secuencia de procesamiento secuencial (orden del documento):**
+1. **Título del Libro** (Padre CON contenido) → `resumen_titulo_v1`
+2. **Capítulo 1: Introducción** (Padre CON contenido) → contexto: `resumen_titulo_v1` → `resumen_cap1_v1`
+3. **Sección 1.1: Antecedentes** (Hoja) → contexto: `resumen_titulo_v1 + resumen_cap1_v1` → `resumen_1_1`
+   - **Actualizar Capítulo 1**: `resumen_cap1_v1 + resumen_1_1` → `resumen_cap1_v2`
+   - **Actualizar Título**: `resumen_titulo_v1 + resumen_cap1_v2` → `resumen_titulo_v2`
+4. **Sección 1.2: Propósito** (Hoja) → contexto: `resumen_titulo_v2 + resumen_cap1_v2 + resumen_1_1` → `resumen_1_2`
+   - **Actualizar Capítulo 1**: `resumen_cap1_v2 + resumen_1_2` → `resumen_cap1_final`
+   - **Actualizar Título**: `resumen_titulo_v2 + resumen_cap1_final` → `resumen_titulo_v3`
+5. **Capítulo 2: Métodos** (Padre SIN contenido) → pasar a hijos
+6. **Sección 2.1: Enfoque** (Hoja) → contexto: `resumen_titulo_v3` → `resumen_2_1`
+   - **Sintetizar Capítulo 2**: `resumen_2_1` + contexto: `resumen_titulo_v3` → `resumen_cap2_final`
+   - **Actualizar Título**: `resumen_titulo_v3 + resumen_cap2_final` → `resumen_titulo_final`
 
 #### **Reglas de Composición de Contenido**
 
@@ -773,66 +793,95 @@ Para una estructura de documento como:
 #### **Implementación Técnica**
 
 ```python
-async def process_hierarchically(sections: List[DocumentSection]) -> CognitiveKnowledge:
-    """Procesar documento usando síntesis jerárquica bottom-up."""
+async def process_sequentially(sections: List[DocumentSection]) -> CognitiveKnowledge:
+    """Procesar documento usando algoritmo secuencial con contexto acumulativo."""
     
-    # 1. Organizar secciones por nivel de jerarquía
-    levels = organize_by_level(sections)
-    max_level = max(levels.keys())
+    # 1. Organizar secciones en orden del documento
+    ordered_sections = order_by_document_sequence(sections)
     
-    # 2. Procesar desde el nivel más profundo hasta la raíz
+    # 2. Primera pasada: Procesamiento secuencial
     summaries = {}
     
-    for level in range(max_level, 0, -1):  # Procesamiento bottom-up
-        for section in levels[level]:
-            if section.children_ids:  # Sección contenedora
-                content = combine_section_and_children_content(section, summaries)
-            else:  # Sección hoja
-                content = section.content
-                
-            summary = await generate_summary(content, section.title)
+    for section in ordered_sections:
+        # Construir contexto acumulativo
+        context = build_cumulative_context(section, summaries)  # padres + hermanos previos
+        
+        if section.has_own_content:  # Padre con contenido o hoja
+            # PRINCIPIO DE AUTORIDAD: texto fuente > contexto
+            summary = await generate_summary_with_context(
+                text_source=section.content,  # AUTORIDAD SUPREMA
+                context=context,              # INFORMACIÓN DE APOYO
+                section_id=section.id
+            )
+            summaries[section.id] = summary
+            
+            # Actualizar niveles padres incrementalmente
+            await update_parent_levels(section, summary, summaries)
+            
+        elif not section.has_own_content and section.children_processed:
+            # Síntesis diferida para padres sin contenido
+            children_summaries = get_children_summaries(section, summaries)
+            parent_context = get_parent_context(section, summaries)
+            
+            summary = await synthesize_from_children(
+                children_summaries=children_summaries,
+                parent_context=parent_context,
+                section_id=section.id
+            )
             summaries[section.id] = summary
     
-    # 3. Generar síntesis a nivel de documento
-    document_summary = await generate_document_summary(document_title, top_level_summaries)
+    # 3. Segunda pasada: Enriquecimiento selectivo
+    enriched_summaries = await second_pass_enrichment(
+        sections=ordered_sections,
+        first_pass_summaries=summaries,
+        concept_glossary=extract_concept_glossary(summaries)
+    )
     
-    return CognitiveKnowledge(...)
+    return CognitiveKnowledge(
+        document_summary=enriched_summaries[root_section.id],
+        section_summaries=enriched_summaries,
+        concepts=extract_all_concepts(enriched_summaries)
+    )
 ```
 
 Este algoritmo asegura que:
-- ✅ **Cada sección** recibe contenido apropiado (texto propio + contexto de hijos)
-- ✅ **Orden de procesamiento** sigue dependencia lógica (hijos antes que padres)
-- ✅ **Escalabilidad** funciona para cualquier profundidad de estructura de documento
+- ✅ **Orden natural**: Sigue la secuencia del documento como lo haría un lector humano
+- ✅ **Contexto acumulativo**: Cada sección recibe contexto de padres + hermanos previos
+- ✅ **Principio de autoridad**: El texto fuente siempre prevalece sobre cualquier contexto
+- ✅ **Actualizaciones incrementales**: Los niveles superiores evolucionan conforme se procesan hijos
+- ✅ **Escalabilidad**: Funciona para cualquier profundidad de estructura de documento
 - ✅ **Preservación de contexto** mantiene relaciones jerárquicas
 
 ### **Requisitos de Primera Pasada**
 
 **Requisitos Funcionales:**
-- **Lectura Progresiva**: Procesar secciones secuencialmente con contexto acumulado de secciones previas
-- **Acumulación de Contexto**: Construir contexto comprehensivo mientras progresa la lectura
-- **Detección de Refinamiento**: Identificar cuando nueva información cambia significativamente comprensión de secciones previas
-- **Actualizaciones de Resumen**: Actualizar resúmenes de secciones previas cuando evoluciona la comprensión
-- **Seguimiento de Refinamiento**: Registrar qué resúmenes fueron refinados y por qué
+- **Procesamiento Secuencial**: Procesar secciones en orden del documento siguiendo el flujo natural de lectura
+- **Contexto Acumulativo**: Cada sección recibe contexto de todos los padres + hermanos previos
+- **Actualizaciones Incrementales**: Niveles superiores evolucionan conforme se procesan hijos
+- **Principio de Autoridad**: El texto original siempre prevalece sobre cualquier contexto
+- **Síntesis Diferida**: Padres sin contenido esperan que todos sus hijos sean procesados
 
 **Requisitos Técnicos:**
 - Selección y gestión de modelo rápido para optimización de rendimiento
-- Umbral de refinamiento configurable vía parámetro `refinement_threshold`
-- Refinamiento puede deshabilitarse vía configuración `enable_refinement`
-- Seguimiento completo de refinamientos hechos para métricas y análisis
+- Construcción eficiente de contexto acumulativo para cada sección
+- Sistema de actualizaciones incrementales sin pérdida de información
+- Seguimiento completo de versiones de resúmenes para métricas y análisis
 
 ### **Requisitos de Segunda Pasada**
 
 **Requisitos Funcionales:**
-- **Re-lectura con Contexto Global**: Re-procesar cada sección con contexto completo del documento
-- **Detección de Enriquecimiento**: Identificar casos donde contexto global añade insights significativos
-- **Mejora de Resumen**: Mejorar resúmenes con insights solo disponibles después de lectura completa
-- **Integración**: Combinar resultados de primera pasada y segunda pasada coherentemente
+- **Mismo Algoritmo Secuencial**: Replicar el orden exacto de procesamiento de la primera pasada
+- **Contexto Selectivo Enriquecido**: Resúmenes actuales de padres + resumen previo del mismo nodo + glosario de conceptos
+- **Principio de Autoridad Preservado**: El texto fuente sigue siendo autoridad suprema sobre toda información contextual
+- **Integración Conceptual**: El glosario proporciona marcos conceptuales especializados para mejor comprensión
+- **Refinamiento Controlado**: El contexto informa pero nunca contradice el texto original
 
 **Requisitos Técnicos:**
 - Segunda pasada puede deshabilitarse vía configuración `enable_second_pass`
-- Debe detectar y rastrear enriquecimientos significativos vs cambios triviales
-- Debe preservar refinamientos de primera pasada mientras añade enriquecimientos
-- Debe mantener rendimiento de procesamiento dentro de límites aceptables
+- Debe usar modelo de calidad para análisis más profundo
+- Debe integrar glosario de conceptos como contexto enriquecido
+- Debe mantener jerarquía de autoridad: texto > contexto actual > contexto previo
+- Debe rastrear mejoras de calidad respecto a primera pasada
 
 ---
 
@@ -959,7 +1008,7 @@ Repositorio GitHub: https://github.com/juanje/cognitive-document-reader/schemas/
 ├── v1.0.0/
 │   ├── cognitive-knowledge.json       # Schema principal de output
 │   ├── concept-definition.json        # Schema de concepto
-│   └── section-summary.json          # Schema de resumen
+│   └── section-summary.json           # Schema de resumen
 └── README.md                          # Documentación de schemas
 ```
 
