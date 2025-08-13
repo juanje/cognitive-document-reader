@@ -66,8 +66,9 @@ class StructureDetector:
                         next_text = next_element.get("text", "").strip()
 
                         # Stop if we hit another header or significant content
-                        if (next_type.startswith("heading") or
-                            self._is_significant_content(next_element)):
+                        if next_type.startswith(
+                            "heading"
+                        ) or self._is_significant_content(next_element):
                             break
 
                         # Add paragraphs and other content to this section
@@ -98,8 +99,8 @@ class StructureDetector:
                     i += 1
 
                 # Update hierarchy relationships
-                self._update_hierarchy(section, section_stack)
-                sections.append(section)
+                updated_section = self._update_hierarchy(section, section_stack)
+                sections.append(updated_section)
             else:
                 # Skip non-significant content that wasn't grouped with a header
                 i += 1
@@ -173,12 +174,15 @@ class StructureDetector:
 
     def _update_hierarchy(
         self, section: DocumentSection, section_stack: list[DocumentSection]
-    ) -> None:
+    ) -> DocumentSection:
         """Update parent-child relationships in the hierarchy.
 
         Args:
             section: The new section to add to hierarchy.
             section_stack: Stack of current parent sections.
+
+        Returns:
+            Updated section with parent_id set (if applicable).
         """
         # Remove sections from stack that are at same or deeper level
         while section_stack and section_stack[-1].level >= section.level:
@@ -187,12 +191,13 @@ class StructureDetector:
         # Set parent if there's a section in the stack
         if section_stack:
             parent = section_stack[-1]
-            # Update the parent's children list (we need to modify the section)
-            # Since DocumentSection is frozen, we'll handle this in the calling code
+            # Since DocumentSection is frozen, create a new instance with parent_id
             section = section.model_copy(update={"parent_id": parent.id})
 
         # Add to stack for potential children
         section_stack.append(section)
+
+        return section
 
     def _is_significant_content(self, element: dict[str, Any]) -> bool:
         """Determine if an element represents significant content worth sectioning.
@@ -229,8 +234,6 @@ class StructureDetector:
         if not sections:
             return []
 
-        # Create a mapping for quick lookups
-        {section.id: section for section in sections}
         updated_sections = []
 
         for section in sections:
