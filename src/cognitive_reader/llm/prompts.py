@@ -187,11 +187,11 @@ INSTRUCTIONS:
 7. Focus on information that would be valuable for human understanding
 
 STYLE EXAMPLES:
-❌ BAD: "In this section, the document explains that sedentarism is not just sitting..."
-✅ GOOD: "Sedentarism is not just prolonged sitting but represents a lack of movement variety..."
+❌ BAD: "In this section, the document explains that [topic] is more than just [simple definition]..."
+✅ GOOD: "[Topic] is more than just [simple definition] but represents [deeper understanding]..."
 
-❌ BAD: "The author describes how our ancestors lived as nomads..."
-✅ GOOD: "For over two million years, human ancestors lived as nomads, constantly moving to hunt and gather..."
+❌ BAD: "The author describes how [subject] functioned in [context]..."
+✅ GOOD: "Throughout [time period], [subject] functioned as [specific role], establishing [key patterns]..."
 
 RESPONSE FORMAT:
 Summary: [Your 2-4 sentence direct synthesis here]
@@ -220,8 +220,8 @@ INSTRUCTIONS:
 7. Connect related concepts across sections
 
 STYLE EXAMPLES:
-❌ BAD: "This document explores the concept of sedentarism and explains how..."
-✅ GOOD: "Sedentarism represents more than prolonged sitting - it reflects the lack of movement variety that characterized human evolution..."
+❌ BAD: "This document explores the concept of [topic] and explains how..."
+✅ GOOD: "[Main concept] represents more than [surface description] - it reflects [deeper implications] that [broader context]..."
 
 ❌ BAD: "The text describes various movement patterns and discusses..."
 ✅ GOOD: "Human ancestors engaged in diverse movement patterns including walking, climbing, and carrying objects..."
@@ -299,8 +299,8 @@ RESPONSE FORMAT:
 Provide ONLY the definition text. Do not include "Definition:", "Summary:", or any other prefixes.
 
 STYLE EXAMPLES:
-❌ BAD: "According to the document, sedentarism is defined as..."
-✅ GOOD: "A lifestyle characterized by prolonged periods of physical inactivity and lack of movement variety."
+❌ BAD: "According to the document, [concept] is defined as..."
+✅ GOOD: "A [category] characterized by [key attributes] and [distinguishing features]."
 
 Example: "A systematic approach to processing information that mimics human cognitive patterns for enhanced understanding."
 

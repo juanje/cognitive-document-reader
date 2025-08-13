@@ -198,9 +198,9 @@ class TestUnifiedPromptSystem:
         assert '"The document states..."' in prompt
         assert '"The author says..."' in prompt
 
-        # Should contain good examples to follow
-        assert "Sedentarism is not just" in prompt
-        assert "For over two million years" in prompt
+        # Should contain generic good examples with placeholders (no contamination)
+        assert "[Topic] is more than just [simple definition]" in prompt
+        assert "Throughout [time period], [subject] functioned" in prompt
 
         # Should emphasize direct synthesis
         assert "direct synthesis" in prompt.lower()
@@ -213,9 +213,9 @@ class TestUnifiedPromptSystem:
         assert '"The document discusses..."' in prompt
         assert '"This text covers..."' in prompt
 
-        # Should contain good examples to follow
-        assert "Sedentarism represents more than" in prompt
-        assert "Human ancestors engaged in" in prompt
+        # Should contain generic good examples with placeholders (no contamination)
+        assert "[Main concept] represents more than [surface description]" in prompt
+        assert "Human ancestors engaged in diverse movement patterns" in prompt
 
         # Should emphasize direct synthesis
         assert "direct synthesis" in prompt.lower()
@@ -228,8 +228,8 @@ class TestUnifiedPromptSystem:
         assert '"According to the text..."' in prompt
         assert '"The document defines this as..."' in prompt
 
-        # Should contain good examples
-        assert "A lifestyle characterized by" in prompt
+        # Should contain generic good examples with placeholders (no contamination)
+        assert "A [category] characterized by [key attributes]" in prompt
 
         # Should emphasize direct definition style
         assert "DIRECT DEFINITION style" in prompt
@@ -251,7 +251,7 @@ class TestUnifiedPromptSystem:
         assert "Generic actions" in prompt
         assert "self-explanatory" in prompt
 
-                # Should contain concept selection guidance
+        # Should contain concept selection guidance
         assert "CONCEPT SELECTION EXAMPLES:" in prompt or "EXAMPLE PATTERNS" in prompt
         assert "technical terms" in prompt.lower()
         assert "specialized" in prompt.lower()
