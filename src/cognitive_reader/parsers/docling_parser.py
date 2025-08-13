@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Docling imports for universal document parsing
 try:
-    from docling.datamodel.base_models import InputFormat
+    from docling.datamodel.base_models import ConversionStatus, InputFormat
     from docling.document_converter import (
         DocumentConverter,
         PdfFormatOption,
@@ -34,6 +34,7 @@ except ImportError:
     PdfFormatOption = type(None)  # type: ignore[misc,assignment]
     WordFormatOption = type(None)  # type: ignore[misc,assignment]
     SimplePipeline = type(None)  # type: ignore[misc,assignment]
+    ConversionStatus = type(None)  # type: ignore[misc,assignment]
 
 
 class DoclingParser:
@@ -198,7 +199,7 @@ class DoclingParser:
 
         try:
             # Convert document using docling
-            conv_results = self._docling_converter.convert_all([file_path])
+            conv_results = list(self._docling_converter.convert_all([file_path]))
 
             if not conv_results:
                 raise ValueError("No conversion results from docling")
@@ -206,9 +207,9 @@ class DoclingParser:
             # Get the first (and should be only) result
             result = conv_results[0]
 
-            if result.status.success:
+            if result.status == ConversionStatus.SUCCESS:
                 # Extract title (use filename as fallback)
-                document_title = result.document.meta.title or file_path.stem
+                document_title = result.document.name or file_path.stem
 
                 # Export to markdown for consistent processing
                 markdown_content = result.document.export_to_markdown()
@@ -217,7 +218,7 @@ class DoclingParser:
                 return await self.parse_text(markdown_content, document_title)
             else:
                 raise ValueError(
-                    f"Docling conversion failed: {result.status.error_message}"
+                    f"Docling conversion failed with status: {result.status}"
                 )
 
         except Exception as e:

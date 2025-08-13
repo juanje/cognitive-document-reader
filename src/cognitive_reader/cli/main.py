@@ -324,9 +324,7 @@ async def _async_main(
     # Handle structure-only mode
     if structure_only:
         # Parse document to extract structure without any LLM processing
-        document_title, sections = await reader.parser.parse_text(
-            document.read_text(encoding="utf-8"), document.name
-        )
+        document_title, sections = await reader.parser.parse_document(document)
 
         # Apply depth filtering if specified
         if config.max_hierarchy_depth:
