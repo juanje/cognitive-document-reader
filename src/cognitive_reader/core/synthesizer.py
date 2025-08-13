@@ -22,7 +22,11 @@ class Synthesizer:
     understanding, creating summaries at each level of the hierarchy.
     """
 
-    def __init__(self, config: CognitiveConfig, save_partial_result_fn: Callable[..., Any] | None = None) -> None:
+    def __init__(
+        self,
+        config: CognitiveConfig,
+        save_partial_result_fn: Callable[..., Any] | None = None,
+    ) -> None:
         """Initialize the synthesizer.
 
         Args:
@@ -73,7 +77,7 @@ class Synthesizer:
                 total_sections=len(sections) + 2,  # sections + doc_summary + concepts
                 section_type="document_summary",
                 content=document_summary,
-                processing_stage="document_synthesis"
+                processing_stage="document_synthesis",
             )
 
         # TODO: Phase 2 - Create processing metadata
@@ -96,7 +100,9 @@ class Synthesizer:
 
         # Collect all unique concepts from sections and convert to ConceptDefinition objects
         all_concepts = set()
-        concept_to_sections: dict[str, list[str]] = {}  # Track which sections mention each concept
+        concept_to_sections: dict[
+            str, list[str]
+        ] = {}  # Track which sections mention each concept
         concept_first_mention = {}  # Track first mention of each concept
 
         for summary in all_summaries.values():
@@ -109,7 +115,9 @@ class Synthesizer:
                 concept_to_sections[concept].append(summary.section_id)
 
         # Filter concepts for quality glossary - prioritize concepts with broader relevance
-        filtered_concepts = self._filter_concepts_for_glossary(all_concepts, concept_to_sections)
+        filtered_concepts = self._filter_concepts_for_glossary(
+            all_concepts, concept_to_sections
+        )
 
         # Convert unique concepts to ConceptDefinition objects with real definitions
         concept_definitions = []
@@ -121,17 +129,21 @@ class Synthesizer:
                 all_summaries,
                 concept_first_mention,
                 concept_to_sections,
-                detected_language
+                detected_language,
             )
         else:
-            logger.info("Skipping concept definitions generation (--skip-glossary enabled)")
+            logger.info(
+                "Skipping concept definitions generation (--skip-glossary enabled)"
+            )
             concept_definitions = []
 
         # Save partial result: concept definitions (glossary) - only if not skipped
-        if (self.save_partial_result_fn and
-            self.config.save_partial_results and
-            not self.config.skip_glossary and
-            concept_definitions):
+        if (
+            self.save_partial_result_fn
+            and self.config.save_partial_results
+            and not self.config.skip_glossary
+            and concept_definitions
+        ):
             # Calculate proper indices: all_sections + document_summary + concept_definitions
             total_stages = len(sections) + 2  # sections + doc_summary + concepts
             concept_stage_index = len(sections) + 2  # This is the final stage
@@ -142,7 +154,7 @@ class Synthesizer:
                 section_type="concept_definitions",
                 content=f"Generated {len(concept_definitions)} concept definitions",
                 processing_stage="concept_generation",
-                concepts=concept_definitions
+                concepts=concept_definitions,
             )
 
         return CognitiveKnowledge(
@@ -153,8 +165,11 @@ class Synthesizer:
             concepts=concept_definitions,  # Now includes actual ConceptDefinition objects
             hierarchy_index={},  # TODO: Phase 2 - implement hierarchy index
             parent_child_map={},  # TODO: Phase 2 - implement parent-child mapping
-            total_sections=len(section_summaries),  # Use summaries count (reflects filtered sections)
-            avg_summary_length=sum(len(s.summary) for s in all_summaries.values()) / max(len(all_summaries), 1),
+            total_sections=len(
+                section_summaries
+            ),  # Use summaries count (reflects filtered sections)
+            avg_summary_length=sum(len(s.summary) for s in all_summaries.values())
+            / max(len(all_summaries), 1),
             total_concepts=len(all_concepts),  # Count unique concepts from all sections
         )
 
@@ -201,7 +216,7 @@ class Synthesizer:
         all_summaries: dict[str, SectionSummary],
         concept_first_mention: dict[str, str],
         concept_to_sections: dict[str, list[str]],
-        language: LanguageCode
+        language: LanguageCode,
     ) -> list[ConceptDefinition]:
         """Generate real definitions for concepts using LLM.
 
@@ -219,7 +234,9 @@ class Synthesizer:
 
         # Log concept generation process
         concept_model = self.config.fast_pass_model or self.config.model_name
-        logger.info(f"📚 Generating definitions for {len(concepts)} concepts with model: {concept_model}")
+        logger.info(
+            f"📚 Generating definitions for {len(concepts)} concepts with model: {concept_model}"
+        )
 
         concept_definitions = []
 
@@ -229,10 +246,14 @@ class Synthesizer:
                 try:
                     # Get context from sections where this concept appears
                     context_sections = []
-                    for section_id in concept_to_sections[concept][:3]:  # Use first 3 sections for context
+                    for section_id in concept_to_sections[concept][
+                        :3
+                    ]:  # Use first 3 sections for context
                         if section_id in all_summaries:
                             summary = all_summaries[section_id]
-                            context_sections.append(f"{summary.title}: {summary.summary}")
+                            context_sections.append(
+                                f"{summary.title}: {summary.summary}"
+                            )
 
                     context = "\n\n".join(context_sections)
 
@@ -264,7 +285,7 @@ class Synthesizer:
                             "json": "JavaScript Object Notation - a lightweight, text-based data interchange format for structured information.",
                             "markdown": "A lightweight markup language used for formatting plain text documents with simple syntax.",
                             "integration": "The process of combining different systems, components, or data sources to work together seamlessly.",
-                            "humans": "Human users who interact with, benefit from, or are the intended audience for system outputs."
+                            "humans": "Human users who interact with, benefit from, or are the intended audience for system outputs.",
                         }
 
                         # Smart matching for concept definitions
@@ -286,45 +307,66 @@ class Synthesizer:
                             definition = f"A key concept in the document referring to {concept.replace('_', ' ').replace('concept ', '').strip()}."
                     else:
                         # Real LLM call for definition generation using dedicated prompt
-                        definition_prompt = llm_client.prompt_manager.format_concept_definition_prompt(
-                            concept_name=concept,
-                            context=context,
-                            language=language
+                        definition_prompt = (
+                            llm_client.prompt_manager.format_concept_definition_prompt(
+                                concept_name=concept, context=context, language=language
+                            )
                         )
 
                         definition_response = await llm_client._generate_with_retries(
                             prompt=definition_prompt,
                             model=concept_model,
-                            temperature=self.config.fast_pass_temperature or self.config.temperature
+                            temperature=self.config.fast_pass_temperature
+                            or self.config.temperature,
                         )
 
                         # Clean the response - handle reasoning models that might include <think> tags
                         if definition_response:
-                            definition = self._clean_concept_definition_response(definition_response)
+                            definition = self._clean_concept_definition_response(
+                                definition_response
+                            )
                             # Ensure first letter is capitalized
                             if definition:
-                                definition = definition[0].upper() + definition[1:] if len(definition) > 1 else definition.upper()
+                                definition = (
+                                    definition[0].upper() + definition[1:]
+                                    if len(definition) > 1
+                                    else definition.upper()
+                                )
                         else:
                             definition = f"Key concept: {concept}"
 
-                    concept_definitions.append(ConceptDefinition(
-                        concept_id=concept.lower().replace(" ", "_").replace(":", "").replace("-", "_"),
-                        name=concept,
-                        definition=definition,
-                        first_mentioned_in=concept_first_mention[concept],
-                        relevant_sections=concept_to_sections[concept][:5]  # Limit to first 5 sections
-                    ))
+                    concept_definitions.append(
+                        ConceptDefinition(
+                            concept_id=concept.lower()
+                            .replace(" ", "_")
+                            .replace(":", "")
+                            .replace("-", "_"),
+                            name=concept,
+                            definition=definition,
+                            first_mentioned_in=concept_first_mention[concept],
+                            relevant_sections=concept_to_sections[concept][
+                                :5
+                            ],  # Limit to first 5 sections
+                        )
+                    )
 
                 except Exception as e:
-                    logger.warning(f"Failed to generate definition for concept '{concept}': {e}")
+                    logger.warning(
+                        f"Failed to generate definition for concept '{concept}': {e}"
+                    )
                     # Fallback to basic definition
-                    concept_definitions.append(ConceptDefinition(
-                        concept_id=concept.lower().replace(" ", "_").replace(":", "").replace("-", "_"),
-                        name=concept,
-                        definition=f"Key concept: {concept}",
-                        first_mentioned_in=concept_first_mention[concept],
-                        relevant_sections=concept_to_sections[concept][:5]
-                    ))
+                    concept_definitions.append(
+                        ConceptDefinition(
+                            concept_id=concept.lower()
+                            .replace(" ", "_")
+                            .replace(":", "")
+                            .replace("-", "_"),
+                            name=concept,
+                            definition=f"Key concept: {concept}",
+                            first_mentioned_in=concept_first_mention[concept],
+                            relevant_sections=concept_to_sections[concept][:5],
+                        )
+                    )
 
         return concept_definitions
 
@@ -339,7 +381,8 @@ class Synthesizer:
         """
         # Remove <think>...</think> blocks (for reasoning models like Qwen)
         import re
-        cleaned_response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL)
+
+        cleaned_response = re.sub(r"<think>.*?</think>", "", response, flags=re.DOTALL)
 
         # Remove common prefixes that shouldn't be in definitions
         cleaned_response = cleaned_response.strip()
@@ -355,14 +398,14 @@ class Synthesizer:
 
         for prefix in prefixes_to_remove:
             if cleaned_response.startswith(prefix):
-                cleaned_response = cleaned_response[len(prefix):].strip()
+                cleaned_response = cleaned_response[len(prefix) :].strip()
 
         # Remove any remaining newlines and extra whitespace
         cleaned_response = " ".join(cleaned_response.split())
 
         # Ensure the definition ends with a period if it doesn't already
-        if cleaned_response and not cleaned_response.endswith(('.', '!', '?')):
-            cleaned_response += '.'
+        if cleaned_response and not cleaned_response.endswith((".", "!", "?")):
+            cleaned_response += "."
 
         return cleaned_response
 
@@ -410,7 +453,9 @@ class Synthesizer:
 
         # Add child summaries
         if child_summaries:
-            content_parts.append("Subsection summaries:\n" + "\n\n".join(child_summaries))
+            content_parts.append(
+                "Subsection summaries:\n" + "\n\n".join(child_summaries)
+            )
 
         combined_content = "\n\n".join(content_parts)
 
@@ -550,9 +595,7 @@ class Synthesizer:
         return summary, concepts[:5]  # Limit to 5 concepts
 
     def _filter_concepts_for_glossary(
-        self,
-        all_concepts: set[str],
-        concept_to_sections: dict[str, list[str]]
+        self, all_concepts: set[str], concept_to_sections: dict[str, list[str]]
     ) -> set[str]:
         """Filter concepts to create a high-quality glossary.
 
@@ -576,21 +619,30 @@ class Synthesizer:
         for concept in concept_list:
             sections_count = len(concept_to_sections.get(concept, []))
 
-                        # Scoring factors:
+            # Scoring factors:
             # 1. Cross-section relevance (appears in multiple sections)
-            cross_section_score = min(sections_count / total_sections, self.config.cross_section_score_cap)
+            cross_section_score = min(
+                sections_count / total_sections, self.config.cross_section_score_cap
+            )
 
             # 2. Term complexity (multi-word concepts are often more valuable)
             word_count = len(concept.split())
-            complexity_score = min(word_count * self.config.complexity_score_multiplier, self.config.complexity_score_cap)
+            complexity_score = min(
+                word_count * self.config.complexity_score_multiplier,
+                self.config.complexity_score_cap,
+            )
 
             # 3. Base score for being selected (LLM already filtered once)
             base_score = self.config.base_concept_score
 
-            concept_scores[concept] = cross_section_score + complexity_score + base_score
+            concept_scores[concept] = (
+                cross_section_score + complexity_score + base_score
+            )
 
         # Sort by score and select top concepts
-        sorted_concepts = sorted(concept_scores.items(), key=lambda x: x[1], reverse=True)
+        sorted_concepts = sorted(
+            concept_scores.items(), key=lambda x: x[1], reverse=True
+        )
 
         # Limit to reasonable glossary size (configurable limits)
         max_concepts = min(self.config.max_glossary_concepts, len(all_concepts))
@@ -601,6 +653,8 @@ class Synthesizer:
 
         selected_concepts = {concept for concept, _ in sorted_concepts[:final_count]}
 
-        logger.info(f"Filtered concepts for glossary: {len(selected_concepts)} from {len(all_concepts)} total")
+        logger.info(
+            f"Filtered concepts for glossary: {len(selected_concepts)} from {len(all_concepts)} total"
+        )
 
         return selected_concepts

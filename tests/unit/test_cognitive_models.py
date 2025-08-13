@@ -65,13 +65,16 @@ class TestCognitiveConfig:
 
     def test_from_env_basic(self):
         """Test loading configuration from environment variables."""
-        with patch.dict(os.environ, {
-            "COGNITIVE_READER_MODEL": "custom-model",
-            "COGNITIVE_READER_TEMPERATURE": "0.5",
-            "COGNITIVE_READER_MAX_PASSES": "3",
-            "COGNITIVE_READER_FAST_PASS_MODEL": "fast-model",
-            "COGNITIVE_READER_MAIN_MODEL": "main-model",
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "COGNITIVE_READER_MODEL": "custom-model",
+                "COGNITIVE_READER_TEMPERATURE": "0.5",
+                "COGNITIVE_READER_MAX_PASSES": "3",
+                "COGNITIVE_READER_FAST_PASS_MODEL": "fast-model",
+                "COGNITIVE_READER_MAIN_MODEL": "main-model",
+            },
+        ):
             config = CognitiveConfig.from_env()
             assert config.model_name == "custom-model"
             assert config.temperature == 0.5
@@ -81,11 +84,14 @@ class TestCognitiveConfig:
 
     def test_from_env_boolean_values(self):
         """Test boolean environment variable parsing."""
-        with patch.dict(os.environ, {
-            "COGNITIVE_READER_ENABLE_FAST_FIRST_PASS": "false",
-            "COGNITIVE_READER_ENABLE_SECOND_PASS": "true",
-            "COGNITIVE_READER_DRY_RUN": "true",
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "COGNITIVE_READER_ENABLE_FAST_FIRST_PASS": "false",
+                "COGNITIVE_READER_ENABLE_SECOND_PASS": "true",
+                "COGNITIVE_READER_DRY_RUN": "true",
+            },
+        ):
             config = CognitiveConfig.from_env()
             assert config.enable_fast_first_pass is False
             assert config.enable_second_pass is True
@@ -115,7 +121,7 @@ class TestConceptDefinition:
             concept_id="sedentarismo",
             name="Sedentarismo",
             definition="Estado crónico de inactividad física...",
-            first_mentioned_in="cap_1"
+            first_mentioned_in="cap_1",
         )
 
         assert concept.concept_id == "sedentarismo"
@@ -131,7 +137,7 @@ class TestConceptDefinition:
             name="Movimiento Natural",
             definition="Patrones de movimiento ancestrales...",
             first_mentioned_in="introduccion",
-            relevant_sections=["cap_1", "cap_2", "tres_pasos"]
+            relevant_sections=["cap_1", "cap_2", "tres_pasos"],
         )
 
         assert len(concept.relevant_sections) == 3
@@ -148,7 +154,7 @@ class TestSectionSummary:
             title="Introducción al sedentarismo",
             summary="Definición y evolución del sedentarismo...",
             level=1,
-            order_index=1
+            order_index=1,
         )
 
         assert summary.section_id == "cap_1"
@@ -169,7 +175,7 @@ class TestSectionSummary:
             order_index=2,
             parent_id="cap_1",
             children_ids=["cap_1_sec_1_sub_1", "cap_1_sec_1_sub_2"],
-            key_concepts=["sedentarismo", "vida_nomada"]
+            key_concepts=["sedentarismo", "vida_nomada"],
         )
 
         assert summary.parent_id == "cap_1"
@@ -188,7 +194,7 @@ class TestCognitiveKnowledge:
             detected_language=LanguageCode.ES,
             total_sections=8,
             avg_summary_length=740,
-            total_concepts=4
+            total_concepts=4,
         )
 
         assert knowledge.document_title == "3 pasos contra el sedentarismo"
@@ -207,7 +213,7 @@ class TestCognitiveKnowledge:
             title="3 pasos contra el sedentarismo",
             summary="Método para combatir el sedentarismo...",
             level=0,
-            order_index=0
+            order_index=0,
         )
 
         # Create test concept
@@ -215,7 +221,7 @@ class TestCognitiveKnowledge:
             concept_id="sedentarismo",
             name="Sedentarismo",
             definition="Estado crónico de inactividad física...",
-            first_mentioned_in="introduccion"
+            first_mentioned_in="introduccion",
         )
 
         knowledge = CognitiveKnowledge(
@@ -228,7 +234,7 @@ class TestCognitiveKnowledge:
             parent_child_map={"book": ["cap_1", "cap_2"]},
             total_sections=3,
             avg_summary_length=750,
-            total_concepts=1
+            total_concepts=1,
         )
 
         assert len(knowledge.hierarchical_summaries) == 1
@@ -245,7 +251,7 @@ class TestCognitiveKnowledge:
             detected_language=LanguageCode.EN,
             total_sections=1,
             avg_summary_length=100,
-            total_concepts=0
+            total_concepts=0,
         )
 
         # Test non-existent section
@@ -272,7 +278,7 @@ class TestModelIntegration:
             detected_language=config.document_language,
             total_sections=1,
             avg_summary_length=config.target_summary_length,
-            total_concepts=0
+            total_concepts=0,
         )
 
         assert knowledge.detected_language == LanguageCode.AUTO

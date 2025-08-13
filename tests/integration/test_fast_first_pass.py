@@ -18,17 +18,14 @@ def fast_pass_config() -> CognitiveConfig:
         # Enable dual-pass approach
         enable_fast_first_pass=True,
         enable_second_pass=True,
-
         # Model configuration
         fast_pass_model="llama3.1:8b",
         main_model="qwen3:8b",
         fast_pass_temperature=0.1,
         main_pass_temperature=0.3,
-
         # Development modes
         dry_run=True,
         mock_responses=True,
-
         # Basic settings
         model_name="qwen3:8b",  # Fallback
         temperature=0.3,
@@ -44,15 +41,12 @@ def single_pass_config() -> CognitiveConfig:
         # Disable dual-pass approach
         enable_fast_first_pass=False,
         enable_second_pass=False,
-
         # Model configuration
         main_model="qwen3:8b",
         main_pass_temperature=0.3,
-
         # Development modes
         dry_run=True,
         mock_responses=True,
-
         # Basic settings
         model_name="qwen3:8b",
         temperature=0.3,
@@ -85,7 +79,9 @@ Final thoughts and summary of the document.
 
 
 @pytest.mark.asyncio
-async def test_dual_pass_reading_workflow(fast_pass_config: CognitiveConfig, sample_document: str):
+async def test_dual_pass_reading_workflow(
+    fast_pass_config: CognitiveConfig, sample_document: str
+):
     """Test complete dual-pass reading workflow."""
     reader = CognitiveReader(fast_pass_config)
 
@@ -103,17 +99,19 @@ async def test_dual_pass_reading_workflow(fast_pass_config: CognitiveConfig, sam
 
     # Verify hierarchical summaries structure
     for section_id, summary in knowledge.hierarchical_summaries.items():
-        assert hasattr(summary, 'title')
-        assert hasattr(summary, 'summary')
-        assert hasattr(summary, 'key_concepts')
-        assert hasattr(summary, 'level')
-        assert hasattr(summary, 'order_index')
+        assert hasattr(summary, "title")
+        assert hasattr(summary, "summary")
+        assert hasattr(summary, "key_concepts")
+        assert hasattr(summary, "level")
+        assert hasattr(summary, "order_index")
         assert len(summary.summary) > 0
         assert isinstance(summary.key_concepts, list)
 
 
 @pytest.mark.asyncio
-async def test_single_pass_reading_workflow(single_pass_config: CognitiveConfig, sample_document: str):
+async def test_single_pass_reading_workflow(
+    single_pass_config: CognitiveConfig, sample_document: str
+):
     """Test single-pass reading workflow for comparison."""
     reader = CognitiveReader(single_pass_config)
 
@@ -129,7 +127,9 @@ async def test_single_pass_reading_workflow(single_pass_config: CognitiveConfig,
 
 
 @pytest.mark.asyncio
-async def test_fast_pass_only_workflow(fast_pass_config: CognitiveConfig, sample_document: str):
+async def test_fast_pass_only_workflow(
+    fast_pass_config: CognitiveConfig, sample_document: str
+):
     """Test fast pass only (second pass disabled)."""
     # Disable second pass
     config = fast_pass_config.model_copy(update={"enable_second_pass": False})
@@ -171,7 +171,9 @@ Pensamientos finales sobre el documento.
 
 
 @pytest.mark.asyncio
-async def test_model_configuration_validation(fast_pass_config: CognitiveConfig, sample_document: str):
+async def test_model_configuration_validation(
+    fast_pass_config: CognitiveConfig, sample_document: str
+):
     """Test that models are configured correctly in dual-pass mode."""
     reader = CognitiveReader(fast_pass_config)
 
@@ -199,7 +201,9 @@ Content here.
 """
 
     reader = CognitiveReader(fast_pass_config)
-    knowledge = await reader.read_document_text(doc_with_markdown_title, "**Bold Title** with *italic* and `code`")
+    knowledge = await reader.read_document_text(
+        doc_with_markdown_title, "**Bold Title** with *italic* and `code`"
+    )
 
     # Title should be cleaned of markdown
     assert knowledge.document_title == "Bold Title with italic and code"
@@ -226,21 +230,31 @@ More content.
     knowledge = await reader.read_document_text(doc_with_markdown_sections, "Document")
 
     # Check that section titles are cleaned
-    section_titles = [summary.title for summary in knowledge.hierarchical_summaries.values()]
+    section_titles = [
+        summary.title for summary in knowledge.hierarchical_summaries.values()
+    ]
 
     # Should contain cleaned titles
-    cleaned_titles = [title for title in section_titles if "**" not in title and "*" not in title]
+    cleaned_titles = [
+        title for title in section_titles if "**" not in title and "*" not in title
+    ]
     assert len(cleaned_titles) > 0
 
     # Verify specific cleaning
     bold_section_found = any("Bold Section Title" in title for title in section_titles)
-    italic_section_found = any("Italic Section Title" in title for title in section_titles)
+    italic_section_found = any(
+        "Italic Section Title" in title for title in section_titles
+    )
 
-    assert bold_section_found or italic_section_found  # At least one should be found and cleaned
+    assert (
+        bold_section_found or italic_section_found
+    )  # At least one should be found and cleaned
 
 
 @pytest.mark.asyncio
-async def test_json_output_structure_compliance(fast_pass_config: CognitiveConfig, sample_document: str):
+async def test_json_output_structure_compliance(
+    fast_pass_config: CognitiveConfig, sample_document: str
+):
     """Test that output structure complies with SPECS v2.0."""
     reader = CognitiveReader(fast_pass_config)
     knowledge = await reader.read_document_text(sample_document, "Test Document")
@@ -248,21 +262,21 @@ async def test_json_output_structure_compliance(fast_pass_config: CognitiveConfi
     # Test SPECS v2.0 structure compliance
 
     # Required top-level fields
-    assert hasattr(knowledge, 'document_title')
-    assert hasattr(knowledge, 'document_summary')  # Now required in SPECS v2.0
-    assert hasattr(knowledge, 'detected_language')
-    assert hasattr(knowledge, 'hierarchical_summaries')
-    assert hasattr(knowledge, 'concepts')
-    assert hasattr(knowledge, 'hierarchy_index')
-    assert hasattr(knowledge, 'parent_child_map')
-    assert hasattr(knowledge, 'total_sections')
-    assert hasattr(knowledge, 'avg_summary_length')
-    assert hasattr(knowledge, 'total_concepts')
+    assert hasattr(knowledge, "document_title")
+    assert hasattr(knowledge, "document_summary")  # Now required in SPECS v2.0
+    assert hasattr(knowledge, "detected_language")
+    assert hasattr(knowledge, "hierarchical_summaries")
+    assert hasattr(knowledge, "concepts")
+    assert hasattr(knowledge, "hierarchy_index")
+    assert hasattr(knowledge, "parent_child_map")
+    assert hasattr(knowledge, "total_sections")
+    assert hasattr(knowledge, "avg_summary_length")
+    assert hasattr(knowledge, "total_concepts")
 
     # Should NOT have deprecated fields
-    assert not hasattr(knowledge, 'sections')
-    assert not hasattr(knowledge, 'section_summaries')
-    assert not hasattr(knowledge, 'processing_metadata')
+    assert not hasattr(knowledge, "sections")
+    assert not hasattr(knowledge, "section_summaries")
+    assert not hasattr(knowledge, "processing_metadata")
 
     # Verify types
     assert isinstance(knowledge.document_title, str)
@@ -314,8 +328,12 @@ More content for testing.
     dual_reader = CognitiveReader(dual_config)
     single_reader = CognitiveReader(single_config)
 
-    dual_knowledge = await dual_reader.read_document_text(sample_doc, "Performance Test")
-    single_knowledge = await single_reader.read_document_text(sample_doc, "Performance Test")
+    dual_knowledge = await dual_reader.read_document_text(
+        sample_doc, "Performance Test"
+    )
+    single_knowledge = await single_reader.read_document_text(
+        sample_doc, "Performance Test"
+    )
 
     # Both should produce valid results
     assert len(dual_knowledge.hierarchical_summaries) > 0

@@ -8,7 +8,9 @@ from typing import Any
 from ..models.document import DocumentSection
 
 
-def format_structure_as_text(sections: list[DocumentSection], headings_only: bool = False) -> str:
+def format_structure_as_text(
+    sections: list[DocumentSection], headings_only: bool = False
+) -> str:
     """Format document structure as clean tree-like hierarchy.
 
     Args:
@@ -75,7 +77,7 @@ def format_structure_as_json(sections: list[DocumentSection]) -> str:
                     "has_children": len(section.children_ids) > 0,
                 }
                 for section in sections
-            ]
+            ],
         }
     }
 
@@ -116,7 +118,9 @@ def format_structure_compact(sections: list[DocumentSection]) -> str:
 
     sections_text = " | ".join(section_previews)
 
-    return f"Structure: {total_sections} sections, max depth {max_depth} | {sections_text}"
+    return (
+        f"Structure: {total_sections} sections, max depth {max_depth} | {sections_text}"
+    )
 
 
 def get_structure_summary(sections: list[DocumentSection]) -> dict[str, Any]:
@@ -133,7 +137,7 @@ def get_structure_summary(sections: list[DocumentSection]) -> dict[str, Any]:
             "total_sections": 0,
             "max_depth": 0,
             "sections_by_level": {},
-            "has_hierarchy": False
+            "has_hierarchy": False,
         }
 
     # Count sections by level
@@ -149,7 +153,7 @@ def get_structure_summary(sections: list[DocumentSection]) -> dict[str, Any]:
         "total_sections": len(sections),
         "max_depth": max_depth,
         "sections_by_level": sections_by_level,
-        "has_hierarchy": has_hierarchy
+        "has_hierarchy": has_hierarchy,
     }
 
 
@@ -205,8 +209,10 @@ def validate_structure_integrity(sections: list[DocumentSection]) -> list[str]:
 
         # Level increases by more than 1 might indicate missing intermediate levels
         if level_jump > 1:
-            issues.append(f"Large level jump from {prev_section.level} to {section.level} "
-                         f"at section '{section.title}'")
+            issues.append(
+                f"Large level jump from {prev_section.level} to {section.level} "
+                f"at section '{section.title}'"
+            )
 
     # Check for orphaned high-level sections
     if sections and sections[0].level > 1:

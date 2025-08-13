@@ -76,7 +76,9 @@ logger = logging.getLogger(__name__)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all output except results")
 @click.option(
-    "--save-partials", is_flag=True, help="Save partial results as sections are processed"
+    "--save-partials",
+    is_flag=True,
+    help="Save partial results as sections are processed",
 )
 @click.option(
     "--partials-dir",
@@ -129,7 +131,7 @@ def cli(
     save_partials: bool,
     partials_dir: Path | None,
     max_sections: int | None,
-    max_depth: int | None,       # ✅ WORKING: for --structure-only
+    max_depth: int | None,  # ✅ WORKING: for --structure-only
     structure_only: bool,
     fast_mode: bool,
     disable_reasoning: bool,
@@ -187,7 +189,7 @@ def cli(
 
         # In verbose mode, allow some HTTP logs but not the noisy DEBUG ones
         logging.getLogger("httpcore").setLevel(logging.WARNING)  # Still quiet
-        logging.getLogger("httpx").setLevel(logging.INFO)        # Show HTTP requests
+        logging.getLogger("httpx").setLevel(logging.INFO)  # Show HTTP requests
         logging.getLogger("langsmith").setLevel(logging.WARNING)  # Still quiet
         logging.getLogger("langchain").setLevel(logging.INFO)
 
@@ -209,7 +211,7 @@ def cli(
                 save_partials=save_partials,
                 partials_dir=partials_dir,
                 max_sections=max_sections,
-                max_depth=max_depth,             # ✅ WORKING
+                max_depth=max_depth,  # ✅ WORKING
                 structure_only=structure_only,
                 fast_mode=fast_mode,
                 disable_reasoning=disable_reasoning,
@@ -245,7 +247,7 @@ async def _async_main(
     save_partials: bool,
     partials_dir: Path | None,
     max_sections: int | None,
-    max_depth: int | None,       # ✅ WORKING
+    max_depth: int | None,  # ✅ WORKING
     structure_only: bool,
     fast_mode: bool,
     disable_reasoning: bool,
@@ -264,7 +266,7 @@ async def _async_main(
         save_partials=save_partials,
         partials_dir=partials_dir,
         max_sections=max_sections,
-        max_depth=max_depth,             # ✅ WORKING
+        max_depth=max_depth,  # ✅ WORKING
         fast_mode=fast_mode,
         disable_reasoning=disable_reasoning,
         skip_glossary=skip_glossary,
@@ -309,7 +311,9 @@ async def _async_main(
                 dev_modes.append(f"max-sections={config.max_sections}")
 
             # Show max-depth when filtering is active (not default high value)
-            if config.max_hierarchy_depth and config.max_hierarchy_depth < 10:  # Show when filtering
+            if (
+                config.max_hierarchy_depth and config.max_hierarchy_depth < 10
+            ):  # Show when filtering
                 dev_modes.append(f"max-depth={config.max_hierarchy_depth}")
 
             click.echo(f"Development mode: {', '.join(dev_modes)}")
@@ -321,8 +325,7 @@ async def _async_main(
     if structure_only:
         # Parse document to extract structure without any LLM processing
         document_title, sections = await reader.parser.parse_text(
-            document.read_text(encoding="utf-8"),
-            document.name
+            document.read_text(encoding="utf-8"), document.name
         )
 
         # Apply depth filtering if specified
@@ -344,16 +347,19 @@ async def _async_main(
     if verbose and not quiet:
         # Parse document to extract structure for preview
         document_title, sections = await reader.parser.parse_text(
-            document.read_text(encoding="utf-8"),
-            document.name
+            document.read_text(encoding="utf-8"), document.name
         )
 
         # Apply depth filtering if specified
         display_sections = sections
         if config.max_hierarchy_depth:
-            display_sections = filter_sections_by_depth(sections, config.max_hierarchy_depth)
+            display_sections = filter_sections_by_depth(
+                sections, config.max_hierarchy_depth
+            )
             if len(display_sections) < len(sections):
-                click.echo(f"📋 Document Structure (showing depth ≤ {config.max_hierarchy_depth}):")
+                click.echo(
+                    f"📋 Document Structure (showing depth ≤ {config.max_hierarchy_depth}):"
+                )
             else:
                 click.echo("📋 Document Structure:")
         else:
@@ -361,7 +367,7 @@ async def _async_main(
 
         structure_tree = format_structure_as_text(display_sections, headings_only=True)
         # Indent the structure tree for better visual separation
-        for line in structure_tree.split('\n'):
+        for line in structure_tree.split("\n"):
             if line.strip():  # Only indent non-empty lines
                 click.echo(f"   {line}")
 
@@ -408,7 +414,7 @@ def _build_config(
     save_partials: bool,
     partials_dir: Path | None,
     max_sections: int | None,
-    max_depth: int | None,       # ✅ WORKING
+    max_depth: int | None,  # ✅ WORKING
     fast_mode: bool,
     disable_reasoning: bool,
     skip_glossary: bool,
@@ -530,7 +536,9 @@ def _format_markdown_output(knowledge: CognitiveKnowledge) -> str:
     lines.append(f"- **Language**: {knowledge.detected_language.value}")
     lines.append(f"- **Total Sections**: {knowledge.total_sections}")
     lines.append(f"- **Total Concepts**: {knowledge.total_concepts}")
-    lines.append(f"- **Average Summary Length**: {knowledge.avg_summary_length} characters")
+    lines.append(
+        f"- **Average Summary Length**: {knowledge.avg_summary_length} characters"
+    )
     lines.append("")
 
     # Section Analysis (ordered summaries)
@@ -540,8 +548,7 @@ def _format_markdown_output(knowledge: CognitiveKnowledge) -> str:
 
         # Get summaries ordered by order_index
         ordered_summaries = sorted(
-            knowledge.hierarchical_summaries.values(),
-            key=lambda s: s.order_index
+            knowledge.hierarchical_summaries.values(), key=lambda s: s.order_index
         )
 
         for summary in ordered_summaries:

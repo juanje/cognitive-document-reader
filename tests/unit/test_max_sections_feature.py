@@ -176,11 +176,9 @@ class TestMaxSectionsCLI:
         runner = CliRunner()
 
         # Test with structure-only mode (fast execution)
-        result = runner.invoke(cli, [
-            'examples/sample_document.md',
-            '--max-sections=3',
-            '--structure-only'
-        ])
+        result = runner.invoke(
+            cli, ["examples/sample_document.md", "--max-sections=3", "--structure-only"]
+        )
 
         assert result.exit_code == 0
         assert "Cognitive Document Reader Example" in result.output
@@ -189,12 +187,10 @@ class TestMaxSectionsCLI:
         """Test that --max-sections works with processing mode."""
         runner = CliRunner()
 
-        result = runner.invoke(cli, [
-            'examples/sample_document.md',
-            '--max-sections=3',
-            '--dry-run',
-            '--quiet'
-        ])
+        result = runner.invoke(
+            cli,
+            ["examples/sample_document.md", "--max-sections=3", "--dry-run", "--quiet"],
+        )
 
         assert result.exit_code == 0
         # Should show limited count
@@ -204,12 +200,15 @@ class TestMaxSectionsCLI:
         """Test that --max-sections shows limiting info in verbose mode."""
         runner = CliRunner()
 
-        result = runner.invoke(cli, [
-            'examples/sample_document.md',
-            '--max-sections=2',
-            '--dry-run',
-            '--verbose'
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "examples/sample_document.md",
+                "--max-sections=2",
+                "--dry-run",
+                "--verbose",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "max-sections=2" in result.output
@@ -218,13 +217,16 @@ class TestMaxSectionsCLI:
         """Test that --max-sections works with --max-depth."""
         runner = CliRunner()
 
-        result = runner.invoke(cli, [
-            'examples/sample_document.md',
-            '--max-sections=2',
-            '--max-depth=2',
-            '--dry-run',
-            '--quiet'
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "examples/sample_document.md",
+                "--max-sections=2",
+                "--max-depth=2",
+                "--dry-run",
+                "--quiet",
+            ],
+        )
 
         assert result.exit_code == 0
         # Should show limited count after both filters

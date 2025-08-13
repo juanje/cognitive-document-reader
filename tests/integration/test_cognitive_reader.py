@@ -12,7 +12,9 @@ from cognitive_reader import CognitiveReader
 from cognitive_reader.models.knowledge import LanguageCode
 
 # Skip all integration tests for Phase 1 MVP - they need CognitiveKnowledge v2.0 updates
-pytestmark = pytest.mark.skip(reason="Phase 2: Update tests for CognitiveKnowledge v2.0 structure")
+pytestmark = pytest.mark.skip(
+    reason="Phase 2: Update tests for CognitiveKnowledge v2.0 structure"
+)
 
 
 @pytest.mark.asyncio

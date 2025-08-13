@@ -17,70 +17,149 @@ class CognitiveConfig(BaseModel):
     """
 
     # LLM Configuration
-    model_name: str = Field(default="qwen3:8b", description="Default LLM model name (used when dual models not configured)")
-    temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="LLM temperature")
+    model_name: str = Field(
+        default="qwen3:8b",
+        description="Default LLM model name (used when dual models not configured)",
+    )
+    temperature: float = Field(
+        default=0.1, ge=0.0, le=2.0, description="LLM temperature"
+    )
 
     # Multi-pass configuration (extensible design)
-    max_passes: int = Field(default=2, ge=1, le=10, description="Maximum number of cognitive passes")
-    convergence_threshold: float = Field(default=0.1, ge=0.01, le=1.0, description="Threshold to detect when additional passes add minimal value")
+    max_passes: int = Field(
+        default=2, ge=1, le=10, description="Maximum number of cognitive passes"
+    )
+    convergence_threshold: float = Field(
+        default=0.1,
+        ge=0.01,
+        le=1.0,
+        description="Threshold to detect when additional passes add minimal value",
+    )
 
     # Dual model strategy: fast first scan + quality processing (Phase 2)
-    enable_fast_first_pass: bool = Field(default=True, description="Use fast model for initial scan (always enabled)")
-    fast_pass_model: str | None = Field(default="llama3.1:8b", description="Fast model for initial document scan")
-    main_model: str | None = Field(default="qwen3:8b", description="Quality model for detailed cognitive processing")
+    enable_fast_first_pass: bool = Field(
+        default=True, description="Use fast model for initial scan (always enabled)"
+    )
+    fast_pass_model: str | None = Field(
+        default="llama3.1:8b", description="Fast model for initial document scan"
+    )
+    main_model: str | None = Field(
+        default="qwen3:8b",
+        description="Quality model for detailed cognitive processing",
+    )
 
     # Temperature settings
-    fast_pass_temperature: float | None = Field(default=0.1, ge=0.0, le=2.0, description="Temperature for fast scan")
-    main_pass_temperature: float | None = Field(default=0.3, ge=0.0, le=2.0, description="Temperature for quality processing")
+    fast_pass_temperature: float | None = Field(
+        default=0.1, ge=0.0, le=2.0, description="Temperature for fast scan"
+    )
+    main_pass_temperature: float | None = Field(
+        default=0.3, ge=0.0, le=2.0, description="Temperature for quality processing"
+    )
 
     # Cognitive Features
-    enable_second_pass: bool = Field(default=False, description="Enable second pass processing (disabled for Phase 1)")
-    enable_refinement: bool = Field(default=True, description="Enable refinement during reading")
+    enable_second_pass: bool = Field(
+        default=False,
+        description="Enable second pass processing (disabled for Phase 1)",
+    )
+    enable_refinement: bool = Field(
+        default=True, description="Enable refinement during reading"
+    )
     refinement_threshold: float = Field(
         default=0.4,
         ge=0.0,
         le=1.0,
-        description="Threshold for triggering refinement (0.0=never, 1.0=always)"
+        description="Threshold for triggering refinement (0.0=never, 1.0=always)",
     )
 
     # Document Processing
-    chunk_size: int = Field(default=1000, gt=100, description="Text chunk size for processing")
+    chunk_size: int = Field(
+        default=1000, gt=100, description="Text chunk size for processing"
+    )
     chunk_overlap: int = Field(default=200, ge=0, description="Overlap between chunks")
-    context_window: int = Field(default=4096, gt=0, description="LLM context window limit")
+    context_window: int = Field(
+        default=4096, gt=0, description="LLM context window limit"
+    )
 
     # Performance Settings
     timeout_seconds: int = Field(default=120, gt=0, description="Request timeout")
     max_retries: int = Field(default=3, ge=0, description="Maximum retry attempts")
-    document_language: LanguageCode = Field(default=LanguageCode.AUTO, description="Document language")
+    document_language: LanguageCode = Field(
+        default=LanguageCode.AUTO, description="Document language"
+    )
 
     # LLM Provider Configuration
-    llm_provider: str = Field(default="ollama", description="LLM provider (ollama, openai, anthropic, etc.)")
-    ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama server base URL")
+    llm_provider: str = Field(
+        default="ollama", description="LLM provider (ollama, openai, anthropic, etc.)"
+    )
+    ollama_base_url: str = Field(
+        default="http://localhost:11434", description="Ollama server base URL"
+    )
     # Future: openai_api_key, anthropic_api_key, etc.
 
     # Summary Optimization for RAG/Fine-tuning
-    target_summary_length: int = Field(default=800, gt=100, description="Target summary length in characters")
-    min_summary_length: int = Field(default=400, gt=50, description="Minimum summary length in characters")
-    max_summary_length: int = Field(default=1200, gt=100, description="Maximum summary length in characters")
-    max_hierarchy_depth: int = Field(default=10, ge=1, description="Maximum hierarchy depth for processing (high default = no filtering)")
+    target_summary_length: int = Field(
+        default=800, gt=100, description="Target summary length in characters"
+    )
+    min_summary_length: int = Field(
+        default=400, gt=50, description="Minimum summary length in characters"
+    )
+    max_summary_length: int = Field(
+        default=1200, gt=100, description="Maximum summary length in characters"
+    )
+    max_hierarchy_depth: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum hierarchy depth for processing (high default = no filtering)",
+    )
 
     # Development Features
-    dry_run: bool = Field(default=False, description="Enable dry-run mode (no actual LLM calls)")
-    mock_responses: bool = Field(default=False, description="Use mock responses for testing")
-    validate_config_only: bool = Field(default=False, description="Only validate configuration")
-    save_partial_results: bool = Field(default=False, description="Save intermediate results during processing")
-    partial_results_dir: str = Field(default="./partial_results", description="Directory to save partial results")
-    max_sections: int | None = Field(default=None, description="Maximum number of sections to process (None = no limit)")
-    disable_reasoning: bool = Field(default=False, description="Disable reasoning mode for reasoning models (faster, direct answers)")
-    skip_glossary: bool = Field(default=False, description="Skip concept definitions generation (faster processing, summaries only)")
+    dry_run: bool = Field(
+        default=False, description="Enable dry-run mode (no actual LLM calls)"
+    )
+    mock_responses: bool = Field(
+        default=False, description="Use mock responses for testing"
+    )
+    validate_config_only: bool = Field(
+        default=False, description="Only validate configuration"
+    )
+    save_partial_results: bool = Field(
+        default=False, description="Save intermediate results during processing"
+    )
+    partial_results_dir: str = Field(
+        default="./partial_results", description="Directory to save partial results"
+    )
+    max_sections: int | None = Field(
+        default=None,
+        description="Maximum number of sections to process (None = no limit)",
+    )
+    disable_reasoning: bool = Field(
+        default=False,
+        description="Disable reasoning mode for reasoning models (faster, direct answers)",
+    )
+    skip_glossary: bool = Field(
+        default=False,
+        description="Skip concept definitions generation (faster processing, summaries only)",
+    )
 
     # Concept filtering parameters for glossary quality
-    max_glossary_concepts: int = Field(default=50, description="Maximum number of concepts in glossary")
-    min_glossary_concepts: int = Field(default=10, description="Minimum number of concepts in glossary")
-    cross_section_score_cap: float = Field(default=0.5, description="Maximum score for cross-section relevance (0.0-1.0)")
-    complexity_score_multiplier: float = Field(default=0.2, description="Multiplier for word count in complexity scoring")
-    complexity_score_cap: float = Field(default=0.3, description="Maximum score for concept complexity (0.0-1.0)")
-    base_concept_score: float = Field(default=0.2, description="Base score for LLM-selected concepts (0.0-1.0)")
+    max_glossary_concepts: int = Field(
+        default=50, description="Maximum number of concepts in glossary"
+    )
+    min_glossary_concepts: int = Field(
+        default=10, description="Minimum number of concepts in glossary"
+    )
+    cross_section_score_cap: float = Field(
+        default=0.5, description="Maximum score for cross-section relevance (0.0-1.0)"
+    )
+    complexity_score_multiplier: float = Field(
+        default=0.2, description="Multiplier for word count in complexity scoring"
+    )
+    complexity_score_cap: float = Field(
+        default=0.3, description="Maximum score for concept complexity (0.0-1.0)"
+    )
+    base_concept_score: float = Field(
+        default=0.2, description="Base score for LLM-selected concepts (0.0-1.0)"
+    )
 
     # NOTE: max_hierarchy_depth is used for --structure-only --max-depth functionality
 
@@ -96,60 +175,113 @@ class CognitiveConfig(BaseModel):
             # LLM settings
             model_name=os.getenv("COGNITIVE_READER_MODEL", "qwen3:8b"),
             temperature=float(os.getenv("COGNITIVE_READER_TEMPERATURE", "0.1")),
-
             # Multi-pass configuration (extensible design)
             max_passes=int(os.getenv("COGNITIVE_READER_MAX_PASSES", "2")),
-            convergence_threshold=float(os.getenv("COGNITIVE_READER_CONVERGENCE_THRESHOLD", "0.1")),
-
+            convergence_threshold=float(
+                os.getenv("COGNITIVE_READER_CONVERGENCE_THRESHOLD", "0.1")
+            ),
             # Dual model settings (fast scan + quality processing) - Always enable fast pass, control second pass
-            enable_fast_first_pass=os.getenv("COGNITIVE_READER_ENABLE_FAST_FIRST_PASS", "true").lower() == "true",
-            fast_pass_model=os.getenv("COGNITIVE_READER_FAST_PASS_MODEL", "llama3.1:8b"),
+            enable_fast_first_pass=os.getenv(
+                "COGNITIVE_READER_ENABLE_FAST_FIRST_PASS", "true"
+            ).lower()
+            == "true",
+            fast_pass_model=os.getenv(
+                "COGNITIVE_READER_FAST_PASS_MODEL", "llama3.1:8b"
+            ),
             main_model=os.getenv("COGNITIVE_READER_MAIN_MODEL", "qwen3:8b"),
-            fast_pass_temperature=float(os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE", "0.1")) if os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE") else None,
-            main_pass_temperature=float(os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE", "0.3")) if os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE") else None,
-
+            fast_pass_temperature=float(
+                os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE", "0.1")
+            )
+            if os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE")
+            else None,
+            main_pass_temperature=float(
+                os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE", "0.3")
+            )
+            if os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE")
+            else None,
             # Cognitive features
-            enable_second_pass=os.getenv("COGNITIVE_READER_ENABLE_SECOND_PASS", "false").lower() == "true",
-            enable_refinement=os.getenv("COGNITIVE_READER_ENABLE_REFINEMENT", "true").lower() == "true",
-            refinement_threshold=float(os.getenv("COGNITIVE_READER_REFINEMENT_THRESHOLD", "0.4")),
-
+            enable_second_pass=os.getenv(
+                "COGNITIVE_READER_ENABLE_SECOND_PASS", "false"
+            ).lower()
+            == "true",
+            enable_refinement=os.getenv(
+                "COGNITIVE_READER_ENABLE_REFINEMENT", "true"
+            ).lower()
+            == "true",
+            refinement_threshold=float(
+                os.getenv("COGNITIVE_READER_REFINEMENT_THRESHOLD", "0.4")
+            ),
             # Processing settings
             chunk_size=int(os.getenv("COGNITIVE_READER_CHUNK_SIZE", "1000")),
             chunk_overlap=int(os.getenv("COGNITIVE_READER_CHUNK_OVERLAP", "200")),
             context_window=int(os.getenv("COGNITIVE_READER_CONTEXT_WINDOW", "4096")),
-
             # Performance settings
             timeout_seconds=int(os.getenv("COGNITIVE_READER_TIMEOUT_SECONDS", "120")),
             max_retries=int(os.getenv("COGNITIVE_READER_MAX_RETRIES", "3")),
-            document_language=LanguageCode(os.getenv("COGNITIVE_READER_LANGUAGE", "auto")),
-
+            document_language=LanguageCode(
+                os.getenv("COGNITIVE_READER_LANGUAGE", "auto")
+            ),
             # LLM Provider configuration
             llm_provider=os.getenv("COGNITIVE_READER_LLM_PROVIDER", "ollama"),
-            ollama_base_url=os.getenv("COGNITIVE_READER_OLLAMA_BASE_URL", "http://localhost:11434"),
-
+            ollama_base_url=os.getenv(
+                "COGNITIVE_READER_OLLAMA_BASE_URL", "http://localhost:11434"
+            ),
             # Summary optimization for RAG/Fine-tuning
-            target_summary_length=int(os.getenv("COGNITIVE_READER_TARGET_SUMMARY_LENGTH", "800")),
-            min_summary_length=int(os.getenv("COGNITIVE_READER_MIN_SUMMARY_LENGTH", "400")),
-            max_summary_length=int(os.getenv("COGNITIVE_READER_MAX_SUMMARY_LENGTH", "1200")),
-            max_hierarchy_depth=int(os.getenv("COGNITIVE_READER_MAX_HIERARCHY_DEPTH", "10")),
-
+            target_summary_length=int(
+                os.getenv("COGNITIVE_READER_TARGET_SUMMARY_LENGTH", "800")
+            ),
+            min_summary_length=int(
+                os.getenv("COGNITIVE_READER_MIN_SUMMARY_LENGTH", "400")
+            ),
+            max_summary_length=int(
+                os.getenv("COGNITIVE_READER_MAX_SUMMARY_LENGTH", "1200")
+            ),
+            max_hierarchy_depth=int(
+                os.getenv("COGNITIVE_READER_MAX_HIERARCHY_DEPTH", "10")
+            ),
             # Development features
             dry_run=os.getenv("COGNITIVE_READER_DRY_RUN", "false").lower() == "true",
-            mock_responses=os.getenv("COGNITIVE_READER_MOCK_RESPONSES", "false").lower() == "true",
-            validate_config_only=os.getenv("COGNITIVE_READER_VALIDATE_CONFIG_ONLY", "false").lower() == "true",
-            save_partial_results=os.getenv("COGNITIVE_READER_SAVE_PARTIAL_RESULTS", "false").lower() == "true",
-            partial_results_dir=os.getenv("COGNITIVE_READER_PARTIAL_RESULTS_DIR", "./partial_results"),
-            max_sections=int(env_val) if (env_val := os.getenv("COGNITIVE_READER_MAX_SECTIONS")) else None,
-            disable_reasoning=os.getenv("COGNITIVE_READER_DISABLE_REASONING", "false").lower() == "true",
-            skip_glossary=os.getenv("COGNITIVE_READER_SKIP_GLOSSARY", "false").lower() == "true",
-
+            mock_responses=os.getenv("COGNITIVE_READER_MOCK_RESPONSES", "false").lower()
+            == "true",
+            validate_config_only=os.getenv(
+                "COGNITIVE_READER_VALIDATE_CONFIG_ONLY", "false"
+            ).lower()
+            == "true",
+            save_partial_results=os.getenv(
+                "COGNITIVE_READER_SAVE_PARTIAL_RESULTS", "false"
+            ).lower()
+            == "true",
+            partial_results_dir=os.getenv(
+                "COGNITIVE_READER_PARTIAL_RESULTS_DIR", "./partial_results"
+            ),
+            max_sections=int(env_val)
+            if (env_val := os.getenv("COGNITIVE_READER_MAX_SECTIONS"))
+            else None,
+            disable_reasoning=os.getenv(
+                "COGNITIVE_READER_DISABLE_REASONING", "false"
+            ).lower()
+            == "true",
+            skip_glossary=os.getenv("COGNITIVE_READER_SKIP_GLOSSARY", "false").lower()
+            == "true",
             # Concept filtering parameters
-            max_glossary_concepts=int(os.getenv("COGNITIVE_READER_MAX_GLOSSARY_CONCEPTS", "50")),
-            min_glossary_concepts=int(os.getenv("COGNITIVE_READER_MIN_GLOSSARY_CONCEPTS", "10")),
-            cross_section_score_cap=float(os.getenv("COGNITIVE_READER_CROSS_SECTION_SCORE_CAP", "0.5")),
-            complexity_score_multiplier=float(os.getenv("COGNITIVE_READER_COMPLEXITY_SCORE_MULTIPLIER", "0.2")),
-            complexity_score_cap=float(os.getenv("COGNITIVE_READER_COMPLEXITY_SCORE_CAP", "0.3")),
-            base_concept_score=float(os.getenv("COGNITIVE_READER_BASE_CONCEPT_SCORE", "0.2")),
+            max_glossary_concepts=int(
+                os.getenv("COGNITIVE_READER_MAX_GLOSSARY_CONCEPTS", "50")
+            ),
+            min_glossary_concepts=int(
+                os.getenv("COGNITIVE_READER_MIN_GLOSSARY_CONCEPTS", "10")
+            ),
+            cross_section_score_cap=float(
+                os.getenv("COGNITIVE_READER_CROSS_SECTION_SCORE_CAP", "0.5")
+            ),
+            complexity_score_multiplier=float(
+                os.getenv("COGNITIVE_READER_COMPLEXITY_SCORE_MULTIPLIER", "0.2")
+            ),
+            complexity_score_cap=float(
+                os.getenv("COGNITIVE_READER_COMPLEXITY_SCORE_CAP", "0.3")
+            ),
+            base_concept_score=float(
+                os.getenv("COGNITIVE_READER_BASE_CONCEPT_SCORE", "0.2")
+            ),
         )
 
     def get_model_for_pass(self, pass_number: int) -> str:
@@ -174,7 +306,11 @@ class CognitiveConfig(BaseModel):
         Returns:
             float: Temperature to use for this pass
         """
-        if pass_number == 1 and self.enable_fast_first_pass and self.fast_pass_temperature is not None:
+        if (
+            pass_number == 1
+            and self.enable_fast_first_pass
+            and self.fast_pass_temperature is not None
+        ):
             return self.fast_pass_temperature
         if pass_number > 1 and self.main_pass_temperature is not None:
             return self.main_pass_temperature
@@ -186,8 +322,4 @@ class CognitiveConfig(BaseModel):
         Returns:
             bool: True if any development or testing mode is enabled.
         """
-        return (
-            self.dry_run
-            or self.mock_responses
-            or self.validate_config_only
-        )
+        return self.dry_run or self.mock_responses or self.validate_config_only

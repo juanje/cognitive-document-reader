@@ -44,7 +44,12 @@ class TestUnifiedPromptSystem:
 
     def test_all_prompt_types_work_with_different_languages(self):
         """Test all prompt types work with different languages."""
-        prompt_types = ["section_summary", "document_summary", "concept_extraction", "concept_definition"]
+        prompt_types = [
+            "section_summary",
+            "document_summary",
+            "concept_extraction",
+            "concept_definition",
+        ]
         languages = [LanguageCode.EN, LanguageCode.ES]
 
         for prompt_type in prompt_types:
@@ -52,7 +57,9 @@ class TestUnifiedPromptSystem:
                 prompt = self.prompt_manager.get_prompt(prompt_type, language)
 
                 # Should contain the correct language instruction
-                expected_lang_name = "English" if language == LanguageCode.EN else "Spanish"
+                expected_lang_name = (
+                    "English" if language == LanguageCode.EN else "Spanish"
+                )
                 assert f"**IMPORTANT: Respond in {expected_lang_name}.**" in prompt
 
                 # Should not contain the placeholder anymore
@@ -64,7 +71,7 @@ class TestUnifiedPromptSystem:
             section_title="Introducción",
             section_content="Este es el contenido de la sección.",
             accumulated_context="Contexto previo del documento.",
-            language=LanguageCode.ES
+            language=LanguageCode.ES,
         )
 
         # Should contain the Spanish instruction
@@ -86,7 +93,7 @@ class TestUnifiedPromptSystem:
             section_title="Introduction",
             section_content="This is the section content.",
             accumulated_context="Previous document context.",
-            language=LanguageCode.EN
+            language=LanguageCode.EN,
         )
 
         # Should contain the English instruction
@@ -103,7 +110,7 @@ class TestUnifiedPromptSystem:
             formatted = self.prompt_manager.format_document_summary_prompt(
                 document_title="Test Document",
                 section_summaries=["Summary 1", "Summary 2"],
-                language=language
+                language=language,
             )
 
             # Should contain correct language instruction
@@ -121,7 +128,7 @@ class TestUnifiedPromptSystem:
             formatted = self.prompt_manager.format_concept_definition_prompt(
                 concept_name="machine learning",
                 context="Context about machine learning in the document.",
-                language=language
+                language=language,
             )
 
             # Should contain correct language instruction
@@ -138,18 +145,23 @@ class TestUnifiedPromptSystem:
         prompt_manager = PromptManager()
 
         # These old methods should not exist
-        assert not hasattr(prompt_manager, '_get_section_summary_prompt_en')
-        assert not hasattr(prompt_manager, '_get_section_summary_prompt_es')
-        assert not hasattr(prompt_manager, '_get_document_summary_prompt_en')
-        assert not hasattr(prompt_manager, '_get_document_summary_prompt_es')
-        assert not hasattr(prompt_manager, '_get_concept_extraction_prompt_en')
-        assert not hasattr(prompt_manager, '_get_concept_extraction_prompt_es')
-        assert not hasattr(prompt_manager, '_get_concept_definition_prompt_en')
-        assert not hasattr(prompt_manager, '_get_concept_definition_prompt_es')
+        assert not hasattr(prompt_manager, "_get_section_summary_prompt_en")
+        assert not hasattr(prompt_manager, "_get_section_summary_prompt_es")
+        assert not hasattr(prompt_manager, "_get_document_summary_prompt_en")
+        assert not hasattr(prompt_manager, "_get_document_summary_prompt_es")
+        assert not hasattr(prompt_manager, "_get_concept_extraction_prompt_en")
+        assert not hasattr(prompt_manager, "_get_concept_extraction_prompt_es")
+        assert not hasattr(prompt_manager, "_get_concept_definition_prompt_en")
+        assert not hasattr(prompt_manager, "_get_concept_definition_prompt_es")
 
     def test_unified_prompts_are_complete(self):
         """Test that all unified prompts contain essential elements."""
-        prompt_types = ["section_summary", "document_summary", "concept_extraction", "concept_definition"]
+        prompt_types = [
+            "section_summary",
+            "document_summary",
+            "concept_extraction",
+            "concept_definition",
+        ]
 
         for prompt_type in prompt_types:
             template = self.prompt_manager._prompts[prompt_type]
@@ -159,7 +171,10 @@ class TestUnifiedPromptSystem:
 
             # Should contain instructions and response format
             assert "INSTRUCTIONS:" in template
-            assert "RESPONSE FORMAT:" in template or "Generate the definition now:" in template
+            assert (
+                "RESPONSE FORMAT:" in template
+                or "Generate the definition now:" in template
+            )
 
     def test_version_updated(self):
         """Test that prompt version was updated to reflect concept contamination fixes."""
@@ -179,7 +194,9 @@ class TestUnifiedPromptSystem:
             template = self.prompt_manager._prompts[prompt_type]
 
             # Should contain direct synthesis instructions
-            assert "DIRECT" in template and ("SYNTHESIS" in template or "DEFINITION" in template)
+            assert "DIRECT" in template and (
+                "SYNTHESIS" in template or "DEFINITION" in template
+            )
 
             # Should contain avoidance of meta-references
             assert "AVOID meta-references" in template
@@ -262,8 +279,12 @@ class TestUnifiedPromptSystem:
 
     def test_concept_extraction_multilingual_examples(self):
         """Test that concept extraction has proper guidance in multiple languages."""
-        prompt_en = self.prompt_manager.get_prompt("concept_extraction", LanguageCode.EN)
-        prompt_es = self.prompt_manager.get_prompt("concept_extraction", LanguageCode.ES)
+        prompt_en = self.prompt_manager.get_prompt(
+            "concept_extraction", LanguageCode.EN
+        )
+        prompt_es = self.prompt_manager.get_prompt(
+            "concept_extraction", LanguageCode.ES
+        )
 
         # Both should contain proper language instruction and guidance
         for prompt, lang in [(prompt_en, "English"), (prompt_es, "Spanish")]:

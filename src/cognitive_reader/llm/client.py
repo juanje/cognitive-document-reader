@@ -37,7 +37,9 @@ class LLMClient:
 
         # Initialize LangChain LLM based on provider
         self._llm = self._create_llm_provider()
-        self._fast_llm = self._create_fast_llm_provider() if config.fast_pass_model else None
+        self._fast_llm = (
+            self._create_fast_llm_provider() if config.fast_pass_model else None
+        )
 
     def _create_llm_provider(self) -> BaseChatModel:
         """Create LangChain Chat Model provider based on configuration.
@@ -57,7 +59,8 @@ class LLMClient:
             return ChatOllama(
                 model=main_model,
                 base_url=self.config.ollama_base_url,
-                temperature=self.config.main_pass_temperature or self.config.temperature,
+                temperature=self.config.main_pass_temperature
+                or self.config.temperature,
                 num_ctx=self.config.context_window,
                 reasoning=reasoning_param,
             )
@@ -80,7 +83,8 @@ class LLMClient:
             return ChatOllama(
                 model=self.config.fast_pass_model,
                 base_url=self.config.ollama_base_url,
-                temperature=self.config.fast_pass_temperature or self.config.temperature,
+                temperature=self.config.fast_pass_temperature
+                or self.config.temperature,
                 num_ctx=self.config.context_window,
                 reasoning=reasoning_param,
             )
@@ -98,8 +102,6 @@ class LLMClient:
         """Async context manager exit."""
         if self._session:
             await self._session.close()
-
-
 
     async def generate_summary(
         self,
@@ -151,7 +153,9 @@ class LLMClient:
             raise ValueError(f"Unsupported prompt type: {prompt_type}")
 
         # Generate with retry logic
-        return await self._generate_with_retries(prompt, model=model, temperature=temperature)
+        return await self._generate_with_retries(
+            prompt, model=model, temperature=temperature
+        )
 
     async def extract_concepts(
         self,
@@ -183,12 +187,16 @@ class LLMClient:
             language=language,
         )
 
-        response = await self._generate_with_retries(prompt, model=model, temperature=temperature)
+        response = await self._generate_with_retries(
+            prompt, model=model, temperature=temperature
+        )
 
         # Parse concepts from response
         return self._parse_concepts_response(response)
 
-    async def _generate_with_retries(self, prompt: str, model: str | None = None, temperature: float | None = None) -> str:
+    async def _generate_with_retries(
+        self, prompt: str, model: str | None = None, temperature: float | None = None
+    ) -> str:
         """Generate response with retry logic using LangChain.
 
         Args:
@@ -206,7 +214,9 @@ class LLMClient:
 
         for attempt in range(self.config.max_retries + 1):
             try:
-                return await self._call_langchain_llm(prompt, model=model, temperature=temperature)
+                return await self._call_langchain_llm(
+                    prompt, model=model, temperature=temperature
+                )
             except Exception as e:
                 last_error = e
                 logger.warning(f"LLM call attempt {attempt + 1} failed: {e}")
@@ -221,7 +231,9 @@ class LLMClient:
             f"LLM generation failed after {self.config.max_retries + 1} attempts: {last_error}"
         )
 
-    async def _call_langchain_llm(self, prompt: str, model: str | None = None, temperature: float | None = None) -> str:
+    async def _call_langchain_llm(
+        self, prompt: str, model: str | None = None, temperature: float | None = None
+    ) -> str:
         """Make actual call to LLM using LangChain.
 
         Args:
@@ -234,10 +246,12 @@ class LLMClient:
         """
         # Select appropriate LLM (fast vs main)
         # If specific model requested and matches fast model, use fast LLM
-        if (model and
-            self._fast_llm and
-            self.config.fast_pass_model and
-            model == self.config.fast_pass_model):
+        if (
+            model
+            and self._fast_llm
+            and self.config.fast_pass_model
+            and model == self.config.fast_pass_model
+        ):
             selected_llm = self._fast_llm
         else:
             selected_llm = self._llm
@@ -270,7 +284,7 @@ class LLMClient:
         try:
             response = await selected_llm.ainvoke(prompt)
             # ChatOllama returns AIMessage objects, extract content
-            if hasattr(response, 'content'):
+            if hasattr(response, "content"):
                 return str(response.content).strip()
             else:
                 return str(response).strip()
@@ -406,9 +420,7 @@ class LLMClient:
                     # Check if configured model is available
                     # Check if the main model is available
                     main_model = self.config.main_model or self.config.model_name
-                    main_model_available = any(
-                        main_model in model for model in models
-                    )
+                    main_model_available = any(main_model in model for model in models)
 
                     if not main_model_available:
                         logger.warning(
@@ -417,7 +429,10 @@ class LLMClient:
 
                     # Also check fast model if configured
                     fast_model_available = True
-                    if self.config.enable_fast_first_pass and self.config.fast_pass_model:
+                    if (
+                        self.config.enable_fast_first_pass
+                        and self.config.fast_pass_model
+                    ):
                         fast_model_available = any(
                             self.config.fast_pass_model in model for model in models
                         )

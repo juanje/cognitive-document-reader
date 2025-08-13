@@ -134,7 +134,7 @@ This is a complex technical document that requires analysis.
 
     # Fast mode - quicker processing
     fast_config = ReadingConfig(
-        fast_mode=True,   # Uses llama3.1:8b
+        fast_mode=True,  # Uses llama3.1:8b
         dry_run=True,
         mock_responses=True,
     )
@@ -145,26 +145,38 @@ This is a complex technical document that requires analysis.
     # Process with quality mode
     print("\n📊 Processing with quality mode (detailed analysis)...")
     quality_reader = CognitiveReader(quality_config)
-    quality_result = await quality_reader.read_document_text(test_text, "Technical Document")
+    quality_result = await quality_reader.read_document_text(
+        test_text, "Technical Document"
+    )
 
     # Process with fast mode
     print("\n⚡ Processing with fast mode (quick analysis)...")
     fast_reader = CognitiveReader(fast_config)
     fast_result = await fast_reader.read_document_text(test_text, "Technical Document")
 
-    print(f"\nQuality mode - Model used: {quality_result.processing_metadata.get('model_used')}")
-    print(f"Fast mode - Model used: {fast_result.processing_metadata.get('model_used')}")
+    print(
+        f"\nQuality mode - Model used: {quality_result.processing_metadata.get('model_used')}"
+    )
+    print(
+        f"Fast mode - Model used: {fast_result.processing_metadata.get('model_used')}"
+    )
 
     # Mode switching example
     print("\n🔄 Mode switching example:")
     base_config = ReadingConfig(dry_run=True, mock_responses=True)
-    print(f"Base config: {base_config.active_model} (fast_mode: {base_config.fast_mode})")
+    print(
+        f"Base config: {base_config.active_model} (fast_mode: {base_config.fast_mode})"
+    )
 
     fast_version = base_config.enable_fast_mode()
-    print(f"Fast version: {fast_version.active_model} (fast_mode: {fast_version.fast_mode})")
+    print(
+        f"Fast version: {fast_version.active_model} (fast_mode: {fast_version.fast_mode})"
+    )
 
     quality_version = fast_version.enable_quality_mode()
-    print(f"Quality version: {quality_version.active_model} (fast_mode: {quality_version.fast_mode})")
+    print(
+        f"Quality version: {quality_version.active_model} (fast_mode: {quality_version.fast_mode})"
+    )
 
     print("Dual mode example completed.")
 

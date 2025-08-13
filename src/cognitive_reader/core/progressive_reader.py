@@ -34,16 +34,22 @@ class CognitiveReader:
         """
         self.config = config or CognitiveConfig.from_env()
         self.parser = DoclingParser()
-        self.synthesizer = Synthesizer(self.config, save_partial_result_fn=self._save_partial_result)
+        self.synthesizer = Synthesizer(
+            self.config, save_partial_result_fn=self._save_partial_result
+        )
         self.language_detector = LanguageDetector()
 
         # Log the actual processing strategy being used
         if self.config.enable_second_pass:
-            logger.info(f"CognitiveReader initialized with dual-pass: fast={self.config.fast_pass_model}, main={self.config.main_model}")
+            logger.info(
+                f"CognitiveReader initialized with dual-pass: fast={self.config.fast_pass_model}, main={self.config.main_model}"
+            )
         else:
             # Single-pass: only fast first pass enabled
             active_model = self.config.fast_pass_model or self.config.model_name
-            logger.info(f"CognitiveReader initialized with single-pass (fast model): {active_model}")
+            logger.info(
+                f"CognitiveReader initialized with single-pass (fast model): {active_model}"
+            )
 
         if self.config.is_development_mode():
             logger.info("Development mode enabled - no real LLM calls will be made")
@@ -219,7 +225,9 @@ class CognitiveReader:
         # Apply development filters if configured
         filtered_sections = self._apply_section_filters(ordered_sections)
 
-        logger.info(f"Processing {len(filtered_sections)} sections using hierarchical algorithm")
+        logger.info(
+            f"Processing {len(filtered_sections)} sections using hierarchical algorithm"
+        )
 
         # Use hierarchical bottom-up processing instead of sequential
         return await self._hierarchical_processing(filtered_sections, language)
@@ -233,7 +241,7 @@ class CognitiveReader:
         pass_name: str = "single_pass",
         model: str | None = None,
         temperature: float | None = None,
-        previous_summaries: dict[str, SectionSummary] | None = None
+        previous_summaries: dict[str, SectionSummary] | None = None,
     ) -> dict[str, SectionSummary]:
         """Perform single-pass reading with specified model.
 
@@ -281,8 +289,12 @@ class CognitiveReader:
 
                 # Generate section summary with accumulated context
                 summary = await self._process_section(
-                    section, section_context, language, llm_client,
-                    model=effective_model, temperature=temperature
+                    section,
+                    section_context,
+                    language,
+                    llm_client,
+                    model=effective_model,
+                    temperature=temperature,
                 )
 
                 if summary:
@@ -295,7 +307,9 @@ class CognitiveReader:
 
                     logger.debug(f"[{pass_name}] Section processed: {section.title}")
                 else:
-                    logger.warning(f"[{pass_name}] Failed to process section: {section.title}")
+                    logger.warning(
+                        f"[{pass_name}] Failed to process section: {section.title}"
+                    )
 
         logger.info(
             f"{pass_name.title()} completed: {len(section_summaries)} summaries generated"
@@ -475,10 +489,14 @@ class CognitiveReader:
         levels = self._organize_by_level(sections)
         max_level = max(levels.keys()) if levels else 0
 
-        logger.info(f"Hierarchical structure: {len(levels)} levels (max depth: {max_level})")
+        logger.info(
+            f"Hierarchical structure: {len(levels)} levels (max depth: {max_level})"
+        )
         for level, level_sections in levels.items():
             section_titles = [s.title for s in level_sections]
-            logger.info(f"  Level {level}: {len(level_sections)} sections - {section_titles}")
+            logger.info(
+                f"  Level {level}: {len(level_sections)} sections - {section_titles}"
+            )
 
         processing_model = self.config.fast_pass_model or self.config.model_name
         logger.info(
@@ -548,12 +566,16 @@ class CognitiveReader:
                         section, summary, len(summaries)
                     )
                 else:
-                    logger.warning(f"❌ Failed to process '{section.title}' (level {level})")
+                    logger.warning(
+                        f"❌ Failed to process '{section.title}' (level {level})"
+                    )
 
         logger.info(f"Hybrid processing completed: {len(summaries)} sections processed")
         return summaries
 
-    def _organize_by_level(self, sections: list[DocumentSection]) -> dict[int, list[DocumentSection]]:
+    def _organize_by_level(
+        self, sections: list[DocumentSection]
+    ) -> dict[int, list[DocumentSection]]:
         """Organize sections by hierarchy level.
 
         Args:
@@ -837,7 +859,7 @@ Subsection summaries:
                 llm_client,
                 model=model,
                 temperature=temperature,
-                content=content
+                content=content,
             )
 
     def _apply_section_filters(
@@ -907,8 +929,7 @@ Subsection summaries:
         processing_stage: str = "section_processing",
         concepts: list[Any] | None = None,
     ) -> None:
-        """Save partial processing result for debugging and evaluation.
-        """
+        """Save partial processing result for debugging and evaluation."""
         if not self.config.save_partial_results:
             return
         try:
@@ -921,7 +942,9 @@ Subsection summaries:
                 "progress": {
                     "section_index": section_index,
                     "total_sections": total_sections,
-                    "progress_percentage": round((section_index / total_sections) * 100, 1),
+                    "progress_percentage": round(
+                        (section_index / total_sections) * 100, 1
+                    ),
                 },
                 "type": section_type,
                 "processing_stage": processing_stage,
@@ -968,18 +991,22 @@ Subsection summaries:
                 concept_details = []
                 if concepts:
                     for concept in concepts:
-                        concept_details.append({
-                            "concept_id": concept.concept_id,
-                            "name": concept.name,
-                            "definition": concept.definition,
-                            "first_mentioned_in": concept.first_mentioned_in,
-                            "relevant_sections": concept.relevant_sections,
-                        })
+                        concept_details.append(
+                            {
+                                "concept_id": concept.concept_id,
+                                "name": concept.name,
+                                "definition": concept.definition,
+                                "first_mentioned_in": concept.first_mentioned_in,
+                                "relevant_sections": concept.relevant_sections,
+                            }
+                        )
 
                 partial_result["concept_definitions"] = {
                     "count": len(concepts) if concepts else 0,
                     "description": content,
-                    "concepts_preview": [c.concept_id for c in (concepts[:5] if concepts else [])],
+                    "concepts_preview": [
+                        c.concept_id for c in (concepts[:5] if concepts else [])
+                    ],
                     "full_definitions": concept_details,  # Complete definitions for debugging
                 }
 
@@ -994,7 +1021,9 @@ Subsection summaries:
 
         except Exception as e:
             # Don't fail the main process if partial saving fails
-            logger.warning(f"Failed to save partial result for {section_type} {section_index}: {e}")
+            logger.warning(
+                f"Failed to save partial result for {section_type} {section_index}: {e}"
+            )
 
     def _detect_document_language(
         self, sections: list[DocumentSection]

@@ -159,11 +159,9 @@ class TestMaxDepthCLI:
         runner = CliRunner()
 
         # Test with structure-only mode (existing functionality)
-        result = runner.invoke(cli, [
-            'examples/sample_document.md',
-            '--max-depth=2',
-            '--structure-only'
-        ])
+        result = runner.invoke(
+            cli, ["examples/sample_document.md", "--max-depth=2", "--structure-only"]
+        )
 
         assert result.exit_code == 0
         assert "Cognitive Document Reader Example" in result.output
@@ -172,12 +170,10 @@ class TestMaxDepthCLI:
         """Test that --max-depth works with processing mode."""
         runner = CliRunner()
 
-        result = runner.invoke(cli, [
-            'examples/sample_document.md',
-            '--max-depth=2',
-            '--dry-run',
-            '--quiet'
-        ])
+        result = runner.invoke(
+            cli,
+            ["examples/sample_document.md", "--max-depth=2", "--dry-run", "--quiet"],
+        )
 
         assert result.exit_code == 0
         # Should show some sections processed (basic functionality test)
@@ -187,12 +183,10 @@ class TestMaxDepthCLI:
         """Test that --max-depth shows development mode info."""
         runner = CliRunner()
 
-        result = runner.invoke(cli, [
-            'examples/sample_document.md',
-            '--max-depth=2',
-            '--dry-run',
-            '--verbose'
-        ])
+        result = runner.invoke(
+            cli,
+            ["examples/sample_document.md", "--max-depth=2", "--dry-run", "--verbose"],
+        )
 
         assert result.exit_code == 0
         assert "max-depth=2" in result.output

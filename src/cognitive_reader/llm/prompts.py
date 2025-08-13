@@ -13,7 +13,9 @@ class PromptManager:
     """
 
     # Prompt version for tracking changes
-    PROMPT_VERSION = "v1.4.0"  # Fixed concept contamination and improved definition accuracy
+    PROMPT_VERSION = (
+        "v1.4.0"  # Fixed concept contamination and improved definition accuracy
+    )
 
     # Language code to full name mapping
     LANGUAGE_NAMES = {
@@ -149,9 +151,7 @@ class PromptManager:
         """
         template = self.get_prompt("concept_definition", language)
 
-        return template.format(
-            concept_name=concept_name, context=context
-        )
+        return template.format(concept_name=concept_name, context=context)
 
     def _initialize_prompts(self) -> dict[str, str]:
         """Initialize all prompt templates.

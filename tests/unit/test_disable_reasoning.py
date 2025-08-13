@@ -39,7 +39,7 @@ class TestDisableReasoningFeature:
         client = LLMClient(config)
 
         # Check that main LLM was created with reasoning=False
-        assert hasattr(client._llm, 'reasoning')
+        assert hasattr(client._llm, "reasoning")
         # The reasoning parameter should be False (disabled)
         assert client._llm.reasoning is False
 
@@ -53,7 +53,7 @@ class TestDisableReasoningFeature:
         client = LLMClient(config)
 
         # Check that main LLM was created with reasoning=None (default behavior)
-        assert hasattr(client._llm, 'reasoning')
+        assert hasattr(client._llm, "reasoning")
         # The reasoning parameter should be None (default)
         assert client._llm.reasoning is None
 
@@ -69,7 +69,7 @@ class TestDisableReasoningFeature:
 
         # Check that fast LLM was created with reasoning=False
         assert client._fast_llm is not None
-        assert hasattr(client._fast_llm, 'reasoning')
+        assert hasattr(client._fast_llm, "reasoning")
         assert client._fast_llm.reasoning is False
 
     def test_env_variable_loading(self):
@@ -87,8 +87,11 @@ class TestDisableReasoningFeature:
             assert config.disable_reasoning is False
 
         # Test with no environment variable (should default to False)
-        env_without_reasoning = {k: v for k, v in os.environ.items()
-                                if k != "COGNITIVE_READER_DISABLE_REASONING"}
+        env_without_reasoning = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "COGNITIVE_READER_DISABLE_REASONING"
+        }
         with patch.dict(os.environ, env_without_reasoning, clear=True):
             config = CognitiveConfig.from_env()
             assert config.disable_reasoning is False
@@ -106,11 +109,14 @@ class TestCLIIntegration:
         runner = CliRunner()
 
         # Test with --disable-reasoning flag (only test that it doesn't crash)
-        result = runner.invoke(cli, [
-            "--disable-reasoning",
-            "--dry-run",
-            "--help"  # Just show help instead of trying to process
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--disable-reasoning",
+                "--dry-run",
+                "--help",  # Just show help instead of trying to process
+            ],
+        )
 
         # Should not crash with a serious error (exit code 0 or 1 for help is fine)
         assert result.exit_code in [0, 1]  # 0 = success, 1 = help shown

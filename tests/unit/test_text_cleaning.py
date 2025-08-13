@@ -280,7 +280,9 @@ class TestMarkdownToPlainText:
         assert "]" not in result
         assert "(" not in result or "http" not in result  # URLs should be gone
         assert "`" not in result
-        assert "#" not in result or "#{" not in result  # Headers cleaned, but {#} might remain
+        assert (
+            "#" not in result or "#{" not in result
+        )  # Headers cleaned, but {#} might remain
 
     def test_nested_formatting(self) -> None:
         """Test nested markdown formatting."""
@@ -374,11 +376,7 @@ class TestStructureDetectorIntegration:
 
         # Mock document elements with internal links
         elements = [
-            {
-                "type": "heading_1",
-                "text": "## Introduction {#introduction}",
-                "level": 1
-            }
+            {"type": "heading_1", "text": "## Introduction {#introduction}", "level": 1}
         ]
 
         sections = detector.detect_structure(elements)
@@ -401,13 +399,7 @@ class TestStructureDetectorIntegration:
         # Mock heading content with internal links
         content_with_links = "Advanced Topic {#advanced-topic} with Links {#links}"
 
-        elements = [
-            {
-                "type": "heading_2",
-                "text": content_with_links,
-                "level": 2
-            }
-        ]
+        elements = [{"type": "heading_2", "text": content_with_links, "level": 2}]
 
         sections = detector.detect_structure(elements)
 
@@ -437,13 +429,7 @@ class TestStructureDetectorIntegration:
         # Use heading_2 type to trigger section creation
         complex_content = "## Advanced Topics {#advanced-topics-section} with content about {#link-with-dashes}, {#link_with_underscores}, and {#link123numbers} patterns."
 
-        elements = [
-            {
-                "type": "heading_2",
-                "text": complex_content,
-                "level": 2
-            }
-        ]
+        elements = [{"type": "heading_2", "text": complex_content, "level": 2}]
 
         sections = detector.detect_structure(elements)
 

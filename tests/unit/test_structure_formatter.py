@@ -138,16 +138,36 @@ class TestFormatStructureAsText:
         """Test filtering to show only headings, not content sections."""
         sections = [
             DocumentSection(
-                id="1", title="Chapter 1", content="", level=1, order_index=1, is_heading=True
+                id="1",
+                title="Chapter 1",
+                content="",
+                level=1,
+                order_index=1,
+                is_heading=True,
             ),
             DocumentSection(
-                id="2", title="Some paragraph content here...", content="", level=1, order_index=2, is_heading=False
+                id="2",
+                title="Some paragraph content here...",
+                content="",
+                level=1,
+                order_index=2,
+                is_heading=False,
             ),
             DocumentSection(
-                id="3", title="Section 1.1", content="", level=2, order_index=3, is_heading=True
+                id="3",
+                title="Section 1.1",
+                content="",
+                level=2,
+                order_index=3,
+                is_heading=True,
             ),
             DocumentSection(
-                id="4", title="Another paragraph...", content="", level=2, order_index=4, is_heading=False
+                id="4",
+                title="Another paragraph...",
+                content="",
+                level=2,
+                order_index=4,
+                is_heading=False,
             ),
         ]
 
@@ -173,10 +193,20 @@ class TestFormatStructureAsText:
         """Test headings_only filter when no headings exist."""
         sections = [
             DocumentSection(
-                id="1", title="Some content", content="", level=1, order_index=1, is_heading=False
+                id="1",
+                title="Some content",
+                content="",
+                level=1,
+                order_index=1,
+                is_heading=False,
             ),
             DocumentSection(
-                id="2", title="More content", content="", level=1, order_index=2, is_heading=False
+                id="2",
+                title="More content",
+                content="",
+                level=1,
+                order_index=2,
+                is_heading=False,
             ),
         ]
 
@@ -233,8 +263,12 @@ class TestFormatStructureAsJson:
                 id="section_1", title="Chapter 1", content="", level=1, order_index=1
             ),
             DocumentSection(
-                id="section_2", title="Section 1.1", content="", level=2, order_index=2,
-                parent_id="section_1"
+                id="section_2",
+                title="Section 1.1",
+                content="",
+                level=2,
+                order_index=2,
+                parent_id="section_1",
             ),
         ]
 
@@ -282,10 +316,18 @@ class TestFormatStructureCompact:
     def test_format_multiple_sections_compact(self) -> None:
         """Test compact formatting with multiple sections."""
         sections = [
-            DocumentSection(id="1", title="Chapter 1", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Section 1.1", content="", level=2, order_index=2),
-            DocumentSection(id="3", title="Section 1.2", content="", level=2, order_index=3),
-            DocumentSection(id="4", title="Chapter 2", content="", level=1, order_index=4),
+            DocumentSection(
+                id="1", title="Chapter 1", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Section 1.1", content="", level=2, order_index=2
+            ),
+            DocumentSection(
+                id="3", title="Section 1.2", content="", level=2, order_index=3
+            ),
+            DocumentSection(
+                id="4", title="Chapter 2", content="", level=1, order_index=4
+            ),
         ]
 
         result = format_structure_compact(sections)
@@ -296,7 +338,9 @@ class TestFormatStructureCompact:
     def test_format_many_sections_truncated(self) -> None:
         """Test compact formatting truncates when too many sections."""
         sections = [
-            DocumentSection(id=f"{i}", title=f"Section {i}", content="", level=1, order_index=i)
+            DocumentSection(
+                id=f"{i}", title=f"Section {i}", content="", level=1, order_index=i
+            )
             for i in range(1, 8)  # 7 sections
         ]
 
@@ -325,15 +369,19 @@ class TestGetStructureSummary:
             "total_sections": 0,
             "max_depth": 0,
             "sections_by_level": {},
-            "has_hierarchy": False
+            "has_hierarchy": False,
         }
         assert summary == expected
 
     def test_flat_structure_summary(self) -> None:
         """Test summary of flat structure."""
         sections = [
-            DocumentSection(id="1", title="Section 1", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Section 2", content="", level=1, order_index=2),
+            DocumentSection(
+                id="1", title="Section 1", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Section 2", content="", level=1, order_index=2
+            ),
         ]
 
         summary = get_structure_summary(sections)
@@ -342,17 +390,25 @@ class TestGetStructureSummary:
             "total_sections": 2,
             "max_depth": 1,
             "sections_by_level": {1: 2},
-            "has_hierarchy": False
+            "has_hierarchy": False,
         }
         assert summary == expected
 
     def test_hierarchical_structure_summary(self) -> None:
         """Test summary of hierarchical structure."""
         sections = [
-            DocumentSection(id="1", title="Chapter", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Section 1", content="", level=2, order_index=2),
-            DocumentSection(id="3", title="Section 2", content="", level=2, order_index=3),
-            DocumentSection(id="4", title="Subsection", content="", level=3, order_index=4),
+            DocumentSection(
+                id="1", title="Chapter", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Section 1", content="", level=2, order_index=2
+            ),
+            DocumentSection(
+                id="3", title="Section 2", content="", level=2, order_index=3
+            ),
+            DocumentSection(
+                id="4", title="Subsection", content="", level=3, order_index=4
+            ),
         ]
 
         summary = get_structure_summary(sections)
@@ -361,7 +417,7 @@ class TestGetStructureSummary:
             "total_sections": 4,
             "max_depth": 3,
             "sections_by_level": {1: 1, 2: 2, 3: 1},
-            "has_hierarchy": True
+            "has_hierarchy": True,
         }
         assert summary == expected
 
@@ -380,9 +436,15 @@ class TestValidateStructureIntegrity:
     def test_validate_valid_structure(self) -> None:
         """Test validation of valid structure."""
         sections = [
-            DocumentSection(id="1", title="Chapter 1", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Section 1.1", content="", level=2, order_index=2),
-            DocumentSection(id="3", title="Chapter 2", content="", level=1, order_index=3),
+            DocumentSection(
+                id="1", title="Chapter 1", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Section 1.1", content="", level=2, order_index=2
+            ),
+            DocumentSection(
+                id="3", title="Chapter 2", content="", level=1, order_index=3
+            ),
         ]
 
         issues = validate_structure_integrity(sections)
@@ -392,8 +454,12 @@ class TestValidateStructureIntegrity:
     def test_validate_gap_in_order_indices(self) -> None:
         """Test validation detects gaps in order indices."""
         sections = [
-            DocumentSection(id="1", title="Section 1", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Section 3", content="", level=1, order_index=3),  # Gap: missing 2
+            DocumentSection(
+                id="1", title="Section 1", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Section 3", content="", level=1, order_index=3
+            ),  # Gap: missing 2
         ]
 
         issues = validate_structure_integrity(sections)
@@ -404,8 +470,12 @@ class TestValidateStructureIntegrity:
     def test_validate_large_level_jump(self) -> None:
         """Test validation detects large level jumps."""
         sections = [
-            DocumentSection(id="1", title="Chapter", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Deep section", content="", level=4, order_index=2),  # Jump from 1 to 4
+            DocumentSection(
+                id="1", title="Chapter", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Deep section", content="", level=4, order_index=2
+            ),  # Jump from 1 to 4
         ]
 
         issues = validate_structure_integrity(sections)
@@ -416,7 +486,9 @@ class TestValidateStructureIntegrity:
     def test_validate_starts_with_high_level(self) -> None:
         """Test validation detects document starting with high level."""
         sections = [
-            DocumentSection(id="1", title="Subsection", content="", level=3, order_index=1),  # Starts with level 3
+            DocumentSection(
+                id="1", title="Subsection", content="", level=3, order_index=1
+            ),  # Starts with level 3
         ]
 
         issues = validate_structure_integrity(sections)
@@ -438,8 +510,12 @@ class TestFilterSectionsByDepth:
     def test_filter_single_level(self) -> None:
         """Test filtering with single level sections."""
         sections = [
-            DocumentSection(id="1", title="Section 1", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Section 2", content="", level=1, order_index=2),
+            DocumentSection(
+                id="1", title="Section 1", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Section 2", content="", level=1, order_index=2
+            ),
         ]
 
         result = filter_sections_by_depth(sections, 1)
@@ -450,12 +526,24 @@ class TestFilterSectionsByDepth:
     def test_filter_hierarchical_structure(self) -> None:
         """Test filtering hierarchical structure."""
         sections = [
-            DocumentSection(id="1", title="Chapter 1", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Section 1.1", content="", level=2, order_index=2),
-            DocumentSection(id="3", title="Subsection 1.1.1", content="", level=3, order_index=3),
-            DocumentSection(id="4", title="Subsection 1.1.2", content="", level=3, order_index=4),
-            DocumentSection(id="5", title="Section 1.2", content="", level=2, order_index=5),
-            DocumentSection(id="6", title="Chapter 2", content="", level=1, order_index=6),
+            DocumentSection(
+                id="1", title="Chapter 1", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Section 1.1", content="", level=2, order_index=2
+            ),
+            DocumentSection(
+                id="3", title="Subsection 1.1.1", content="", level=3, order_index=3
+            ),
+            DocumentSection(
+                id="4", title="Subsection 1.1.2", content="", level=3, order_index=4
+            ),
+            DocumentSection(
+                id="5", title="Section 1.2", content="", level=2, order_index=5
+            ),
+            DocumentSection(
+                id="6", title="Chapter 2", content="", level=1, order_index=6
+            ),
         ]
 
         # Filter to depth 2 (should include levels 1 and 2 only)
@@ -473,11 +561,21 @@ class TestFilterSectionsByDepth:
     def test_filter_deep_hierarchy(self) -> None:
         """Test filtering very deep hierarchy."""
         sections = [
-            DocumentSection(id="1", title="Level 1", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Level 2", content="", level=2, order_index=2),
-            DocumentSection(id="3", title="Level 3", content="", level=3, order_index=3),
-            DocumentSection(id="4", title="Level 4", content="", level=4, order_index=4),
-            DocumentSection(id="5", title="Level 5", content="", level=5, order_index=5),
+            DocumentSection(
+                id="1", title="Level 1", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Level 2", content="", level=2, order_index=2
+            ),
+            DocumentSection(
+                id="3", title="Level 3", content="", level=3, order_index=3
+            ),
+            DocumentSection(
+                id="4", title="Level 4", content="", level=4, order_index=4
+            ),
+            DocumentSection(
+                id="5", title="Level 5", content="", level=5, order_index=5
+            ),
         ]
 
         # Filter to depth 3
@@ -506,8 +604,12 @@ class TestFilterSectionsByDepth:
     def test_filter_max_depth_higher_than_any_level(self) -> None:
         """Test filtering with max_depth higher than any section level."""
         sections = [
-            DocumentSection(id="1", title="Level 1", content="", level=1, order_index=1),
-            DocumentSection(id="2", title="Level 2", content="", level=2, order_index=2),
+            DocumentSection(
+                id="1", title="Level 1", content="", level=1, order_index=1
+            ),
+            DocumentSection(
+                id="2", title="Level 2", content="", level=2, order_index=2
+            ),
         ]
 
         result = filter_sections_by_depth(sections, 10)

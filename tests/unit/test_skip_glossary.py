@@ -46,8 +46,9 @@ class TestSkipGlossaryFeature:
             assert config.skip_glossary is False
 
         # Test with no environment variable (should default to False)
-        env_without_glossary = {k: v for k, v in os.environ.items()
-                               if k != "COGNITIVE_READER_SKIP_GLOSSARY"}
+        env_without_glossary = {
+            k: v for k, v in os.environ.items() if k != "COGNITIVE_READER_SKIP_GLOSSARY"
+        }
         with patch.dict(os.environ, env_without_glossary, clear=True):
             config = CognitiveConfig.from_env()
             assert config.skip_glossary is False
@@ -79,11 +80,14 @@ class TestCLIIntegration:
         runner = CliRunner()
 
         # Test with --skip-glossary flag (only test that it doesn't crash)
-        result = runner.invoke(cli, [
-            "--skip-glossary",
-            "--dry-run",
-            "--help"  # Just show help instead of trying to process
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--skip-glossary",
+                "--dry-run",
+                "--help",  # Just show help instead of trying to process
+            ],
+        )
 
         # Should not crash with a serious error (exit code 0 or 1 for help is fine)
         assert result.exit_code in [0, 1]  # 0 = success, 1 = help shown
@@ -102,13 +106,17 @@ class TestCLIIntegration:
         runner = CliRunner()
 
         # Test combination with other flags
-        result = runner.invoke(cli, [
-            "--skip-glossary",
-            "--disable-reasoning",
-            "--max-sections", "3",
-            "--dry-run",
-            "--help"
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--skip-glossary",
+                "--disable-reasoning",
+                "--max-sections",
+                "3",
+                "--dry-run",
+                "--help",
+            ],
+        )
 
         # Should handle multiple flags without crashing
         assert result.exit_code in [0, 1]
@@ -130,7 +138,7 @@ class TestOutputFormatting:
             concepts=[],  # Empty glossary
             total_sections=1,
             avg_summary_length=100.0,
-            total_concepts=0
+            total_concepts=0,
         )
 
         # Should work without errors
@@ -150,7 +158,7 @@ class TestOutputFormatting:
             concepts=[],
             total_sections=1,
             avg_summary_length=100.0,
-            total_concepts=0
+            total_concepts=0,
         )
 
         # Should not crash when displaying

@@ -18,7 +18,9 @@ from cognitive_reader.models.config import CognitiveConfig
 from cognitive_reader.models.document import DocumentSection, SectionSummary
 
 # Skip all tests in this file for Phase 1 MVP - these are Phase 2 features
-pytestmark = pytest.mark.skip(reason="Phase 2: Development features not implemented in Phase 1")
+pytestmark = pytest.mark.skip(
+    reason="Phase 2: Development features not implemented in Phase 1"
+)
 
 
 class TestSectionFiltering:
