@@ -170,7 +170,7 @@ class Synthesizer:
             ),  # Use summaries count (reflects filtered sections)
             avg_summary_length=sum(len(s.summary) for s in all_summaries.values())
             / max(len(all_summaries), 1),
-            total_concepts=len(all_concepts),  # Count unique concepts from all sections
+            total_concepts=len(filtered_concepts),  # Count filtered concepts for glossary
         )
 
     async def _synthesize_container_sections(
