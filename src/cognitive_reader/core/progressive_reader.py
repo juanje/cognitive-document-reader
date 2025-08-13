@@ -344,39 +344,19 @@ class CognitiveReader:
             # Use provided content or fall back to section.content
             effective_content = content or section.content
 
-            # Generate summary using LLM
-            summary_response = await llm_client.generate_summary(
+            # Generate structured summary using LLM - combines summary and key concepts in one call
+            structured_response = await llm_client.generate_structured_summary(
                 content=effective_content,
                 context=accumulated_context,
-                prompt_type="section_summary",
-                language=language,
                 section_title=section.title,
-                model=model,
-                temperature=temperature,
-            )
-
-            # Extract key concepts
-            key_concepts = await llm_client.extract_concepts(
-                section_title=section.title,
-                section_content=effective_content,
                 language=language,
                 model=model,
                 temperature=temperature,
             )
 
-            # Parse the summary response
-            summary_text, additional_concepts = self._parse_summary_response(
-                summary_response
-            )
-
-            # Combine concepts, removing duplicates
-            all_concepts = key_concepts + additional_concepts
-            unique_concepts = []
-            seen = set()
-            for concept in all_concepts:
-                if concept not in seen:
-                    unique_concepts.append(concept)
-                    seen.add(concept)
+            # Extract structured data - no parsing needed!
+            summary_text = structured_response.summary
+            unique_concepts = structured_response.key_concepts[:5]  # Already limited in model
 
             return SectionSummary(
                 section_id=section.id,

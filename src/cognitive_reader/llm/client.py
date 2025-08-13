@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, TypeVar
 
 import aiohttp
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_ollama import ChatOllama
+from pydantic import BaseModel
 
 from ..models.config import CognitiveConfig
 from ..models.knowledge import LanguageCode
+from ..models.llm_responses import ConceptDefinitionResponse, SectionSummaryResponse
 from .prompts import PromptManager
+
+T = TypeVar("T", bound=BaseModel)
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +198,107 @@ class LLMClient:
         # Parse concepts from response
         return self._parse_concepts_response(response)
 
+    async def generate_structured_summary(
+        self,
+        content: str,
+        context: str = "",
+        section_title: str = "Untitled Section",
+        language: LanguageCode = LanguageCode.EN,
+        model: str | None = None,
+        temperature: float | None = None,
+    ) -> SectionSummaryResponse:
+        """Generate a structured summary for given content using Pydantic models.
+
+        This method uses LangChain's structured output to ensure consistent format.
+
+        Args:
+            content: The content to summarize.
+            context: Additional context for the summary.
+            section_title: Title of the section being summarized.
+            language: Target language for the summary.
+            model: Optional model to use (overrides config).
+            temperature: Optional temperature to use (overrides config).
+
+        Returns:
+            Structured summary response with validated format.
+
+        Raises:
+            ValueError: If generation fails after retries.
+        """
+        # Handle development modes
+        if self.config.dry_run or self.config.mock_responses:
+            mock_summary = self._get_mock_summary(content, "section_summary", language)
+            mock_concepts = self._get_mock_concepts(content)
+            return SectionSummaryResponse(
+                summary=mock_summary,
+                key_concepts=mock_concepts
+            )
+
+        # Format the prompt for section summary
+        prompt = self.prompt_manager.format_section_summary_prompt(
+            section_title=section_title,
+            section_content=content,
+            accumulated_context=context,
+            language=language,
+        )
+
+        # Generate with structured output
+        return await self._generate_structured_with_retries(
+            prompt,
+            response_model=SectionSummaryResponse,
+            model=model,
+            temperature=temperature
+        )
+
+    async def generate_concept_definition(
+        self,
+        concept: str,
+        context: str,
+        language: LanguageCode = LanguageCode.EN,
+        model: str | None = None,
+        temperature: float | None = None,
+    ) -> ConceptDefinitionResponse:
+        """Generate a structured definition for a concept.
+
+        This method uses LangChain's structured output to ensure consistent format.
+
+        Args:
+            concept: The concept to define.
+            context: Context where the concept appears.
+            language: Target language for the definition.
+            model: Optional model to use (overrides config).
+            temperature: Optional temperature to use (overrides config).
+
+        Returns:
+            Structured definition response with validated format.
+
+        Raises:
+            ValueError: If generation fails after retries.
+        """
+        # Handle development modes
+        if self.config.dry_run or self.config.mock_responses:
+            if language == LanguageCode.ES:
+                mock_definition = f"Definición del concepto '{concept}' basada en el contexto proporcionado."
+            else:
+                mock_definition = f"Definition of concept '{concept}' based on provided context."
+
+            return ConceptDefinitionResponse(definition=mock_definition)
+
+        # Format the prompt for concept definition
+        prompt = self.prompt_manager.format_concept_definition_prompt(
+            concept_name=concept,
+            context=context,
+            language=language,
+        )
+
+        # Generate with structured output
+        return await self._generate_structured_with_retries(
+            prompt,
+            response_model=ConceptDefinitionResponse,
+            model=model,
+            temperature=temperature
+        )
+
     async def _generate_with_retries(
         self, prompt: str, model: str | None = None, temperature: float | None = None
     ) -> str:
@@ -229,6 +334,48 @@ class LLMClient:
 
         raise ValueError(
             f"LLM generation failed after {self.config.max_retries + 1} attempts: {last_error}"
+        )
+
+    async def _generate_structured_with_retries(
+        self,
+        prompt: str,
+        response_model: type[T],  # Pydantic BaseModel class
+        model: str | None = None,
+        temperature: float | None = None,
+    ) -> T:  # Returns instance of response_model
+        """Generate structured response with retry logic using LangChain.
+
+        Args:
+            prompt: The prompt to send to the LLM.
+            response_model: Pydantic model class to structure the response.
+            model: Optional model hint (selects fast vs main LLM).
+            temperature: Optional temperature to use (overrides config).
+
+        Returns:
+            Generated response as an instance of response_model.
+
+        Raises:
+            ValueError: If all retry attempts fail.
+        """
+        last_error = None
+
+        for attempt in range(self.config.max_retries + 1):
+            try:
+                return await self._call_structured_langchain_llm(
+                    prompt, response_model, model=model, temperature=temperature
+                )
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Structured LLM call attempt {attempt + 1} failed: {e}")
+
+                if attempt < self.config.max_retries:
+                    # Exponential backoff
+                    wait_time = 2**attempt
+                    await asyncio.sleep(wait_time)
+                    logger.info(f"Retrying in {wait_time}s...")
+
+        raise ValueError(
+            f"Structured LLM generation failed after {self.config.max_retries + 1} attempts: {last_error}"
         )
 
     async def _call_langchain_llm(
@@ -290,6 +437,68 @@ class LLMClient:
                 return str(response).strip()
         except Exception as e:
             raise ValueError(f"LangChain LLM call failed: {e}") from e
+
+    async def _call_structured_langchain_llm(
+        self,
+        prompt: str,
+        response_model: type[T],  # Pydantic BaseModel class
+        model: str | None = None,
+        temperature: float | None = None,
+    ) -> T:  # Returns instance of response_model
+        """Make structured call to LLM using LangChain's with_structured_output.
+
+        Args:
+            prompt: The prompt to send.
+            response_model: Pydantic model class to structure the response.
+            model: Optional model hint (selects fast vs main LLM).
+            temperature: Optional temperature to use (overrides LLM config).
+
+        Returns:
+            Structured response as an instance of response_model.
+        """
+        # Select appropriate LLM (fast vs main)
+        if (
+            model
+            and self._fast_llm
+            and self.config.fast_pass_model
+            and model == self.config.fast_pass_model
+        ):
+            selected_llm = self._fast_llm
+        else:
+            selected_llm = self._llm
+
+        # Apply temperature override if specified
+        if temperature is not None:
+            # Create a copy of the LLM with different temperature
+            if self.config.llm_provider == "ollama":
+                if selected_llm == self._fast_llm:
+                    model_name = self.config.fast_pass_model
+                else:
+                    model_name = self.config.main_model or self.config.model_name
+
+                # Ensure model_name is not None
+                if not model_name:
+                    raise ValueError("Model name cannot be None")
+
+                # Configure reasoning parameter for reasoning models
+                reasoning_param = None if not self.config.disable_reasoning else False
+
+                selected_llm = ChatOllama(
+                    model=model_name,
+                    base_url=self.config.ollama_base_url,
+                    temperature=temperature,
+                    num_ctx=self.config.context_window,
+                    reasoning=reasoning_param,
+                )
+
+        # Create structured LLM with Pydantic output
+        try:
+            structured_llm = selected_llm.with_structured_output(response_model)
+            response = await structured_llm.ainvoke(prompt)
+            # The response should be an instance of the response_model
+            return response  # type: ignore[return-value]
+        except Exception as e:
+            raise ValueError(f"Structured LangChain LLM call failed: {e}") from e
 
     def _get_mock_summary(
         self, content: str, prompt_type: str, language: LanguageCode

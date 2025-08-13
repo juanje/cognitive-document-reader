@@ -306,32 +306,26 @@ class Synthesizer:
                         if not definition:
                             definition = f"A key concept in the document referring to {concept.replace('_', ' ').replace('concept ', '').strip()}."
                     else:
-                        # Real LLM call for definition generation using dedicated prompt
-                        definition_prompt = (
-                            llm_client.prompt_manager.format_concept_definition_prompt(
-                                concept_name=concept, context=context, language=language
-                            )
-                        )
-
-                        definition_response = await llm_client._generate_with_retries(
-                            prompt=definition_prompt,
+                        # Generate structured definition - no manual parsing needed!
+                        structured_response = await llm_client.generate_concept_definition(
+                            concept=concept,
+                            context=context,
+                            language=language,
                             model=concept_model,
                             temperature=self.config.fast_pass_temperature
                             or self.config.temperature,
                         )
 
-                        # Clean the response - handle reasoning models that might include <think> tags
-                        if definition_response:
-                            definition = self._clean_concept_definition_response(
-                                definition_response
+                        # Extract clean definition from structured response
+                        definition = structured_response.definition
+
+                        # Ensure first letter is capitalized
+                        if definition:
+                            definition = (
+                                definition[0].upper() + definition[1:]
+                                if len(definition) > 1
+                                else definition.upper()
                             )
-                            # Ensure first letter is capitalized
-                            if definition:
-                                definition = (
-                                    definition[0].upper() + definition[1:]
-                                    if len(definition) > 1
-                                    else definition.upper()
-                                )
                         else:
                             definition = f"Key concept: {concept}"
 
