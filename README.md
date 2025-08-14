@@ -126,7 +126,7 @@ nano .env
 # Multi-Pass Cognitive Reading (default: 2 passes)
 COGNITIVE_READER_FAST_PASS_MODEL=llama3.1:8b    # Fast first pass
 COGNITIVE_READER_MAIN_MODEL=qwen3:8b            # Quality subsequent passes
-COGNITIVE_READER_ENABLE_SECOND_PASS=true        # Enable multi-pass processing
+COGNITIVE_READER_NUM_PASSES=2                   # Number of cognitive passes (1=single, 2=dual, 3+=multi)
 
 # Processing control
 COGNITIVE_READER_SINGLE_PASS=false             # Force single-pass mode (fast testing)

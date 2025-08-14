@@ -17,7 +17,7 @@ def fast_pass_config() -> CognitiveConfig:
     return CognitiveConfig(
         # Enable dual-pass approach
         enable_fast_first_pass=True,
-        enable_second_pass=True,
+        num_passes=2,
         # Model configuration
         fast_pass_model="llama3.1:8b",
         main_model="qwen3:8b",
@@ -40,7 +40,7 @@ def single_pass_config() -> CognitiveConfig:
     return CognitiveConfig(
         # Disable dual-pass approach
         enable_fast_first_pass=False,
-        enable_second_pass=False,
+        num_passes=1,
         # Model configuration
         main_model="qwen3:8b",
         main_pass_temperature=0.3,
@@ -179,7 +179,7 @@ async def test_model_configuration_validation(
 
     # Verify configuration
     assert reader.config.enable_fast_first_pass is True
-    assert reader.config.enable_second_pass is True
+    assert reader.config.num_passes == 2
     assert reader.config.fast_pass_model == "llama3.1:8b"
     assert reader.config.main_model == "qwen3:8b"
     assert reader.config.fast_pass_temperature == 0.1
@@ -309,7 +309,7 @@ More content for testing.
     # Test dual-pass
     dual_config = CognitiveConfig(
         enable_fast_first_pass=True,
-        enable_second_pass=True,
+        num_passes=2,
         fast_pass_model="llama3.1:8b",
         main_model="qwen3:8b",
         dry_run=True,

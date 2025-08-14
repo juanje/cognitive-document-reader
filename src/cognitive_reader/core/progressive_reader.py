@@ -40,9 +40,9 @@ class CognitiveReader:
         self.language_detector = LanguageDetector()
 
         # Log the actual processing strategy being used
-        if self.config.enable_second_pass:
+        if self.config.num_passes > 1:
             logger.info(
-                f"CognitiveReader initialized with multi-pass models: fast={self.config.fast_pass_model}, main={self.config.main_model}"
+                f"CognitiveReader initialized with {self.config.num_passes}-pass models: fast={self.config.fast_pass_model}, main={self.config.main_model}"
             )
         else:
             # Single model: use fast model for all passes
@@ -230,8 +230,10 @@ class CognitiveReader:
                 "🚀 Single-pass mode: Processing with one pass only (fast testing)"
             )
             return await self._single_pass_processing(filtered_sections, language)
-        elif self.config.enable_second_pass:
-            logger.info("🔄 Multi-pass mode: Processing with enriched context")
+        elif self.config.num_passes > 1:
+            logger.info(
+                f"🔄 Multi-pass mode: Processing with {self.config.num_passes} passes"
+            )
             return await self._multi_pass_processing(filtered_sections, language)
         else:
             logger.info("📖 Standard mode: Processing with sequential algorithm")
@@ -335,6 +337,12 @@ class CognitiveReader:
 
         logger.info(
             f"📖 Sequential processing (Pass 2+): {len(ordered_sections)} sections with enriched context"
+        )
+
+        # Show which model is being used for pass 2+
+        processing_model = self.config.main_model or self.config.model_name
+        logger.info(
+            f"🧠 Processing document with enriched sequential algorithm, model: {processing_model}"
         )
 
         # Step 3: Process sections sequentially with enriched context

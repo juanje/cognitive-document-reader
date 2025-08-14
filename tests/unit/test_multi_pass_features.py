@@ -78,10 +78,10 @@ class TestSaveIntermediateFlag:
 class TestMultiPassArchitecture:
     """Test multi-pass architecture configuration."""
 
-    def test_enable_second_pass_config_default(self):
-        """Test that enable_second_pass defaults to False."""
+    def test_num_passes_config_default(self):
+        """Test that num_passes defaults to 2 (two-pass as per SPECS v2)."""
         config = CognitiveConfig()
-        assert config.enable_second_pass is False
+        assert config.num_passes == 2
 
     def test_multi_pass_mode_detection(self):
         """Test detection of when multi-pass mode should be used."""
@@ -89,14 +89,14 @@ class TestMultiPassArchitecture:
         config = CognitiveConfig(single_pass=True)
         assert config.single_pass is True
 
-        # Standard mode (single pass but not forced)
-        config = CognitiveConfig(enable_second_pass=False)
-        assert config.enable_second_pass is False
+        # Standard mode (single pass with num_passes=1)
+        config = CognitiveConfig(num_passes=1)
+        assert config.num_passes == 1
         assert config.single_pass is False
 
-        # Multi-pass mode
-        config = CognitiveConfig(enable_second_pass=True)
-        assert config.enable_second_pass is True
+        # Multi-pass mode (default should be 2 passes)
+        config = CognitiveConfig()
+        assert config.num_passes == 2
         assert config.single_pass is False
 
     def test_intermediate_files_only_with_flag(self):
@@ -200,11 +200,11 @@ class TestFeatureCombination:
     def test_multi_pass_with_intermediate_files(self):
         """Test multi-pass mode with intermediate file saving."""
         config = CognitiveConfig(
-            enable_second_pass=True,
+            num_passes=2,
             save_intermediate=True,
             intermediate_dir="/tmp/test_passes",
         )
-        assert config.enable_second_pass is True
+        assert config.num_passes == 2
         assert config.save_intermediate is True
         assert config.intermediate_dir == "/tmp/test_passes"
 

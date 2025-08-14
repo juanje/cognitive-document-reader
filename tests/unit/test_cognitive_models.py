@@ -34,8 +34,8 @@ class TestCognitiveConfig:
         assert config.fast_pass_temperature == 0.1
         assert config.main_pass_temperature == 0.3
 
-        # Cognitive features (Phase 1: second pass disabled by default)
-        assert config.enable_second_pass is False
+        # Cognitive features (SPECS v2: two-pass as default)
+        assert config.num_passes == 2
         assert config.enable_refinement is True
         assert config.refinement_threshold == 0.4
 
@@ -83,18 +83,18 @@ class TestCognitiveConfig:
             assert config.main_model == "main-model"
 
     def test_from_env_boolean_values(self):
-        """Test boolean environment variable parsing."""
+        """Test environment variable parsing for mixed types."""
         with patch.dict(
             os.environ,
             {
                 "COGNITIVE_READER_ENABLE_FAST_FIRST_PASS": "false",
-                "COGNITIVE_READER_ENABLE_SECOND_PASS": "true",
+                "COGNITIVE_READER_NUM_PASSES": "3",
                 "COGNITIVE_READER_DRY_RUN": "true",
             },
         ):
             config = CognitiveConfig.from_env()
             assert config.enable_fast_first_pass is False
-            assert config.enable_second_pass is True
+            assert config.num_passes == 3
             assert config.dry_run is True
 
     def test_development_mode_detection(self):

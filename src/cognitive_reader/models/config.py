@@ -57,9 +57,10 @@ class CognitiveConfig(BaseModel):
     )
 
     # Cognitive Features
-    enable_second_pass: bool = Field(
-        default=False,
-        description="Enable second pass processing (disabled for Phase 1)",
+    num_passes: int = Field(
+        default=2,
+        ge=1,
+        description="Number of cognitive passes to perform (1=single-pass, 2=dual-pass, N=multi-pass)",
     )
     enable_refinement: bool = Field(
         default=True, description="Enable refinement during reading"
@@ -212,10 +213,7 @@ class CognitiveConfig(BaseModel):
             if os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE")
             else None,
             # Cognitive features
-            enable_second_pass=os.getenv(
-                "COGNITIVE_READER_ENABLE_SECOND_PASS", "false"
-            ).lower()
-            == "true",
+            num_passes=int(os.getenv("COGNITIVE_READER_NUM_PASSES", "2")),
             enable_refinement=os.getenv(
                 "COGNITIVE_READER_ENABLE_REFINEMENT", "true"
             ).lower()

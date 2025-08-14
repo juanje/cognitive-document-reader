@@ -532,7 +532,7 @@ concepto_tercera_pasada = {
             document_language=LanguageCode(os.getenv("COGNITIVE_READER_LANGUAGE", "auto")),
             
             # Características cognitivas
-            enable_second_pass=os.getenv("COGNITIVE_READER_ENABLE_SECOND_PASS", "true").lower() == "true",
+            num_passes=int(os.getenv("COGNITIVE_READER_NUM_PASSES", "2")),
             enable_refinement=os.getenv("COGNITIVE_READER_ENABLE_REFINEMENT", "true").lower() == "true",
             refinement_threshold=float(os.getenv("COGNITIVE_READER_REFINEMENT_THRESHOLD", "0.4")),
             
@@ -565,7 +565,7 @@ COGNITIVE_READER_ENV_VARS = {
     "COGNITIVE_READER_LANGUAGE": "Idioma documento auto/en/es (default: auto)",
     
     # Características Cognitivas
-    "COGNITIVE_READER_ENABLE_SECOND_PASS": "Habilitar segunda pasada true/false (default: true)",
+    "COGNITIVE_READER_NUM_PASSES": "Número de pasadas cognitivas integer >=1 (default: 2)",
     "COGNITIVE_READER_ENABLE_REFINEMENT": "Habilitar refinamiento true/false (default: true)",
     "COGNITIVE_READER_REFINEMENT_THRESHOLD": "Umbral refinamiento 0.0-1.0 (default: 0.4)",
     
