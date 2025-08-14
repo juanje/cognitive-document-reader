@@ -39,6 +39,9 @@ class CognitiveReader:
         )
         self.language_detector = LanguageDetector()
 
+        # Storage for passing glossary between passes
+        self.current_pass_glossary: dict[str, str] = {}
+
         # Log the actual processing strategy being used
         if self.config.num_passes > 1:
             logger.info(
@@ -325,11 +328,9 @@ class CognitiveReader:
         Returns:
             Enhanced section summaries with enriched context.
         """
-        # Step 1: Extract concept glossary from previous pass
-        logger.info("📚 Extracting concept glossary from previous pass")
-        concept_glossary = await self._extract_concept_glossary(
-            previous_summaries, language
-        )
+        # Step 1: Use concept glossary from previous pass (already generated)
+        logger.info("📚 Using concept glossary from previous pass")
+        concept_glossary = self.current_pass_glossary
 
         # Step 2: Order sections in document sequence (same as Pass 1)
         self.sections_cache = sections  # Store for context building methods
@@ -402,6 +403,10 @@ class CognitiveReader:
 
         # Finalize pending parents
         await self._finalize_pending_parents(pending_parents, summaries, language)
+
+        # Generate concept glossary as part of this pass (for future passes)
+        logger.info("📚 Generating concept glossary for this pass")
+        await self._generate_pass_glossary(summaries, language)
 
         logger.info(
             f"Enhanced sequential processing completed: {len(summaries)} sections processed"
@@ -716,6 +721,10 @@ class CognitiveReader:
 
         # Step 5: Process any remaining pending parents
         await self._finalize_pending_parents(pending_parents, summaries, language)
+
+        # Generate concept glossary as part of this pass (using synthesizer)
+        logger.info("📚 Generating concept glossary for this pass")
+        await self._generate_pass_glossary(summaries, language)
 
         logger.info(
             f"Sequential processing completed: {len(summaries)} sections processed"
@@ -1389,14 +1398,76 @@ Subsection summaries:
 
         return final_summary
 
-    async def _extract_concept_glossary(
+    async def _generate_pass_glossary(
         self, summaries: dict[str, SectionSummary], language: LanguageCode
-    ) -> dict[str, str]:
-        """Extract concept glossary from previous pass summaries."""
-        # TODO: Implement concept extraction from summaries
-        # For now, return empty glossary to make code compile
-        logger.debug("📚 Extracting concept glossary (stub implementation)")
-        return {}
+    ) -> None:
+        """Generate concept glossary for this pass using synthesizer (automatically respects max_glossary_concepts).
+
+        This creates a complete glossary as part of the pass using full document synthesis.
+        The glossary is stored in self.current_pass_glossary for the next pass.
+        """
+        try:
+            # Get sections from cache for synthesizer
+            if not hasattr(self, "sections_cache") or not self.sections_cache:
+                logger.warning(
+                    "📚 No sections cache available, using fallback glossary"
+                )
+                await self._create_fallback_glossary(summaries)
+                return
+
+            # Create document title from summaries
+            root_summaries = [s for s in summaries.values() if not s.parent_id]
+            document_title = (
+                root_summaries[0].title if root_summaries else "Document Analysis"
+            )
+
+            # Use synthesizer to perform complete document synthesis (includes glossary)
+            # This automatically respects max_glossary_concepts configuration
+            cognitive_knowledge = await self.synthesizer.synthesize_document(
+                sections=self.sections_cache,
+                section_summaries=summaries,
+                document_title=document_title,
+                detected_language=language,
+            )
+
+            # Extract glossary from synthesis result and convert to simple dict for context
+            self.current_pass_glossary = {
+                concept.name: concept.definition
+                for concept in cognitive_knowledge.concepts
+            }
+
+            logger.info(
+                f"📚 Generated pass glossary with {len(self.current_pass_glossary)} concept definitions "
+                f"(synthesizer automatically respected max_glossary_concepts={self.config.max_glossary_concepts})"
+            )
+
+        except Exception as e:
+            logger.warning(
+                f"📚 Failed to generate pass glossary using synthesizer: {e}"
+            )
+            await self._create_fallback_glossary(summaries)
+
+    async def _create_fallback_glossary(
+        self, summaries: dict[str, SectionSummary]
+    ) -> None:
+        """Create simple fallback glossary from summaries when synthesizer fails."""
+        # Fallback: extract key concepts from summaries
+        all_concepts = set()
+        for summary in summaries.values():
+            if summary.key_concepts:
+                all_concepts.update(summary.key_concepts)
+
+        # Respect user's max_glossary_concepts configuration
+        max_concepts = min(self.config.max_glossary_concepts, len(all_concepts))
+        concept_list = list(all_concepts)[:max_concepts]
+        self.current_pass_glossary = {
+            concept: "Key concept identified in document analysis"
+            for concept in concept_list
+        }
+
+        logger.info(
+            f"📚 Generated fallback glossary with {len(self.current_pass_glossary)} concepts"
+        )
 
     def _build_enriched_cumulative_context(
         self,
