@@ -230,8 +230,7 @@ class LLMClient:
             mock_summary = self._get_mock_summary(content, "section_summary", language)
             mock_concepts = self._get_mock_concepts(content)
             return SectionSummaryResponse(
-                summary=mock_summary,
-                key_concepts=mock_concepts
+                summary=mock_summary, key_concepts=mock_concepts
             )
 
         # Format the prompt for section summary
@@ -247,7 +246,7 @@ class LLMClient:
             prompt,
             response_model=SectionSummaryResponse,
             model=model,
-            temperature=temperature
+            temperature=temperature,
         )
 
     async def generate_concept_definition(
@@ -280,7 +279,9 @@ class LLMClient:
             if language == LanguageCode.ES:
                 mock_definition = f"Definición del concepto '{concept}' basada en el contexto proporcionado."
             else:
-                mock_definition = f"Definition of concept '{concept}' based on provided context."
+                mock_definition = (
+                    f"Definition of concept '{concept}' based on provided context."
+                )
 
             return ConceptDefinitionResponse(definition=mock_definition)
 
@@ -296,7 +297,7 @@ class LLMClient:
             prompt,
             response_model=ConceptDefinitionResponse,
             model=model,
-            temperature=temperature
+            temperature=temperature,
         )
 
     async def _generate_with_retries(

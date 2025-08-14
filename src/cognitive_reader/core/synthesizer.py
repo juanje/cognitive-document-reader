@@ -171,7 +171,9 @@ class Synthesizer:
             ),  # Use summaries count (reflects filtered sections)
             avg_summary_length=sum(len(s.summary) for s in all_summaries.values())
             / max(len(all_summaries), 1),
-            total_concepts=len(filtered_concepts),  # Count filtered concepts for glossary
+            total_concepts=len(
+                filtered_concepts
+            ),  # Count filtered concepts for glossary
         )
 
     async def _synthesize_container_sections(
@@ -264,7 +266,9 @@ class Synthesizer:
                             )
 
                     if context_sections:
-                        context_parts.append("Relevant Sections:\n" + "\n\n".join(context_sections))
+                        context_parts.append(
+                            "Relevant Sections:\n" + "\n\n".join(context_sections)
+                        )
 
                     # Combine all context parts
                     context = "\n\n".join(context_parts)
@@ -319,13 +323,15 @@ class Synthesizer:
                             definition = f"A key concept in the document referring to {concept.replace('_', ' ').replace('concept ', '').strip()}."
                     else:
                         # Generate structured definition - no manual parsing needed!
-                        structured_response = await llm_client.generate_concept_definition(
-                            concept=concept,
-                            context=context,
-                            language=language,
-                            model=concept_model,
-                            temperature=self.config.fast_pass_temperature
-                            or self.config.temperature,
+                        structured_response = (
+                            await llm_client.generate_concept_definition(
+                                concept=concept,
+                                context=context,
+                                language=language,
+                                model=concept_model,
+                                temperature=self.config.fast_pass_temperature
+                                or self.config.temperature,
+                            )
                         )
 
                         # Extract clean definition from structured response

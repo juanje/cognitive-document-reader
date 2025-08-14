@@ -28,7 +28,7 @@ class SectionSummaryResponse(BaseModel):
     summary: str = Field(description="Clear, concise summary of the section content")
     key_concepts: list[str] = Field(
         max_length=5,
-        description="List of up to 5 key concepts found in the section (important terms, ideas, or entities)"
+        description="List of up to 5 key concepts found in the section (important terms, ideas, or entities)",
     )
 
 
