@@ -1477,10 +1477,28 @@ Remember: SOURCE TEXT has supreme authority over all enriched context informatio
                 f"🏆 Processing '{section.title}' with enriched text authority principle (no context)"
             )
 
-        # Process using the authority-aware content
-        summary = await self._process_section_single_pass(
-            section=section, content=content_with_authority, language=language
-        )
+        # Process using the authority-aware content with MAIN MODEL (pass 2+)
+        model = self.config.main_model or self.config.model_name
+        temperature = self.config.main_pass_temperature or self.config.temperature
+
+        async with LLMClient(self.config) as llm_client:
+            # Create a temporary section with the authority-aware content
+            temp_section = DocumentSection(
+                id=section.id,
+                title=section.title,
+                content=content_with_authority,
+                level=section.level,
+                order_index=section.order_index,
+                parent_id=section.parent_id,
+            )
+            summary = await self._process_section(
+                temp_section,
+                "",  # Context already integrated in temp_section.content as authority-aware content
+                language,
+                llm_client,
+                model=model,
+                temperature=temperature,
+            )
 
         return summary
 
