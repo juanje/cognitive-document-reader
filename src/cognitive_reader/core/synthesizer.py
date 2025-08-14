@@ -656,17 +656,32 @@ class Synthesizer:
             concept_scores.items(), key=lambda x: x[1], reverse=True
         )
 
-        # Limit to reasonable glossary size (configurable limits)
+        # Apply user-configured limits (respect max limit over default min)
         max_concepts = min(self.config.max_glossary_concepts, len(all_concepts))
-
-        # Also ensure we don't filter too aggressively for small documents
         min_concepts = min(self.config.min_glossary_concepts, len(all_concepts))
-        final_count = max(min_concepts, max_concepts)
+
+        # Ensure max limit is respected: if min > max, adjust min to max
+        if min_concepts > max_concepts:
+            logger.warning(
+                f"Min glossary concepts ({min_concepts}) > Max glossary concepts ({max_concepts}). "
+                f"Adjusting min to {max_concepts} to respect user's max limit."
+            )
+            min_concepts = max_concepts
+
+        # Take up to the maximum allowed, respecting user's limit
+        available_concepts = len(sorted_concepts)
+        final_count = min(available_concepts, max_concepts)
+
+        # If we end up with very few concepts for a useful glossary,
+        # try to reach the minimum (but never exceed the user's maximum)
+        if final_count < min_concepts and available_concepts >= min_concepts:
+            final_count = min_concepts
 
         selected_concepts = {concept for concept, _ in sorted_concepts[:final_count]}
 
         logger.info(
-            f"Filtered concepts for glossary: {len(selected_concepts)} from {len(all_concepts)} total"
+            f"Filtered concepts for glossary: {len(selected_concepts)} from {len(all_concepts)} total "
+            f"(max={self.config.max_glossary_concepts}, min={self.config.min_glossary_concepts}, final={final_count})"
         )
 
         return selected_concepts

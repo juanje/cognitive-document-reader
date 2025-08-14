@@ -211,3 +211,38 @@ class TestConceptFiltering:
         # With high complexity weighting, the multi-word concept should be preferred
         # even though it appears in fewer sections
         assert "multi word concept" in filtered
+
+    def test_max_concepts_overrides_min_concepts(self):
+        """Test that max_glossary_concepts is respected even when min_glossary_concepts is higher.
+
+        This is a regression test for the bug where MAX_GLOSSARY_CONCEPTS=5 was ignored
+        when MIN_GLOSSARY_CONCEPTS=10 (default), causing 10 concepts to be generated
+        instead of the user-configured maximum of 5.
+        """
+        # Configuration where min > max (common when user sets low max but default min is higher)
+        config = CognitiveConfig(
+            model_name="llama3.1:8b",
+            dry_run=True,
+            max_glossary_concepts=5,  # User wants max 5 concepts
+            min_glossary_concepts=10,  # Default is 10 (higher than max)
+        )
+
+        synthesizer = Synthesizer(config)
+
+        # Create enough concepts to test the limits
+        concepts = {f"concept_{i}" for i in range(15)}
+        concept_to_sections = {
+            concept: ["section1", "section2"] for concept in concepts
+        }
+
+        # Execute the filtering
+        filtered = synthesizer._filter_concepts_for_glossary(
+            concepts, concept_to_sections
+        )
+
+        # Should respect the user's maximum limit, not the default minimum
+        assert len(filtered) == 5  # User's max limit
+        assert len(filtered) <= config.max_glossary_concepts  # Never exceed user's max
+
+        # Verify the fix: when user configures MAX=5 but default MIN=10,
+        # the result should be 5 (respecting max), not 10 (ignoring max)
