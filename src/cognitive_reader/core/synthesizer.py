@@ -130,6 +130,7 @@ class Synthesizer:
                 concept_first_mention,
                 concept_to_sections,
                 detected_language,
+                document_summary,
             )
         else:
             logger.info(
@@ -217,6 +218,7 @@ class Synthesizer:
         concept_first_mention: dict[str, str],
         concept_to_sections: dict[str, list[str]],
         language: LanguageCode,
+        document_summary: str,
     ) -> list[ConceptDefinition]:
         """Generate real definitions for concepts using LLM.
 
@@ -226,6 +228,7 @@ class Synthesizer:
             concept_first_mention: First mention section for each concept.
             concept_to_sections: Sections where each concept appears.
             language: Document language.
+            document_summary: Overall document summary for global context.
 
         Returns:
             List of ConceptDefinition objects with real definitions.
@@ -244,18 +247,27 @@ class Synthesizer:
         async with LLMClient(self.config) as llm_client:
             for concept in concepts:
                 try:
-                    # Get context from sections where this concept appears
+                    # Build comprehensive context for concept definition
+                    context_parts = []
+
+                    # 1. Include document summary for global context
+                    if document_summary:
+                        context_parts.append(f"Document Overview: {document_summary}")
+
+                    # 2. Include all relevant sections where this concept appears
                     context_sections = []
-                    for section_id in concept_to_sections[concept][
-                        :3
-                    ]:  # Use first 3 sections for context
+                    for section_id in concept_to_sections[concept]:  # Use ALL sections
                         if section_id in all_summaries:
                             summary = all_summaries[section_id]
                             context_sections.append(
                                 f"{summary.title}: {summary.summary}"
                             )
 
-                    context = "\n\n".join(context_sections)
+                    if context_sections:
+                        context_parts.append("Relevant Sections:\n" + "\n\n".join(context_sections))
+
+                    # Combine all context parts
+                    context = "\n\n".join(context_parts)
 
                     # Generate definition using LLM
                     if self.config.dry_run or self.config.mock_responses:
