@@ -202,13 +202,12 @@ class CognitiveReader:
     async def _progressive_reading(
         self, sections: list[DocumentSection], language: LanguageCode
     ) -> dict[str, SectionSummary]:
-        """Perform hierarchical bottom-up processing of document sections.
+        """Perform multi-pass cognitive processing of document sections.
 
         Implements the algorithm defined in SPECS v2.0:
-        1. Organize sections by hierarchy level
-        2. Process from deepest level to root (bottom-up)
-        3. For leaf sections: use section.content
-        4. For container sections: combine section.content + child_summaries
+        - Pass 1: Sequential processing with cumulative context
+        - Pass 2+: Sequential processing with enriched context (summaries + glossary)
+        - N-pass extensible architecture for future iterations
 
         Args:
             sections: Document sections to process.
@@ -217,7 +216,7 @@ class CognitiveReader:
         Returns:
             Dictionary of section summaries for all sections.
         """
-        logger.info(f"Starting hierarchical processing of {len(sections)} sections")
+        logger.info(f"Starting cognitive processing of {len(sections)} sections")
 
         # Sort sections by order_index to maintain document flow
         ordered_sections = sorted(sections, key=lambda s: s.order_index)
@@ -225,12 +224,181 @@ class CognitiveReader:
         # Apply development filters if configured
         filtered_sections = self._apply_section_filters(ordered_sections)
 
-        logger.info(
-            f"Processing {len(filtered_sections)} sections using sequential algorithm"
+        # Determine number of passes to perform
+        if self.config.single_pass:
+            logger.info(
+                "🚀 Single-pass mode: Processing with one pass only (fast testing)"
+            )
+            return await self._single_pass_processing(filtered_sections, language)
+        elif self.config.enable_second_pass:
+            logger.info("🔄 Multi-pass mode: Processing with enriched context")
+            return await self._multi_pass_processing(filtered_sections, language)
+        else:
+            logger.info("📖 Standard mode: Processing with sequential algorithm")
+            return await self._single_pass_processing(filtered_sections, language)
+
+    async def _single_pass_processing(
+        self, sections: list[DocumentSection], language: LanguageCode
+    ) -> dict[str, SectionSummary]:
+        """Process sections with a single pass using sequential algorithm."""
+        logger.info(f"Processing {len(sections)} sections using sequential algorithm")
+        return await self._sequential_processing(sections, language)
+
+    async def _multi_pass_processing(
+        self, sections: list[DocumentSection], language: LanguageCode
+    ) -> dict[str, SectionSummary]:
+        """Process sections with multiple passes using enriched context.
+
+        Architecture designed for N-pass extensibility:
+        - Pass 1: Sequential processing with cumulative context
+        - Pass 2+: Sequential processing with enriched context (previous summaries + glossary)
+        - Intermediate files saved between passes (if enabled)
+
+        Args:
+            sections: Document sections to process.
+            language: Document language.
+
+        Returns:
+            Final section summaries after all passes.
+        """
+        # Pass 1: Initial sequential processing
+        logger.info("🔄 PASS 1: Sequential processing with cumulative context")
+        pass1_summaries = await self._sequential_processing(sections, language)
+
+        # Save intermediate results after Pass 1
+        if self.config.save_intermediate:
+            await self._save_intermediate_pass(
+                pass_number=1,
+                sections=sections,
+                summaries=pass1_summaries,
+                language=language,
+                description="Sequential processing with cumulative context",
+            )
+
+        # For now, implement just 2 passes (Pass 1 + Pass 2)
+        # Architecture is ready for N passes in the future
+
+        # Pass 2: Sequential processing with enriched context
+        logger.info("🔄 PASS 2: Sequential processing with enriched context")
+        pass2_summaries = await self._sequential_processing_with_enriched_context(
+            sections=sections, previous_summaries=pass1_summaries, language=language
         )
 
-        # Use sequential processing with cumulative context (SPECS v2.0)
-        return await self._sequential_processing(filtered_sections, language)
+        # Save intermediate results after Pass 2
+        if self.config.save_intermediate:
+            await self._save_intermediate_pass(
+                pass_number=2,
+                sections=sections,
+                summaries=pass2_summaries,
+                language=language,
+                description="Sequential processing with enriched context (summaries + glossary)",
+            )
+
+        # TODO: Future N-pass implementation would loop here
+        # for pass_num in range(3, self.config.max_passes + 1):
+        #     pass_summaries = await self._sequential_processing_with_enriched_context(...)
+
+        logger.info("✅ Multi-pass processing completed")
+        return pass2_summaries
+
+    async def _sequential_processing_with_enriched_context(
+        self,
+        sections: list[DocumentSection],
+        previous_summaries: dict[str, SectionSummary],
+        language: LanguageCode,
+    ) -> dict[str, SectionSummary]:
+        """Sequential processing with enriched context from previous passes.
+
+        Uses the same sequential algorithm but with enriched context:
+        - Current parent summaries (from previous pass)
+        - Previous summary of same node (from previous pass)
+        - Concept glossary (extracted from previous pass)
+        - Still maintains text authority principle: text > enriched context
+
+        Args:
+            sections: Document sections to process.
+            previous_summaries: Summaries from previous pass.
+            language: Document language.
+
+        Returns:
+            Enhanced section summaries with enriched context.
+        """
+        # Step 1: Extract concept glossary from previous pass
+        logger.info("📚 Extracting concept glossary from previous pass")
+        concept_glossary = await self._extract_concept_glossary(
+            previous_summaries, language
+        )
+
+        # Step 2: Order sections in document sequence (same as Pass 1)
+        self.sections_cache = sections  # Store for context building methods
+        ordered_sections = self._order_by_document_sequence(sections)
+
+        logger.info(
+            f"📖 Sequential processing (Pass 2+): {len(ordered_sections)} sections with enriched context"
+        )
+
+        # Step 3: Process sections sequentially with enriched context
+        summaries: dict[str, SectionSummary] = {}
+        pending_parents: dict[str, DocumentSection] = {}
+
+        for section in ordered_sections:
+            logger.debug(
+                f"📖 Processing section '{section.title}' with enriched context"
+            )
+
+            # Build enriched cumulative context
+            enriched_context = self._build_enriched_cumulative_context(
+                section=section,
+                current_summaries=summaries,
+                previous_summaries=previous_summaries,
+                concept_glossary=concept_glossary,
+            )
+
+            if section.children_ids and (
+                not section.content or not section.content.strip()
+            ):
+                # Parent WITHOUT content: defer synthesis
+                logger.debug(
+                    f"⏳ Deferring synthesis for parent without content: '{section.title}'"
+                )
+                pending_parents[section.id] = section
+                continue
+
+            # Process section with enriched context and text authority
+            summary = await self._process_section_with_enriched_authority(
+                section=section, enriched_context=enriched_context, language=language
+            )
+
+            if summary:
+                summaries[section.id] = summary
+                logger.info(f"✅ Enhanced '{section.title}' with enriched context")
+
+                # Update parent levels incrementally
+                await self._update_parent_levels_incrementally(
+                    section, summary, summaries, language
+                )
+
+                # Check pending parents
+                await self._process_pending_parents(
+                    section, pending_parents, summaries, language
+                )
+
+                # Save partial result
+                await self._save_partial_result_if_enabled(
+                    section, summary, len(summaries)
+                )
+            else:
+                logger.warning(
+                    f"❌ Failed to enhance '{section.title}' with enriched context"
+                )
+
+        # Finalize pending parents
+        await self._finalize_pending_parents(pending_parents, summaries, language)
+
+        logger.info(
+            f"Enhanced sequential processing completed: {len(summaries)} sections processed"
+        )
+        return summaries
 
     # TODO: Phase 2 - Implement second pass with enriched context (summaries + glossary)
 
@@ -1212,6 +1380,164 @@ Subsection summaries:
         )
 
         return final_summary
+
+    async def _extract_concept_glossary(
+        self, summaries: dict[str, SectionSummary], language: LanguageCode
+    ) -> dict[str, str]:
+        """Extract concept glossary from previous pass summaries."""
+        # TODO: Implement concept extraction from summaries
+        # For now, return empty glossary to make code compile
+        logger.debug("📚 Extracting concept glossary (stub implementation)")
+        return {}
+
+    def _build_enriched_cumulative_context(
+        self,
+        section: DocumentSection,
+        current_summaries: dict[str, SectionSummary],
+        previous_summaries: dict[str, SectionSummary],
+        concept_glossary: dict[str, str],
+    ) -> str:
+        """Build enriched cumulative context with previous summaries + glossary."""
+        # Build regular cumulative context first
+        base_context = self._build_cumulative_context(section, current_summaries)
+
+        # Add previous summary of same node if available
+        previous_context_parts = []
+        if base_context:
+            previous_context_parts.append(f"CURRENT CONTEXT:\n{base_context}")
+
+        if section.id in previous_summaries:
+            prev_summary = previous_summaries[section.id]
+            previous_context_parts.append(
+                f"PREVIOUS SUMMARY OF THIS SECTION:\n{prev_summary.title}: {prev_summary.summary}"
+            )
+
+        # Add concept glossary if available
+        if concept_glossary:
+            glossary_entries = [
+                f"{concept}: {definition}"
+                for concept, definition in list(concept_glossary.items())[:10]
+            ]  # Limit to 10 concepts
+            if glossary_entries:
+                previous_context_parts.append(
+                    "CONCEPT GLOSSARY:\n" + "\n".join(glossary_entries)
+                )
+
+        enriched_context = "\n\n".join(previous_context_parts)
+
+        if enriched_context:
+            logger.debug(
+                f"📚 Built enriched context for '{section.title}': {len(previous_context_parts)} context parts"
+            )
+
+        return enriched_context
+
+    async def _process_section_with_enriched_authority(
+        self,
+        section: DocumentSection,
+        enriched_context: str,
+        language: LanguageCode,
+    ) -> SectionSummary | None:
+        """Process section with enriched context but maintain text authority."""
+        # Similar to _process_section_with_authority but with enriched context
+        if enriched_context:
+            content_with_authority = f"""ENRICHED CONTEXT (background information only):
+{enriched_context}
+
+SOURCE TEXT (AUTHORITATIVE - supreme authority):
+{section.content}
+
+CRITICAL INSTRUCTIONS:
+1. The SOURCE TEXT is your PRIMARY source of truth
+2. Use ENRICHED CONTEXT only as background information to inform understanding
+3. The enriched context includes previous summaries and concept definitions
+4. If SOURCE TEXT contradicts any ENRICHED CONTEXT information:
+   - Trust the SOURCE TEXT completely
+   - Update your understanding based on SOURCE TEXT
+   - The SOURCE TEXT is always correct
+5. Generate summary that accurately reflects the SOURCE TEXT
+6. Use concept definitions to enhance understanding but never override text meaning
+
+Remember: SOURCE TEXT has supreme authority over all enriched context information."""
+
+            logger.debug(
+                f"🏆 Processing '{section.title}' with enriched text authority principle + context"
+            )
+        else:
+            content_with_authority = section.content
+            logger.debug(
+                f"🏆 Processing '{section.title}' with enriched text authority principle (no context)"
+            )
+
+        # Process using the authority-aware content
+        summary = await self._process_section_single_pass(
+            section=section, content=content_with_authority, language=language
+        )
+
+        return summary
+
+    async def _save_intermediate_pass(
+        self,
+        pass_number: int,
+        sections: list[DocumentSection],
+        summaries: dict[str, SectionSummary],
+        language: LanguageCode,
+        description: str,
+    ) -> None:
+        """Save intermediate pass results to files."""
+        if not self.config.save_intermediate:
+            return
+
+        import json
+        from pathlib import Path
+
+        # Create intermediate directory
+        intermediate_dir = Path(self.config.intermediate_dir)
+        intermediate_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate filename with timestamp
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"pass_{pass_number}_{timestamp}.json"
+        filepath = intermediate_dir / filename
+
+        # Prepare data for saving
+        pass_data = {
+            "pass_number": pass_number,
+            "description": description,
+            "language": language.value,
+            "timestamp": timestamp,
+            "total_sections": len(sections),
+            "total_summaries": len(summaries),
+            "sections": [
+                {
+                    "id": section.id,
+                    "title": section.title,
+                    "level": section.level,
+                    "parent_id": section.parent_id,
+                    "children_ids": section.children_ids,
+                    "order_index": section.order_index,
+                }
+                for section in sections
+            ],
+            "summaries": {
+                section_id: {
+                    "section_id": summary.section_id,
+                    "title": summary.title,
+                    "summary": summary.summary,
+                    "key_concepts": summary.key_concepts,
+                    "summary_length": len(summary.summary),
+                }
+                for section_id, summary in summaries.items()
+            },
+        }
+
+        # Save to JSON file
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(pass_data, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"💾 Saved Pass {pass_number} intermediate results to: {filepath}")
 
     # TODO: Phase 2 - Implement multi-pass processing with specialized prompts and enriched context
 

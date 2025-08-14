@@ -55,6 +55,15 @@ cognitive-reader examples/sample_document.md --dry-run
 
 # Validate configuration only
 cognitive-reader --validate-config
+
+# Multi-pass processing (enable second pass)
+cognitive-reader examples/sample_document.md --enable-second-pass
+
+# Single-pass mode (fast testing)
+cognitive-reader examples/sample_document.md --single-pass
+
+# Save intermediate results between passes (debugging)
+cognitive-reader examples/sample_document.md --save-intermediate
 ```
 
 #### Python Library
@@ -119,6 +128,11 @@ COGNITIVE_READER_FAST_PASS_MODEL=llama3.1:8b    # Fast first pass
 COGNITIVE_READER_MAIN_MODEL=qwen3:8b            # Quality subsequent passes
 COGNITIVE_READER_ENABLE_SECOND_PASS=true        # Enable multi-pass processing
 
+# Processing control
+COGNITIVE_READER_SINGLE_PASS=false             # Force single-pass mode (fast testing)
+COGNITIVE_READER_SAVE_INTERMEDIATE=false       # Save intermediate results between passes
+COGNITIVE_READER_INTERMEDIATE_DIR=./intermediate_passes  # Directory for intermediate files
+
 # Development modes
 COGNITIVE_READER_DRY_RUN=false                  # Use mock responses for testing
 COGNITIVE_READER_LANGUAGE=auto                  # auto, en, es
@@ -135,6 +149,13 @@ config = CognitiveConfig(
     fast_pass_model="llama3.1:8b",      # Fast first pass
     main_model="qwen3:8b",              # Quality subsequent passes
     document_language="auto"            # auto, en, es
+)
+
+# Processing control
+control_config = CognitiveConfig(
+    single_pass=True,                   # Force single-pass mode (fast testing)
+    save_intermediate=True,             # Save intermediate results for debugging
+    intermediate_dir="./debug_passes"  # Custom directory for intermediate files
 )
 
 # Development & testing

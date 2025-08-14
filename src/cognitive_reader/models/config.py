@@ -128,6 +128,18 @@ class CognitiveConfig(BaseModel):
     partial_results_dir: str = Field(
         default="./partial_results", description="Directory to save partial results"
     )
+    single_pass: bool = Field(
+        default=False,
+        description="Force single-pass processing (disable additional passes for fast testing)",
+    )
+    save_intermediate: bool = Field(
+        default=False,
+        description="Save intermediate state between passes (useful for debugging and comparison)",
+    )
+    intermediate_dir: str = Field(
+        default="./intermediate_passes",
+        description="Directory to save intermediate pass results",
+    )
     max_sections: int | None = Field(
         default=None,
         description="Maximum number of sections to process (None = no limit)",
@@ -253,6 +265,15 @@ class CognitiveConfig(BaseModel):
             == "true",
             partial_results_dir=os.getenv(
                 "COGNITIVE_READER_PARTIAL_RESULTS_DIR", "./partial_results"
+            ),
+            single_pass=os.getenv("COGNITIVE_READER_SINGLE_PASS", "false").lower()
+            == "true",
+            save_intermediate=os.getenv(
+                "COGNITIVE_READER_SAVE_INTERMEDIATE", "false"
+            ).lower()
+            == "true",
+            intermediate_dir=os.getenv(
+                "COGNITIVE_READER_INTERMEDIATE_DIR", "./intermediate_passes"
             ),
             max_sections=int(env_val)
             if (env_val := os.getenv("COGNITIVE_READER_MAX_SECTIONS"))

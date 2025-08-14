@@ -115,6 +115,16 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Skip concept definitions generation (faster processing, summaries only)",
 )
+@click.option(
+    "--single-pass",
+    is_flag=True,
+    help="Force single-pass processing (disable additional passes for fast testing)",
+)
+@click.option(
+    "--save-intermediate",
+    is_flag=True,
+    help="Save intermediate state between passes (useful for debugging and comparison)",
+)
 @click.version_option()
 def cli(
     document: Path | None,
@@ -136,6 +146,8 @@ def cli(
     fast_mode: bool,
     disable_reasoning: bool,
     skip_glossary: bool,
+    single_pass: bool,
+    save_intermediate: bool,
 ) -> None:
     """Cognitive Document Reader - Human-like document understanding.
 
@@ -216,6 +228,8 @@ def cli(
                 fast_mode=fast_mode,
                 disable_reasoning=disable_reasoning,
                 skip_glossary=skip_glossary,
+                single_pass=single_pass,
+                save_intermediate=save_intermediate,
             )
         )
     except KeyboardInterrupt:
@@ -252,6 +266,8 @@ async def _async_main(
     fast_mode: bool,
     disable_reasoning: bool,
     skip_glossary: bool,
+    single_pass: bool,
+    save_intermediate: bool,
 ) -> None:
     """Async main function for CLI operations."""
 
@@ -270,6 +286,8 @@ async def _async_main(
         fast_mode=fast_mode,
         disable_reasoning=disable_reasoning,
         skip_glossary=skip_glossary,
+        single_pass=single_pass,
+        save_intermediate=save_intermediate,
     )
 
     # Initialize reader
@@ -416,6 +434,8 @@ def _build_config(
     fast_mode: bool,
     disable_reasoning: bool,
     skip_glossary: bool,
+    single_pass: bool,
+    save_intermediate: bool,
 ) -> CognitiveConfig:
     """Build configuration from CLI options and environment."""
 
@@ -451,6 +471,8 @@ def _build_config(
     config_dict["validate_config_only"] = validate_config
     config_dict["disable_reasoning"] = disable_reasoning
     config_dict["skip_glossary"] = skip_glossary
+    config_dict["single_pass"] = single_pass
+    config_dict["save_intermediate"] = save_intermediate
 
     # Development and testing features
     # Apply CLI overrides
