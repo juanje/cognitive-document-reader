@@ -42,10 +42,10 @@ class CognitiveReader:
         # Log the actual processing strategy being used
         if self.config.enable_second_pass:
             logger.info(
-                f"CognitiveReader initialized with dual-pass: fast={self.config.fast_pass_model}, main={self.config.main_model}"
+                f"CognitiveReader initialized with multi-pass models: fast={self.config.fast_pass_model}, main={self.config.main_model}"
             )
         else:
-            # Single-pass: only fast first pass enabled
+            # Single model: use fast model for all passes
             active_model = self.config.fast_pass_model or self.config.model_name
             logger.info(
                 f"CognitiveReader initialized with single-pass (fast model): {active_model}"
@@ -226,13 +226,13 @@ class CognitiveReader:
         filtered_sections = self._apply_section_filters(ordered_sections)
 
         logger.info(
-            f"Processing {len(filtered_sections)} sections using hierarchical algorithm"
+            f"Processing {len(filtered_sections)} sections using sequential algorithm"
         )
 
-        # Use hierarchical bottom-up processing instead of sequential
-        return await self._hierarchical_processing(filtered_sections, language)
+        # Use sequential processing with cumulative context (SPECS v2.0)
+        return await self._sequential_processing(filtered_sections, language)
 
-    # TODO: Phase 2 - Implement proper dual-pass with hierarchical order and specialized prompts
+    # TODO: Phase 2 - Implement second pass with enriched context (summaries + glossary)
 
     async def _single_pass_reading(
         self,
@@ -356,7 +356,9 @@ class CognitiveReader:
 
             # Extract structured data - no parsing needed!
             summary_text = structured_response.summary
-            unique_concepts = structured_response.key_concepts[:5]  # Already limited in model
+            unique_concepts = structured_response.key_concepts[
+                :5
+            ]  # Already limited in model
 
             return SectionSummary(
                 section_id=section.id,
@@ -446,17 +448,17 @@ class CognitiveReader:
 
         return combined_context
 
-    async def _hierarchical_processing(
+    async def _sequential_processing(
         self, sections: list[DocumentSection], language: LanguageCode
     ) -> dict[str, SectionSummary]:
-        """Process sections using hybrid top-down + bottom-up algorithm.
+        """Process sections using sequential algorithm with cumulative context.
 
-        Implements the correct parent-first context flow:
-        1. Parent WITHOUT content + children: Standard bottom-up processing
-        2. Parent WITH content + children: Hybrid processing:
-           - TOP-DOWN: Process parent text first → parent_summary
-           - CONTEXTUAL: Children receive parent_summary as context
-           - BOTTOM-UP: Final parent summary = synthesis(parent_summary + children_summaries)
+        Implements the authentic sequential reading process from SPECS v2.0:
+        1. Process sections in document order (natural reading flow)
+        2. Build cumulative context (parents + previous siblings) for each section
+        3. Apply text source authority principle (text > context)
+        4. Update parent levels incrementally as children are processed
+        5. Handle deferred synthesis for parents without own content
 
         Args:
             sections: Document sections to process.
@@ -465,92 +467,83 @@ class CognitiveReader:
         Returns:
             Dictionary of section summaries for all sections.
         """
-        # Step 1: Build section hierarchy
-        levels = self._organize_by_level(sections)
-        max_level = max(levels.keys()) if levels else 0
+        # Step 1: Store sections for context building and order in document sequence
+        self.sections_cache = sections  # Store for context building methods
+        ordered_sections = self._order_by_document_sequence(sections)
 
         logger.info(
-            f"Hierarchical structure: {len(levels)} levels (max depth: {max_level})"
+            f"📖 Sequential processing: {len(ordered_sections)} sections in document order"
         )
-        for level, level_sections in levels.items():
-            section_titles = [s.title for s in level_sections]
-            logger.info(
-                f"  Level {level}: {len(level_sections)} sections - {section_titles}"
-            )
+        for i, section in enumerate(ordered_sections[:5]):  # Show first 5 for brevity
+            logger.info(f"  {i + 1}. '{section.title}' (level {section.level})")
+        if len(ordered_sections) > 5:
+            logger.info(f"  ... and {len(ordered_sections) - 5} more sections")
 
         processing_model = self.config.fast_pass_model or self.config.model_name
         logger.info(
-            f"🧠 Processing document with hybrid algorithm, model: {processing_model}"
+            f"🧠 Processing document with sequential algorithm, model: {processing_model}"
         )
 
-        # Step 2: Identify parents with content for hybrid processing
-        parents_with_content = []
-        for level_sections in levels.values():
-            for section in level_sections:
-                if section.children_ids and section.content and section.content.strip():
-                    parents_with_content.append(section)
-
-        logger.info(
-            f"🔄 Found {len(parents_with_content)} parents with content for hybrid processing"
-        )
-
-        # Step 3: Process using two-pass hybrid approach
+        # Step 2: Process sections sequentially with cumulative context
         summaries: dict[str, SectionSummary] = {}
-        parent_contexts: dict[str, str] = {}  # Store parent summaries for context
+        pending_parents: dict[
+            str, DocumentSection
+        ] = {}  # Parents without content waiting for children
 
-        # PASS 1: Process parent texts to generate contexts (top-down)
-        for parent in parents_with_content:
-            logger.info(f"🔄 PASS 1: Processing parent text for '{parent.title}'")
-            parent_summary = await self._process_section_single_pass(
-                section=parent, content=parent.content, language=language
+        for section in ordered_sections:
+            logger.debug(
+                f"📖 Processing section '{section.title}' (level {section.level})"
             )
-            if parent_summary:
-                parent_contexts[parent.id] = parent_summary.summary
-                # Store temporary summary - will be replaced by final synthesis
-                summaries[parent.id] = parent_summary
-                logger.debug(f"Generated parent context for '{parent.title}' children")
 
-        # PASS 2: Process all sections with available contexts (hybrid bottom-up)
-        for level in range(max_level, 0, -1):
-            if level not in levels:
+            # Build cumulative context (parents + previous siblings)
+            cumulative_context = self._build_cumulative_context(section, summaries)
+
+            if section.children_ids and (
+                not section.content or not section.content.strip()
+            ):
+                # Parent WITHOUT content: defer synthesis until all children processed
+                logger.debug(
+                    f"⏳ Deferring synthesis for parent without content: '{section.title}'"
+                )
+                pending_parents[section.id] = section
                 continue
 
-            level_sections = levels[level]
-            logger.info(
-                f"🔄 PASS 2: Processing level {level}: {len(level_sections)} sections"
+            # Process section with cumulative context and text authority principle
+            summary = await self._process_section_with_authority(
+                section=section,
+                cumulative_context=cumulative_context,
+                language=language,
             )
 
-            for section in level_sections:
-                if section.children_ids:  # Container section
-                    has_own_content = section.content and section.content.strip()
+            if summary:
+                summaries[section.id] = summary
+                logger.info(f"✅ Processed '{section.title}' (level {section.level})")
 
-                    if has_own_content:
-                        # Case 2: Final synthesis for parent with content
-                        summary = await self._synthesize_hybrid_parent_final(
-                            section, summaries, parent_contexts, language
-                        )
-                    else:
-                        # Case 1: Standard bottom-up for parent without content
-                        summary = await self._process_container_children_only(
-                            section, summaries, language
-                        )
-                else:  # Leaf section
-                    summary = await self._process_leaf_section(
-                        section, parent_contexts, language
-                    )
+                # Step 3: Update parent levels incrementally
+                await self._update_parent_levels_incrementally(
+                    section, summary, summaries, language
+                )
 
-                if summary:
-                    summaries[section.id] = summary
-                    logger.info(f"✅ Processed '{section.title}' (level {level})")
-                    await self._save_partial_result_if_enabled(
-                        section, summary, len(summaries)
-                    )
-                else:
-                    logger.warning(
-                        f"❌ Failed to process '{section.title}' (level {level})"
-                    )
+                # Step 4: Check if any pending parents can now be synthesized
+                await self._process_pending_parents(
+                    section, pending_parents, summaries, language
+                )
 
-        logger.info(f"Hybrid processing completed: {len(summaries)} sections processed")
+                # Save partial result
+                await self._save_partial_result_if_enabled(
+                    section, summary, len(summaries)
+                )
+            else:
+                logger.warning(
+                    f"❌ Failed to process '{section.title}' (level {section.level})"
+                )
+
+        # Step 5: Process any remaining pending parents
+        await self._finalize_pending_parents(pending_parents, summaries, language)
+
+        logger.info(
+            f"Sequential processing completed: {len(summaries)} sections processed"
+        )
         return summaries
 
     def _organize_by_level(
@@ -577,6 +570,414 @@ class CognitiveReader:
             level_sections.sort(key=lambda s: s.order_index)
 
         return levels
+
+    def _order_by_document_sequence(
+        self, sections: list[DocumentSection]
+    ) -> list[DocumentSection]:
+        """Order sections in document sequence (natural reading flow).
+
+        This implements the core sequential processing requirement from SPECS v2.0:
+        sections are processed in the order they appear in the document, not by hierarchy level.
+
+        Args:
+            sections: Document sections to order.
+
+        Returns:
+            List of sections ordered by document sequence (order_index).
+        """
+        # Sort by order_index which represents the natural document order
+        ordered_sections = sorted(sections, key=lambda s: s.order_index)
+
+        logger.debug(
+            f"📖 Ordered {len(ordered_sections)} sections by document sequence"
+        )
+        return ordered_sections
+
+    def _build_cumulative_context(
+        self, section: DocumentSection, summaries: dict[str, SectionSummary]
+    ) -> str:
+        """Build cumulative context for a section (parents + previous siblings).
+
+        Implements the cumulative context requirement from SPECS v2.0:
+        each section receives context from all parents + previous siblings.
+
+        Args:
+            section: Section to build context for.
+            summaries: Existing section summaries.
+
+        Returns:
+            Cumulative context string for the section.
+        """
+        context_parts = []
+
+        # 1. Parent contexts (all levels up the hierarchy)
+        parent_contexts = self._get_parent_contexts(section, summaries)
+        if parent_contexts:
+            context_parts.append("PARENT CONTEXT:\n" + "\n\n".join(parent_contexts))
+
+        # 2. Previous sibling contexts (same level, processed before this section)
+        sibling_contexts = self._get_previous_sibling_contexts(section, summaries)
+        if sibling_contexts:
+            context_parts.append("PREVIOUS SIBLINGS:\n" + "\n\n".join(sibling_contexts))
+
+        # Combine all context parts
+        cumulative_context = "\n\n".join(context_parts) if context_parts else ""
+
+        if cumulative_context:
+            logger.debug(
+                f"📖 Built cumulative context for '{section.title}': {len(context_parts)} context parts"
+            )
+
+        return cumulative_context
+
+    def _get_parent_contexts(
+        self, section: DocumentSection, summaries: dict[str, SectionSummary]
+    ) -> list[str]:
+        """Get contexts from all parent levels."""
+        parent_contexts = []
+
+        # Traverse up the parent hierarchy
+        current_parent_id = section.parent_id
+        while current_parent_id and current_parent_id in summaries:
+            parent_summary = summaries[current_parent_id]
+            parent_contexts.append(f"{parent_summary.title}: {parent_summary.summary}")
+
+            # Find the next parent up the hierarchy
+            # We need to look for the parent of this parent
+            parent_section = None
+            for (
+                s
+            ) in self.sections_cache:  # We'll need to store sections for this lookup
+                if s.id == current_parent_id:
+                    parent_section = s
+                    break
+
+            current_parent_id = parent_section.parent_id if parent_section else None
+
+        # Return in hierarchical order (highest level first)
+        return list(reversed(parent_contexts))
+
+    def _get_previous_sibling_contexts(
+        self, section: DocumentSection, summaries: dict[str, SectionSummary]
+    ) -> list[str]:
+        """Get contexts from previous siblings (same parent, processed before this section)."""
+        if not section.parent_id:
+            return []  # Root section has no siblings
+
+        sibling_contexts = []
+
+        # Find all siblings with the same parent
+        for (
+            other_section
+        ) in self.sections_cache:  # We'll need to store sections for this lookup
+            if (
+                other_section.parent_id == section.parent_id
+                and other_section.id != section.id
+                and other_section.order_index
+                < section.order_index  # Previous siblings only
+                and other_section.id in summaries
+            ):
+                sibling_summary = summaries[other_section.id]
+                sibling_contexts.append(
+                    f"{sibling_summary.title}: {sibling_summary.summary}"
+                )
+
+        return sibling_contexts
+
+    async def _process_section_with_authority(
+        self,
+        section: DocumentSection,
+        cumulative_context: str,
+        language: LanguageCode,
+    ) -> SectionSummary | None:
+        """Process section with text source authority principle.
+
+        Implements the text authority principle from SPECS v2.0:
+        The original text is the supreme authority - context is supporting information only.
+
+        Args:
+            section: Section to process.
+            cumulative_context: Cumulative context (parents + previous siblings).
+            language: Document language.
+
+        Returns:
+            Section summary with text authority applied.
+        """
+        # Prepare content with authority hierarchy: TEXT > CONTEXT
+        if cumulative_context:
+            # Structure prompt to enforce text authority principle
+            content_with_authority = f"""CONTEXT (background information only):
+{cumulative_context}
+
+SOURCE TEXT (AUTHORITATIVE - supreme authority):
+{section.content}
+
+CRITICAL INSTRUCTIONS:
+1. The SOURCE TEXT is your PRIMARY source of truth
+2. Use CONTEXT only as background information to inform understanding
+3. If SOURCE TEXT contradicts any CONTEXT information:
+   - Trust the SOURCE TEXT completely
+   - Update your understanding based on SOURCE TEXT
+   - The SOURCE TEXT is always correct
+4. Generate summary that accurately reflects the SOURCE TEXT
+5. Identify concepts mentioned in SOURCE TEXT (not just from context)
+
+Remember: SOURCE TEXT has supreme authority over all context information."""
+
+            logger.debug(
+                f"🏆 Processing '{section.title}' with text authority principle + context"
+            )
+        else:
+            # No context available - process text directly
+            content_with_authority = section.content
+            logger.debug(
+                f"🏆 Processing '{section.title}' with text authority principle (no context)"
+            )
+
+        # Process using the authority-aware content
+        summary = await self._process_section_single_pass(
+            section=section, content=content_with_authority, language=language
+        )
+
+        return summary
+
+    async def _update_parent_levels_incrementally(
+        self,
+        processed_section: DocumentSection,
+        section_summary: SectionSummary,
+        summaries: dict[str, SectionSummary],
+        language: LanguageCode,
+    ) -> None:
+        """Update parent levels incrementally as children are processed.
+
+        Implements incremental updates from SPECS v2.0:
+        Parent summaries evolve as their children are processed.
+
+        Args:
+            processed_section: Section that was just processed.
+            section_summary: Summary of the processed section.
+            summaries: All current summaries.
+            language: Document language.
+        """
+        if not processed_section.parent_id:
+            return  # Root section has no parents to update
+
+        # Find the parent section
+        parent_section = None
+        for section in self.sections_cache:
+            if section.id == processed_section.parent_id:
+                parent_section = section
+                break
+
+        if not parent_section:
+            logger.warning(f"Parent section not found for '{processed_section.title}'")
+            return
+
+        # Check if parent has own content - if so, it should be processed/updated
+        if parent_section.content and parent_section.content.strip():
+            if parent_section.id in summaries:
+                # Parent exists - update it with new child information
+                await self._update_existing_parent_summary(
+                    parent_section, section_summary, summaries, language
+                )
+                logger.debug(
+                    f"📈 Updated parent '{parent_section.title}' with child '{processed_section.title}'"
+                )
+            else:
+                logger.debug(
+                    f"⏳ Parent '{parent_section.title}' not yet processed, will be handled later"
+                )
+        else:
+            # Parent without content - will be handled in deferred synthesis
+            logger.debug(
+                f"⏳ Parent '{parent_section.title}' without content, deferred synthesis"
+            )
+
+    async def _update_existing_parent_summary(
+        self,
+        parent_section: DocumentSection,
+        new_child_summary: SectionSummary,
+        summaries: dict[str, SectionSummary],
+        language: LanguageCode,
+    ) -> None:
+        """Update existing parent summary with new child information."""
+        if parent_section.id not in summaries:
+            return
+
+        current_parent_summary = summaries[parent_section.id]
+
+        # Gather all existing child summaries
+        child_summaries = []
+        for child_id in parent_section.children_ids:
+            if child_id in summaries:
+                child_summary = summaries[child_id]
+                child_summaries.append(
+                    f"{child_summary.title}: {child_summary.summary}"
+                )
+
+        if child_summaries:
+            # Create updated synthesis content
+            synthesis_content = f"""Parent section summary:
+{current_parent_summary.summary}
+
+Updated subsection summaries:
+{chr(10).join(child_summaries)}"""
+
+            # Re-process parent with updated children context
+            updated_summary = await self._process_section_single_pass(
+                section=parent_section,
+                content=synthesis_content,
+                language=language,
+            )
+
+            if updated_summary:
+                summaries[parent_section.id] = updated_summary
+                logger.debug(
+                    f"📈 Parent '{parent_section.title}' summary updated with {len(child_summaries)} children"
+                )
+
+    async def _process_pending_parents(
+        self,
+        processed_section: DocumentSection,
+        pending_parents: dict[str, DocumentSection],
+        summaries: dict[str, SectionSummary],
+        language: LanguageCode,
+    ) -> None:
+        """Check if any pending parents can now be synthesized.
+
+        Implements deferred synthesis from SPECS v2.0:
+        Parents without content wait until all children are processed.
+
+        Args:
+            processed_section: Section that was just processed.
+            pending_parents: Dictionary of pending parent sections.
+            summaries: Current summaries.
+            language: Document language.
+        """
+        # Check if the processed section makes any pending parent ready
+        to_process = []
+
+        for parent_id, parent_section in pending_parents.items():
+            if self._are_all_children_processed(parent_section, summaries):
+                to_process.append((parent_id, parent_section))
+
+        # Process ready parents
+        for parent_id, parent_section in to_process:
+            summary = await self._synthesize_parent_from_children(
+                parent_section, summaries, language
+            )
+
+            if summary:
+                summaries[parent_section.id] = summary
+                logger.info(
+                    f"✅ Synthesized parent '{parent_section.title}' from {len(parent_section.children_ids)} children"
+                )
+
+                # Remove from pending
+                del pending_parents[parent_id]
+
+                # Save partial result
+                await self._save_partial_result_if_enabled(
+                    parent_section, summary, len(summaries)
+                )
+            else:
+                logger.warning(
+                    f"❌ Failed to synthesize parent '{parent_section.title}'"
+                )
+
+    def _are_all_children_processed(
+        self,
+        parent_section: DocumentSection,
+        summaries: dict[str, SectionSummary],
+    ) -> bool:
+        """Check if all children of a parent section have been processed."""
+        for child_id in parent_section.children_ids:
+            if child_id not in summaries:
+                return False
+        return True
+
+    async def _synthesize_parent_from_children(
+        self,
+        parent_section: DocumentSection,
+        summaries: dict[str, SectionSummary],
+        language: LanguageCode,
+    ) -> SectionSummary | None:
+        """Synthesize parent summary from children summaries only."""
+        # Gather all child summaries
+        child_summaries = []
+        for child_id in parent_section.children_ids:
+            if child_id in summaries:
+                child_summary = summaries[child_id]
+                child_summaries.append(
+                    f"{child_summary.title}: {child_summary.summary}"
+                )
+
+        if not child_summaries:
+            logger.warning(
+                f"No child summaries found for parent: {parent_section.title}"
+            )
+            return None
+
+        # Build cumulative context (from parents above this one)
+        cumulative_context = self._build_cumulative_context(parent_section, summaries)
+
+        # Create synthesis content
+        if cumulative_context:
+            synthesis_content = f"""CONTEXT (background information only):
+{cumulative_context}
+
+SUBSECTION SUMMARIES (to synthesize):
+{chr(10).join(child_summaries)}
+
+INSTRUCTIONS:
+Synthesize the above subsection summaries into a coherent parent section summary.
+The subsection summaries are authoritative for their content.
+Use context as background information only."""
+        else:
+            synthesis_content = f"""SUBSECTION SUMMARIES (to synthesize):
+{chr(10).join(child_summaries)}
+
+INSTRUCTIONS:
+Synthesize the above subsection summaries into a coherent parent section summary."""
+
+        # Process synthesis
+        summary = await self._process_section_single_pass(
+            section=parent_section, content=synthesis_content, language=language
+        )
+
+        return summary
+
+    async def _finalize_pending_parents(
+        self,
+        pending_parents: dict[str, DocumentSection],
+        summaries: dict[str, SectionSummary],
+        language: LanguageCode,
+    ) -> None:
+        """Process any remaining pending parents at the end.
+
+        This handles edge cases where some parents might still be pending
+        at the end of sequential processing.
+        """
+        if not pending_parents:
+            return
+
+        logger.info(f"🔄 Finalizing {len(pending_parents)} remaining pending parents")
+
+        # Process remaining parents in order
+        pending_list = list(pending_parents.items())
+
+        for parent_id, parent_section in pending_list:
+            summary = await self._synthesize_parent_from_children(
+                parent_section, summaries, language
+            )
+
+            if summary:
+                summaries[parent_section.id] = summary
+                logger.info(
+                    f"✅ Finalized parent '{parent_section.title}' from {len(parent_section.children_ids)} children"
+                )
+            else:
+                logger.warning(f"❌ Failed to finalize parent '{parent_section.title}'")
 
     async def _synthesize_hybrid_parent_final(
         self,
@@ -812,7 +1213,7 @@ Subsection summaries:
 
         return final_summary
 
-    # TODO: Phase 2 - Implement proper dual-pass with specialized prompts and context
+    # TODO: Phase 2 - Implement multi-pass processing with specialized prompts and enriched context
 
     async def _process_section_single_pass(
         self, section: DocumentSection, content: str, language: LanguageCode
