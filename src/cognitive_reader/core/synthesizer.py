@@ -237,8 +237,8 @@ class Synthesizer:
         """
         from ..llm.client import LLMClient
 
-        # Log concept generation process
-        concept_model = self.config.fast_pass_model or self.config.model_name
+        # Log concept generation process (use main model for quality synthesis)
+        concept_model = self.config.main_model or self.config.model_name
         logger.info(
             f"📚 Generating definitions for {len(concepts)} concepts with model: {concept_model}"
         )
@@ -329,7 +329,7 @@ class Synthesizer:
                                 context=context,
                                 language=language,
                                 model=concept_model,
-                                temperature=self.config.fast_pass_temperature
+                                temperature=self.config.main_pass_temperature
                                 or self.config.temperature,
                             )
                         )
