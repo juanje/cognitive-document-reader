@@ -118,8 +118,9 @@ class CognitiveReader:
         # Perform progressive reading
         section_summaries = await self._progressive_reading(sections, detected_language)
 
-        # Synthesize complete knowledge
-        knowledge = await self.synthesizer.synthesize_document(
+        # Build complete knowledge from incrementally updated state
+        # (avoiding expensive re-synthesis - summaries and glossary already updated)
+        knowledge = self._build_cognitive_knowledge_from_current_state(
             sections=sections,
             section_summaries=section_summaries,
             document_title=document_title,
@@ -189,11 +190,12 @@ class CognitiveReader:
         # Perform progressive reading
         section_summaries = await self._progressive_reading(sections, detected_language)
 
-        # Synthesize complete knowledge
-        knowledge = await self.synthesizer.synthesize_document(
+        # Build complete knowledge from incrementally updated state
+        # (avoiding expensive re-synthesis - summaries and glossary already updated)
+        knowledge = self._build_cognitive_knowledge_from_current_state(
             sections=sections,
             section_summaries=section_summaries,
-            document_title=document_title,
+            document_title=title,
             detected_language=detected_language,
         )
 
@@ -404,9 +406,9 @@ class CognitiveReader:
         # Finalize pending parents
         await self._finalize_pending_parents(pending_parents, summaries, language)
 
-        # Generate concept glossary as part of this pass (for future passes)
-        logger.info("📚 Generating concept glossary for this pass")
-        await self._generate_pass_glossary(summaries, language)
+        # Update existing concept definitions with enriched context
+        logger.info("📚 Updating concept definitions with enriched context")
+        await self._update_existing_concept_definitions(summaries, language)
 
         logger.info(
             f"Enhanced sequential processing completed: {len(summaries)} sections processed"
@@ -1469,6 +1471,292 @@ Subsection summaries:
             f"📚 Generated fallback glossary with {len(self.current_pass_glossary)} concepts"
         )
 
+    async def _update_existing_concept_definitions(
+        self, summaries: dict[str, SectionSummary], language: LanguageCode
+    ) -> None:
+        """Update existing concept definitions with enriched context from updated summaries.
+
+        This method incrementally improves concept definitions rather than regenerating
+        the entire glossary, making it much more efficient for multi-pass processing.
+
+        Args:
+            summaries: Updated section summaries from current pass
+            language: Document language
+        """
+        if not hasattr(self, 'current_pass_glossary') or not self.current_pass_glossary:
+            logger.info("📚 No existing glossary found, skipping concept definition updates")
+            return
+
+        # Deduplicate concepts (case-insensitive) first
+        deduplicated_concepts = self._deduplicate_concepts(self.current_pass_glossary)
+        original_count = len(self.current_pass_glossary)
+        dedupe_count = len(deduplicated_concepts)
+
+        if original_count != dedupe_count:
+            logger.info(f"📚 Deduplicated concepts: {original_count} → {dedupe_count}")
+
+        # Build concept-to-sections mapping for targeted context
+        concept_to_sections = self._build_concept_to_sections_mapping(summaries)
+
+        updated_concepts = {}
+        concept_count = len(deduplicated_concepts)
+
+        logger.info(f"📚 Updating {concept_count} existing concept definitions with enriched context")
+
+        # Create LLM client for concept definition updates
+        from ..llm.client import LLMClient
+        async with LLMClient(self.config) as llm_client:
+            for i, (concept_name, current_definition) in enumerate(deduplicated_concepts.items(), 1):
+                try:
+                    # Build specific context for this concept
+                    concept_context = self._build_concept_specific_context(
+                        concept_name, summaries, concept_to_sections
+                    )
+
+                    # Generate enhanced definition using concept-specific context
+                    enhanced_response = await llm_client.generate_concept_definition(
+                        concept=concept_name,
+                        context=concept_context,
+                        language=language
+                    )
+
+                    updated_concepts[concept_name] = enhanced_response.definition
+
+                    logger.debug(f"📚 Updated definition for '{concept_name}' ({i}/{concept_count})")
+
+                except Exception as e:
+                    logger.warning(f"📚 Failed to update definition for '{concept_name}': {e}")
+                    # Keep original definition if update fails
+                    updated_concepts[concept_name] = current_definition
+
+        # Update the glossary with enhanced definitions
+        self.current_pass_glossary = updated_concepts
+
+        logger.info(
+            f"📚 Successfully updated {len(updated_concepts)} concept definitions "
+            f"using enriched context from {len(summaries)} section summaries"
+        )
+
+    def _deduplicate_concepts(self, concepts: dict[str, str]) -> dict[str, str]:
+        """Remove duplicate concepts using case-insensitive deduplication.
+
+        Preserves the concept with the longest definition when duplicates are found.
+
+        Args:
+            concepts: Original concept dictionary {name: definition}
+
+        Returns:
+            Deduplicated concept dictionary
+        """
+        if not concepts:
+            return {}
+
+        # Group concepts by normalized name (lowercase)
+        concept_groups: dict[str, list[tuple[str, str]]] = {}
+
+        for name, definition in concepts.items():
+            normalized_name = name.lower().strip()
+            if normalized_name not in concept_groups:
+                concept_groups[normalized_name] = []
+            concept_groups[normalized_name].append((name, definition))
+
+        # For each group, select the best representative
+        deduplicated = {}
+        for normalized_name, group in concept_groups.items():
+            if len(group) == 1:
+                # No duplicates, keep as-is
+                name, definition = group[0]
+                deduplicated[name] = definition
+            else:
+                # Multiple concepts, choose the one with longest definition
+                best_name, best_definition = max(group, key=lambda x: len(x[1]))
+                deduplicated[best_name] = best_definition
+
+                # Log deduplication for debugging
+                duplicate_names = [name for name, _ in group if name != best_name]
+                logger.debug(f"📚 Deduplicated '{normalized_name}': kept '{best_name}', removed {duplicate_names}")
+
+        return deduplicated
+
+    def _build_concept_to_sections_mapping(self, summaries: dict[str, SectionSummary]) -> dict[str, list[str]]:
+        """Build mapping of concepts to sections where they appear.
+
+        Args:
+            summaries: Section summaries with key_concepts
+
+        Returns:
+            Dictionary mapping concept names to section IDs
+        """
+        concept_to_sections: dict[str, list[str]] = {}
+
+        for section_id, summary in summaries.items():
+            for concept in summary.key_concepts:
+                # Normalize concept name for mapping
+                normalized_concept = concept.lower().strip()
+                if normalized_concept not in concept_to_sections:
+                    concept_to_sections[normalized_concept] = []
+                concept_to_sections[normalized_concept].append(section_id)
+
+        return concept_to_sections
+
+    def _build_concept_specific_context(
+        self,
+        concept_name: str,
+        summaries: dict[str, SectionSummary],
+        concept_to_sections: dict[str, list[str]]
+    ) -> str:
+        """Build context specific to a concept by including relevant sections.
+
+        Args:
+            concept_name: Name of the concept
+            summaries: All section summaries
+            concept_to_sections: Mapping of concepts to sections
+
+        Returns:
+            Targeted context string for this specific concept
+        """
+        normalized_concept = concept_name.lower().strip()
+        relevant_section_ids = concept_to_sections.get(normalized_concept, [])
+
+        if not relevant_section_ids:
+            # Fallback: use all summaries (but this should rarely happen)
+            context_parts = [f"{s.title}: {s.summary}" for s in summaries.values()]
+        else:
+            # Use only sections where this concept appears
+            context_parts = []
+            for section_id in relevant_section_ids:
+                if section_id in summaries:
+                    summary = summaries[section_id]
+                    context_parts.append(f"{summary.title}: {summary.summary}")
+
+        # Limit context size to avoid token overflow
+        max_context_parts = 5  # Reasonable limit for concept-specific context
+        if len(context_parts) > max_context_parts:
+            context_parts = context_parts[:max_context_parts]
+            logger.debug(f"📚 Limited context for '{concept_name}' to {max_context_parts} most relevant sections")
+
+        return "\n".join(context_parts)
+
+    def _build_cognitive_knowledge_from_current_state(
+        self,
+        sections: list[DocumentSection],
+        section_summaries: dict[str, SectionSummary],
+        document_title: str,
+        detected_language: LanguageCode,
+    ) -> CognitiveKnowledge:
+        """Build CognitiveKnowledge from current state without full synthesis.
+
+        This method constructs the final cognitive knowledge object using the
+        incrementally updated summaries and glossary, avoiding expensive re-synthesis.
+
+        Args:
+            sections: Original document sections
+            section_summaries: Final section summaries from all passes
+            document_title: Document title
+            detected_language: Detected document language
+
+        Returns:
+            Complete CognitiveKnowledge object
+        """
+        # Generate document summary from section summaries
+        document_summary_text = self._generate_document_summary_from_sections(
+            section_summaries, document_title
+        )
+
+        # Convert current glossary to ConceptDefinition objects
+        from ..models.knowledge import ConceptDefinition
+
+        # Ensure concepts are deduplicated before final construction
+        final_concepts = self._deduplicate_concepts(self.current_pass_glossary or {})
+
+        # Build concept-to-sections mapping for accurate section tracking
+        concept_to_sections = self._build_concept_to_sections_mapping(section_summaries)
+
+        concepts = []
+        for concept_name, definition in final_concepts.items():
+            # Find sections where this concept actually appears
+            normalized_concept = concept_name.lower().strip()
+            relevant_section_ids = concept_to_sections.get(normalized_concept, [])
+
+            # Use first occurrence as "first mentioned"
+            first_mentioned = relevant_section_ids[0] if relevant_section_ids else (
+                list(section_summaries.keys())[0] if section_summaries else "unknown"
+            )
+
+            concept_def = ConceptDefinition(
+                concept_id=concept_name.lower().replace(' ', '_').replace('-', '_'),
+                name=concept_name,
+                definition=definition,
+                first_mentioned_in=first_mentioned,
+                relevant_sections=relevant_section_ids or list(section_summaries.keys())
+            )
+            concepts.append(concept_def)
+
+        # Calculate statistics
+        avg_summary_length = (
+            sum(len(summary.summary) for summary in section_summaries.values()) / len(section_summaries)
+            if section_summaries else 0.0
+        )
+
+        # Build hierarchy index and parent-child map
+        hierarchy_index: dict[str, list[str]] = {}
+        parent_child_map: dict[str, list[str]] = {}
+
+        for summary in section_summaries.values():
+            level_str = str(summary.level)
+            if level_str not in hierarchy_index:
+                hierarchy_index[level_str] = []
+            hierarchy_index[level_str].append(summary.section_id)
+
+            if summary.children_ids:
+                parent_child_map[summary.section_id] = summary.children_ids
+
+        # Build cognitive knowledge (clean title from markdown)
+        from ..utils.text_cleaning import clean_section_title
+
+        knowledge = CognitiveKnowledge(
+            document_title=clean_section_title(document_title),
+            document_summary=document_summary_text,
+            detected_language=detected_language,
+            hierarchical_summaries=section_summaries,
+            concepts=concepts,
+            hierarchy_index=hierarchy_index,
+            parent_child_map=parent_child_map,
+            total_sections=len(section_summaries),  # Use processed sections count
+            avg_summary_length=avg_summary_length,
+            total_concepts=len(concepts),
+        )
+
+        logger.info(
+            f"🧠 Built cognitive knowledge from current state: {len(section_summaries)} summaries, "
+            f"{len(concepts)} concepts, avoiding expensive re-synthesis"
+        )
+
+        return knowledge
+
+    def _generate_document_summary_from_sections(
+        self, section_summaries: dict[str, SectionSummary], document_title: str
+    ) -> str:
+        """Generate document summary from section summaries without LLM call.
+
+        For now, this creates a simple concatenation-based summary.
+        Could be enhanced to use LLM for better synthesis if needed.
+        """
+        if not section_summaries:
+            return f"Analysis of {document_title} (no sections processed)"
+
+        # Get root-level sections (those without parent_id)
+        root_sections = [s for s in section_summaries.values() if not s.parent_id]
+
+        if root_sections:
+            summary_parts = [f"{s.title}: {s.summary}" for s in root_sections]
+            return f"{document_title} - " + "; ".join(summary_parts)
+        else:
+            # Fallback: use first few section summaries
+            first_sections = list(section_summaries.values())[:3]
+            summary_parts = [f"{s.title}: {s.summary}" for s in first_sections]
+            return f"{document_title} - " + "; ".join(summary_parts)
+
     def _build_enriched_cumulative_context(
         self,
         section: DocumentSection,
@@ -1812,7 +2100,7 @@ Remember: SOURCE TEXT has supreme authority over all enriched context informatio
                         c.concept_id for c in (concepts[:5] if concepts else [])
                     ],
                     "full_definitions": concept_details,  # Complete definitions for debugging
-                }
+            }
 
             # Save to JSON file with zero-padded numbering
             filename = f"partial_{section_index:03d}_of_{total_sections:03d}.json"
