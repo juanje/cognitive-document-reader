@@ -132,6 +132,9 @@ class CognitiveConfig(BaseModel):
     mock_responses: bool = Field(
         default=False, description="Use mock responses for testing"
     )
+    show_context_usage: bool = Field(
+        default=False, description="Show context window usage for each LLM call"
+    )
     validate_config_only: bool = Field(
         default=False, description="Only validate configuration"
     )
@@ -289,6 +292,8 @@ class CognitiveConfig(BaseModel):
             # Development features
             dry_run=os.getenv("COGNITIVE_READER_DRY_RUN", "false").lower() == "true",
             mock_responses=os.getenv("COGNITIVE_READER_MOCK_RESPONSES", "false").lower()
+            == "true",
+            show_context_usage=os.getenv("COGNITIVE_READER_SHOW_CONTEXT_USAGE", "false").lower()
             == "true",
             validate_config_only=os.getenv(
                 "COGNITIVE_READER_VALIDATE_CONFIG_ONLY", "false"

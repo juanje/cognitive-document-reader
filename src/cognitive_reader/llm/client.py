@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from ..models.config import CognitiveConfig
 from ..models.knowledge import LanguageCode
 from ..models.llm_responses import ConceptDefinitionResponse, SectionSummaryResponse
+from ..utils.tokens import get_context_usage_info
 from .prompts import PromptManager
 
 T = TypeVar("T", bound=BaseModel)
@@ -134,6 +135,28 @@ class LLMClient:
         Raises:
             ValueError: If generation fails after retries.
         """
+        # Show context usage if requested (for dry-run and real calls)
+        if self.config.show_context_usage:
+            # Create prompt to estimate context size
+            if prompt_type == "section_summary":
+                prompt = self.prompt_manager.format_section_summary_prompt(
+                    section_title=section_title,
+                    section_content=content,
+                    accumulated_context=context,
+                    language=language,
+                )
+            else:
+                # For other prompt types, estimate based on content + context
+                prompt = f"Context: {context}\n\nContent: {content}"
+
+            estimated_tokens, usage_percentage = get_context_usage_info(
+                prompt, self.config.context_window
+            )
+            logger.info(
+                f"→ Context size: {estimated_tokens:,} tokens "
+                f"({usage_percentage:.1f}% of {self.config.context_window:,} window)"
+            )
+
         # Handle development modes
         if self.config.dry_run or self.config.mock_responses:
             return self._get_mock_summary(content, prompt_type, language)
@@ -434,6 +457,16 @@ class LLMClient:
                     reasoning=reasoning_param,
                 )
 
+        # Show context usage if requested
+        if self.config.show_context_usage:
+            estimated_tokens, usage_percentage = get_context_usage_info(
+                prompt, self.config.context_window
+            )
+            logger.info(
+                f"→ Context size: {estimated_tokens:,} tokens "
+                f"({usage_percentage:.1f}% of {self.config.context_window:,} window)"
+            )
+
         # Make the call using LangChain
         try:
             response = await selected_llm.ainvoke(prompt)
@@ -497,6 +530,16 @@ class LLMClient:
                     num_ctx=self.config.context_window,
                     reasoning=reasoning_param,
                 )
+
+        # Show context usage if requested
+        if self.config.show_context_usage:
+            estimated_tokens, usage_percentage = get_context_usage_info(
+                prompt, self.config.context_window
+            )
+            logger.info(
+                f"→ Context size: {estimated_tokens:,} tokens "
+                f"({usage_percentage:.1f}% of {self.config.context_window:,} window)"
+            )
 
         # Create structured LLM with Pydantic output
         try:

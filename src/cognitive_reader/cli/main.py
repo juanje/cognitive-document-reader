@@ -63,6 +63,11 @@ logger = logging.getLogger(__name__)
 )
 @click.option("--mock-responses", is_flag=True, help="Use mock responses for testing")
 @click.option(
+    "--show-context-usage",
+    is_flag=True,
+    help="Show context window usage for each LLM call",
+)
+@click.option(
     "--validate-config",
     is_flag=True,
     help="Only validate configuration, don't process document",
@@ -154,6 +159,7 @@ def cli(
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
+    show_context_usage: bool,
     validate_config: bool,
     output_file: Path | None,
     verbose: bool,
@@ -240,6 +246,7 @@ def cli(
                 temperature=temperature,
                 dry_run=dry_run,
                 mock_responses=mock_responses,
+                show_context_usage=show_context_usage,
                 validate_config=validate_config,
                 output_file=output_file,
                 verbose=verbose,
@@ -282,6 +289,7 @@ async def _async_main(
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
+    show_context_usage: bool,
     validate_config: bool,
     output_file: Path | None,
     verbose: bool,
@@ -317,6 +325,7 @@ async def _async_main(
         temperature=temperature,
         dry_run=dry_run,
         mock_responses=mock_responses,
+        show_context_usage=show_context_usage,
         validate_config=validate_config,
         save_partials=save_partials,
         partials_dir=partials_dir,
@@ -466,6 +475,7 @@ def _build_config(
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
+    show_context_usage: bool,
     validate_config: bool,
     save_partials: bool,
     partials_dir: Path | None,
@@ -512,6 +522,7 @@ def _build_config(
     # Development modes
     config_dict["dry_run"] = dry_run
     config_dict["mock_responses"] = mock_responses
+    config_dict["show_context_usage"] = show_context_usage
     config_dict["validate_config_only"] = validate_config
     config_dict["disable_reasoning"] = disable_reasoning
     config_dict["skip_glossary"] = skip_glossary
