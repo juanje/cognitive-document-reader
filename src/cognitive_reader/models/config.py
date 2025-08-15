@@ -48,12 +48,12 @@ class CognitiveConfig(BaseModel):
         description="Quality model for detailed cognitive processing",
     )
 
-    # Temperature settings
+    # Temperature settings - optimized for maximum fidelity to source text
     fast_pass_temperature: float | None = Field(
-        default=0.1, ge=0.0, le=2.0, description="Temperature for fast scan"
+        default=0.05, ge=0.0, le=2.0, description="Temperature for fast scan (very conservative for fidelity)"
     )
     main_pass_temperature: float | None = Field(
-        default=0.3, ge=0.0, le=2.0, description="Temperature for quality processing"
+        default=0.05, ge=0.0, le=2.0, description="Temperature for quality processing (very conservative for fidelity)"
     )
 
     # Cognitive Features
@@ -214,12 +214,12 @@ class CognitiveConfig(BaseModel):
             ),
             main_model=os.getenv("COGNITIVE_READER_MAIN_MODEL", "qwen3:8b"),
             fast_pass_temperature=float(
-                os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE", "0.1")
+                os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE", "0.05")
             )
             if os.getenv("COGNITIVE_READER_FAST_PASS_TEMPERATURE")
             else None,
             main_pass_temperature=float(
-                os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE", "0.3")
+                os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE", "0.05")
             )
             if os.getenv("COGNITIVE_READER_MAIN_PASS_TEMPERATURE")
             else None,

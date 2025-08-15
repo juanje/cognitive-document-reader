@@ -31,8 +31,8 @@ class TestCognitiveConfig:
         assert config.enable_fast_first_pass is True
         assert config.fast_pass_model == "llama3.1:8b"
         assert config.main_model == "qwen3:8b"
-        assert config.fast_pass_temperature == 0.1
-        assert config.main_pass_temperature == 0.3
+        assert config.fast_pass_temperature == 0.05  # Conservative for fidelity
+        assert config.main_pass_temperature == 0.05  # Conservative for fidelity
 
         # Cognitive features (SPECS v2: two-pass as default)
         assert config.num_passes == 2
@@ -57,11 +57,11 @@ class TestCognitiveConfig:
         """Test temperature selection for different passes."""
         config = CognitiveConfig()
 
-        # First pass should use fast temperature
-        assert config.get_temperature_for_pass(1) == 0.1
+        # First pass should use fast temperature (conservative for fidelity)
+        assert config.get_temperature_for_pass(1) == 0.05
 
-        # Second pass should use main temperature
-        assert config.get_temperature_for_pass(2) == 0.3
+        # Second pass should use main temperature (conservative for fidelity)
+        assert config.get_temperature_for_pass(2) == 0.05
 
     def test_from_env_basic(self):
         """Test loading configuration from environment variables."""
