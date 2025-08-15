@@ -28,7 +28,7 @@ def test_config_defaults():
     assert config.temperature == 0.1
     assert config.chunk_size == 1000
     assert config.chunk_overlap == 200
-    assert config.context_window == 4096
+    assert config.context_window == 16384
     assert config.timeout_seconds == 120
     assert config.max_retries == 3
     assert config.document_language == LanguageCode.AUTO

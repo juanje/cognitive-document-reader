@@ -78,7 +78,7 @@ class CognitiveConfig(BaseModel):
     )
     chunk_overlap: int = Field(default=200, ge=0, description="Overlap between chunks")
     context_window: int = Field(
-        default=4096, gt=0, description="LLM context window limit"
+        default=16384, gt=0, description="LLM context window limit (safe for enriched context)"
     )
 
     # Performance Settings
@@ -235,7 +235,7 @@ class CognitiveConfig(BaseModel):
             # Processing settings
             chunk_size=int(os.getenv("COGNITIVE_READER_CHUNK_SIZE", "1000")),
             chunk_overlap=int(os.getenv("COGNITIVE_READER_CHUNK_OVERLAP", "200")),
-            context_window=int(os.getenv("COGNITIVE_READER_CONTEXT_WINDOW", "4096")),
+            context_window=int(os.getenv("COGNITIVE_READER_CONTEXT_WINDOW", "16384")),
             # Performance settings
             timeout_seconds=int(os.getenv("COGNITIVE_READER_TIMEOUT_SECONDS", "120")),
             max_retries=int(os.getenv("COGNITIVE_READER_MAX_RETRIES", "3")),

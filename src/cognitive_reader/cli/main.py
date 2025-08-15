@@ -140,6 +140,11 @@ logger = logging.getLogger(__name__)
     type=int,
     help="Maximum number of words for section summaries (maintains focus)",
 )
+@click.option(
+    "--extended-context",
+    is_flag=True,
+    help="Use extended context window (32768 tokens) for complex/long documents",
+)
 @click.version_option()
 def cli(
     document: Path | None,
@@ -166,6 +171,7 @@ def cli(
     target_words: int | None,
     min_words: int | None,
     max_words: int | None,
+    extended_context: bool,
 ) -> None:
     """Cognitive Document Reader - Human-like document understanding.
 
@@ -251,6 +257,7 @@ def cli(
                 target_words=target_words,
                 min_words=min_words,
                 max_words=max_words,
+                extended_context=extended_context,
             )
         )
     except KeyboardInterrupt:
@@ -292,6 +299,7 @@ async def _async_main(
     target_words: int | None,
     min_words: int | None,
     max_words: int | None,
+    extended_context: bool,
 ) -> None:
     """Async main function for CLI operations."""
 
@@ -315,6 +323,7 @@ async def _async_main(
         target_words=target_words,
         min_words=min_words,
         max_words=max_words,
+        extended_context=extended_context,
     )
 
     # Initialize reader
@@ -466,6 +475,7 @@ def _build_config(
     target_words: int | None,
     min_words: int | None,
     max_words: int | None,
+    extended_context: bool,
 ) -> CognitiveConfig:
     """Build configuration from CLI options and environment."""
 
@@ -523,6 +533,10 @@ def _build_config(
         config_dict["min_summary_words"] = min_words
     if max_words is not None:
         config_dict["max_summary_words"] = max_words
+
+    # Extended context window for complex/long documents
+    if extended_context:
+        config_dict["context_window"] = 32768
 
     # Apply overrides
     if config_dict:
