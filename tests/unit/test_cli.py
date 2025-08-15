@@ -73,12 +73,13 @@ def test_cli_validate_config_only(runner):
     assert "Configuration is valid" in result.output or "valid" in result.output.lower()
 
 
-def test_cli_no_document_error(runner):
-    """Test error when no document is provided."""
+def test_cli_no_document_shows_help(runner):
+    """Test help is shown when no document is provided."""
     result = runner.invoke(cli, [])
 
-    assert result.exit_code != 0
-    assert "required" in result.output.lower() or "usage" in result.output.lower()
+    assert result.exit_code == 0  # Shows help and exits gracefully
+    assert "Usage:" in result.output
+    assert "cognitive-reader" in result.output
 
 
 def test_cli_nonexistent_file(runner):

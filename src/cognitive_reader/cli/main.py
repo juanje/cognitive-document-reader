@@ -303,6 +303,13 @@ async def _async_main(
 ) -> None:
     """Async main function for CLI operations."""
 
+    # Early validation: Show help if no document and not validation mode
+    if not document and not validate_config:
+        # Show help and exit gracefully
+        ctx = click.get_current_context()
+        click.echo(ctx.get_help())
+        return
+
     # Build configuration
     config = _build_config(
         language=language,
@@ -326,7 +333,7 @@ async def _async_main(
         extended_context=extended_context,
     )
 
-    # Initialize reader
+    # Initialize reader (only when we actually need it)
     reader = CognitiveReader(config)
 
     # Handle validation-only mode
@@ -344,11 +351,8 @@ async def _async_main(
         else:
             raise click.ClickException("❌ Configuration validation failed")
 
-    # Require document for processing modes
-    if not document:
-        raise click.UsageError(
-            "Document argument is required unless using --validate-config"
-        )
+    # At this point, document must exist (validated above)
+    assert document is not None
 
     if not quiet:
         click.echo(f"Processing document: {document}")
