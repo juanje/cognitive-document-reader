@@ -1537,9 +1537,32 @@ Subsection summaries:
             f"using enriched context from {len(summaries)} section summaries"
         )
 
-    def _deduplicate_concepts(self, concepts: dict[str, str]) -> dict[str, str]:
-        """Remove duplicate concepts using case-insensitive deduplication.
+    def _normalize_concept_name(self, concept_name: str) -> str:
+        """Normalize concept name for consistent deduplication and mapping.
 
+        Converts to lowercase, removes extra whitespace, and normalizes separators.
+
+        Args:
+            concept_name: Raw concept name
+
+        Returns:
+            Normalized concept name
+
+        Examples:
+            >>> _normalize_concept_name("Cognitive_Reading")
+            "cognitive reading"
+            >>> _normalize_concept_name("document-processing  ")
+            "document processing"
+        """
+        # Comprehensive normalization: lowercase, strip, and normalize separators
+        normalized = concept_name.lower().strip().replace('_', ' ').replace('-', ' ')
+        # Clean up multiple spaces
+        return ' '.join(normalized.split())
+
+    def _deduplicate_concepts(self, concepts: dict[str, str]) -> dict[str, str]:
+        """Remove duplicate concepts using comprehensive normalization.
+
+        Handles case-insensitive deduplication and normalizes spaces/underscores.
         Preserves the concept with the longest definition when duplicates are found.
 
         Args:
@@ -1551,11 +1574,12 @@ Subsection summaries:
         if not concepts:
             return {}
 
-        # Group concepts by normalized name (lowercase)
+        # Group concepts by normalized name (lowercase + spaces/underscores normalized)
         concept_groups: dict[str, list[tuple[str, str]]] = {}
 
         for name, definition in concepts.items():
-            normalized_name = name.lower().strip()
+            normalized_name = self._normalize_concept_name(name)
+
             if normalized_name not in concept_groups:
                 concept_groups[normalized_name] = []
             concept_groups[normalized_name].append((name, definition))
@@ -1581,6 +1605,8 @@ Subsection summaries:
     def _build_concept_to_sections_mapping(self, summaries: dict[str, SectionSummary]) -> dict[str, list[str]]:
         """Build mapping of concepts to sections where they appear.
 
+        Uses the same normalization as _deduplicate_concepts for consistency.
+
         Args:
             summaries: Section summaries with key_concepts
 
@@ -1591,8 +1617,8 @@ Subsection summaries:
 
         for section_id, summary in summaries.items():
             for concept in summary.key_concepts:
-                # Normalize concept name for mapping
-                normalized_concept = concept.lower().strip()
+                normalized_concept = self._normalize_concept_name(concept)
+
                 if normalized_concept not in concept_to_sections:
                     concept_to_sections[normalized_concept] = []
                 concept_to_sections[normalized_concept].append(section_id)
@@ -1615,7 +1641,8 @@ Subsection summaries:
         Returns:
             Targeted context string for this specific concept
         """
-        normalized_concept = concept_name.lower().strip()
+        # Use same normalization as other functions for consistency
+        normalized_concept = self._normalize_concept_name(concept_name)
         relevant_section_ids = concept_to_sections.get(normalized_concept, [])
 
         if not relevant_section_ids:

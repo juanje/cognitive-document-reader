@@ -81,6 +81,133 @@ class TestIncrementalSynthesis:
         assert "Definition of cognitive" in cognitive_kept[1]
         assert cognitive_kept[0] == "Cognitive"  # Should keep the original case
 
+    def test_deduplicate_concepts_with_separators(self, reader: CognitiveReader) -> None:
+        """Test deduplication with spaces, underscores, and hyphens."""
+        concepts = {
+            "cognitive reading": "Spaces version definition",          # 25 chars - longest
+            "cognitive_reading": "Underscores version",                # 19 chars
+            "cognitive-reading": "Hyphens version",                   # 15 chars
+            "COGNITIVE_READING": "Uppercase underscores",             # 21 chars
+            "document processing": "Different concept",               # 17 chars
+            "document_processing": "Same concept with underscores",   # 31 chars - longest
+        }
+
+        result = reader._deduplicate_concepts(concepts)
+
+        # Should have only 2 unique concepts after normalization
+        assert len(result) == 2
+
+        # Find the cognitive reading concept (should keep longest definition)
+        cognitive_reading_kept = None
+        document_processing_kept = None
+
+        for name, definition in result.items():
+            normalized = name.lower().replace('_', ' ').replace('-', ' ')
+            normalized = ' '.join(normalized.split())
+
+            if normalized == "cognitive reading":
+                cognitive_reading_kept = (name, definition)
+            elif normalized == "document processing":
+                document_processing_kept = (name, definition)
+
+        assert cognitive_reading_kept is not None
+        assert document_processing_kept is not None
+
+        # Should keep the longest definitions
+        assert "Spaces version definition" in cognitive_reading_kept[1]
+        assert "Same concept with underscores" in document_processing_kept[1]
+
+    def test_normalize_concept_name(self, reader: CognitiveReader) -> None:
+        """Test concept name normalization helper function."""
+        assert reader._normalize_concept_name("Cognitive Reading") == "cognitive reading"
+        assert reader._normalize_concept_name("cognitive_reading") == "cognitive reading"
+        assert reader._normalize_concept_name("cognitive-reading") == "cognitive reading"
+        assert reader._normalize_concept_name("COGNITIVE_READING") == "cognitive reading"
+        assert reader._normalize_concept_name("  Document__Processing  ") == "document processing"
+        assert reader._normalize_concept_name("technical-terms_preservation") == "technical terms preservation"
+
+    def test_concept_to_sections_mapping_with_separators(
+        self, reader: CognitiveReader
+    ) -> None:
+        """Test that section mapping handles separator normalization."""
+        summaries = {
+            "section_1": SectionSummary(
+                section_id="section_1",
+                title="Section 1",
+                summary="Test summary",
+                key_concepts=["cognitive reading", "document_processing"],
+                parent_id=None,
+                children_ids=[],
+                level=0,
+                order_index=0,
+            ),
+            "section_2": SectionSummary(
+                section_id="section_2",
+                title="Section 2",
+                summary="Test summary 2",
+                key_concepts=["cognitive_reading", "document-processing"],
+                parent_id=None,
+                children_ids=[],
+                level=0,
+                order_index=1,
+            ),
+        }
+
+        result = reader._build_concept_to_sections_mapping(summaries)
+
+        # Should normalize and group correctly
+        assert "cognitive reading" in result
+        assert "document processing" in result
+
+        # Both sections should be mapped to normalized concepts
+        assert len(result["cognitive reading"]) == 2
+        assert len(result["document processing"]) == 2
+        assert "section_1" in result["cognitive reading"]
+        assert "section_2" in result["cognitive reading"]
+        assert "section_1" in result["document processing"]
+        assert "section_2" in result["document processing"]
+
+    def test_concept_specific_context_with_separators(
+        self, reader: CognitiveReader
+    ) -> None:
+        """Test that context building works with normalized concept names."""
+        summaries = {
+            "section_1": SectionSummary(
+                section_id="section_1",
+                title="Introduction",
+                summary="About cognitive reading",
+                key_concepts=["cognitive_reading"],
+                parent_id=None,
+                children_ids=[],
+                level=0,
+                order_index=0,
+            ),
+            "section_2": SectionSummary(
+                section_id="section_2",
+                title="Methods",
+                summary="Processing methods",
+                key_concepts=["document-processing"],
+                parent_id=None,
+                children_ids=[],
+                level=0,
+                order_index=1,
+            ),
+        }
+
+        concept_to_sections = reader._build_concept_to_sections_mapping(summaries)
+
+        # Test with different separator formats - should all work
+        context1 = reader._build_concept_specific_context(
+            "cognitive reading", summaries, concept_to_sections
+        )
+        context2 = reader._build_concept_specific_context(
+            "cognitive_reading", summaries, concept_to_sections
+        )
+
+        # Both should find the same context
+        assert "Introduction: About cognitive reading" in context1
+        assert context1 == context2
+
     def test_deduplicate_concepts_empty(self, reader: CognitiveReader) -> None:
         """Test deduplication with empty input."""
         result = reader._deduplicate_concepts({})
