@@ -187,7 +187,7 @@ class PromptManager:
 
     def _get_section_summary_prompt(self) -> str:
         """Unified prompt for section summarization."""
-        return """You are an expert document analyst performing cognitive reading. Your task is to create a concise, high-quality summary of a document section while considering the broader context.
+        return """You are an expert document analyst performing cognitive reading. Your task is to create a faithful, accurate summary that represents the source text with maximum fidelity.
 
 SECTION TO SUMMARIZE:
 Title: {section_title}
@@ -195,6 +195,15 @@ Content: {section_content}
 
 ACCUMULATED CONTEXT FROM PREVIOUS SECTIONS:
 {accumulated_context}
+
+CRITICAL FIDELITY REQUIREMENTS:
+1. The SOURCE TEXT (section content) is your PRIMARY and ULTIMATE authority
+2. Quote, paraphrase, or directly reference the original text whenever possible
+3. Preserve technical terms, proper nouns, specific numbers, and details exactly as stated
+4. NEVER add information, interpretations, or inferences not explicitly present in the source
+5. If accumulated context conflicts with the source text, the SOURCE TEXT is always correct
+6. Stay strictly within the boundaries of what the source explicitly states
+7. When summarizing, use the author's own words and phrasing when possible
 
 SUMMARY INSTRUCTIONS:
 1. Create a comprehensive summary targeting approximately {target_words} words
@@ -225,14 +234,23 @@ Provide only the summary and key concepts, no additional commentary."""
 
     def _get_document_summary_prompt(self) -> str:
         """Unified prompt for document-level summarization."""
-        return """You are an expert document analyst creating a comprehensive document summary. Synthesize the section summaries into a coherent overview that captures the document's main narrative and key insights.
+        return """You are an expert document analyst creating a comprehensive document summary. Your task is to faithfully synthesize the section summaries without adding information not present in them.
 
 DOCUMENT TITLE: {document_title}
 
 SECTION SUMMARIES:
 {section_summaries}
 
-INSTRUCTIONS:
+CRITICAL FIDELITY REQUIREMENTS:
+1. The SECTION SUMMARIES are your PRIMARY and ULTIMATE source of truth
+2. ONLY use information explicitly stated in the provided section summaries
+3. NEVER add interpretations, conclusions, or information not present in the summaries
+4. Preserve technical terms, proper nouns, and specific details exactly as they appear
+5. If you need to connect concepts, do so only based on what's explicitly stated
+6. Stay strictly within the boundaries of what the section summaries contain
+7. Maintain the logical relationships as presented in the original summaries
+
+SYNTHESIS INSTRUCTIONS:
 1. Create a comprehensive document summary targeting approximately {target_words} words
 2. Minimum {min_words} words for sufficient coverage - Maximum {max_words} words to maintain focus
 3. Count words as you write to stay within the {min_words}-{max_words} word range
@@ -240,9 +258,9 @@ INSTRUCTIONS:
 5. Write in DIRECT SYNTHESIS style - present the content as unified knowledge, not meta-descriptions
 6. AVOID meta-references like "The document discusses...", "This text covers...", "The sections explain..."
 7. Maintain the logical flow and narrative structure of the document
-8. Highlight the most important insights and conclusions across all sections
+8. Highlight the most important insights and conclusions that are explicitly present in the sections
 9. Ensure the summary is valuable for human reading and AI applications
-10. Connect related concepts and themes across sections
+10. Connect related concepts and themes only when these connections are evident from the sections
 
 STYLE EXAMPLES:
 ❌ BAD: "This document explores the concept of [topic] and explains how..."
@@ -300,14 +318,22 @@ Provide only the key concepts list, no additional commentary."""
 
     def _get_concept_definition_prompt(self) -> str:
         """Unified prompt for concept definition generation."""
-        return """You are an expert at creating clear, concise definitions for key concepts. Generate a precise definition for the given concept based on how it's used in the document context.
+        return """You are an expert at creating clear, concise definitions for key concepts. Generate a precise definition that is faithful to how the concept appears and is used in the document context.
 
 CONCEPT TO DEFINE: {concept_name}
 
 CONTEXT FROM DOCUMENT:
 {context}
 
-INSTRUCTIONS:
+FIDELITY GUIDELINES:
+1. PRIMARY SOURCE: Use explicit definitions or descriptions from the document context first
+2. CONTEXTUAL USAGE: If no explicit definition exists, define based on how the concept is used in context
+3. PRESERVE MEANING: Stay true to the specific meaning the document assigns to this concept
+4. AVOID EXTERNAL KNOWLEDGE: Don't impose standard definitions that contradict the document's usage
+5. FLEXIBLE INFERENCE: When concepts aren't explicitly defined, make reasonable inferences from context
+6. DOMAIN SENSITIVITY: Consider the document's domain and how terms might have specialized meanings
+
+DEFINITION INSTRUCTIONS:
 1. CAREFULLY READ the concept name and context to understand what you're defining
 2. Create a clear, precise definition (1-2 sentences maximum) that accurately reflects the concept
 3. Write in DIRECT DEFINITION style - state what the concept IS, not what "the document says it is"
