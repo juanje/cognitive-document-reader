@@ -255,7 +255,7 @@ class CognitiveConfig(BaseModel):
             # Processing settings
             chunk_size=int(os.getenv("COGNITIVE_READER_CHUNK_SIZE", "1000")),
             chunk_overlap=int(os.getenv("COGNITIVE_READER_CHUNK_OVERLAP", "200")),
-            context_window=int(os.getenv("COGNITIVE_READER_CONTEXT_WINDOW", "16384")),
+            context_window=int(os.getenv("COGNITIVE_READER_CONTEXT_WINDOW", "4096")),
             # Performance settings
             timeout_seconds=int(os.getenv("COGNITIVE_READER_TIMEOUT_SECONDS", "120")),
             max_retries=int(os.getenv("COGNITIVE_READER_MAX_RETRIES", "3")),

@@ -551,7 +551,7 @@ def _build_config(
 
     # Extended context window for complex/long documents
     if extended_context:
-        config_dict["context_window"] = 32768
+        config_dict["context_window"] = 8192
 
     # Apply overrides
     if config_dict:
