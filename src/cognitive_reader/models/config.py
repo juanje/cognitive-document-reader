@@ -97,15 +97,26 @@ class CognitiveConfig(BaseModel):
     )
     # Future: openai_api_key, anthropic_api_key, etc.
 
-    # Summary Optimization for RAG/Fine-tuning
-    target_summary_length: int = Field(
-        default=800, gt=100, description="Target summary length in characters"
+    # Summary Optimization for RAG/Fine-tuning (word-based for natural control)
+    target_summary_words: int = Field(
+        default=250, gt=20, description="Target summary length in words (~320 tokens)"
     )
-    min_summary_length: int = Field(
-        default=400, gt=50, description="Minimum summary length in characters"
+    min_summary_words: int = Field(
+        default=150, gt=10, description="Minimum summary length in words (~190 tokens)"
     )
-    max_summary_length: int = Field(
-        default=1200, gt=100, description="Maximum summary length in characters"
+    max_summary_words: int = Field(
+        default=400, gt=30, description="Maximum summary length in words (~500 tokens)"
+    )
+
+    # Document-level summaries (longer for comprehensive understanding)
+    target_document_summary_words: int = Field(
+        default=400, gt=50, description="Target document summary length in words (~500 tokens)"
+    )
+    min_document_summary_words: int = Field(
+        default=250, gt=20, description="Minimum document summary length in words (~320 tokens)"
+    )
+    max_document_summary_words: int = Field(
+        default=600, gt=80, description="Maximum document summary length in words (~750 tokens)"
     )
     max_hierarchy_depth: int = Field(
         default=10,
@@ -237,14 +248,23 @@ class CognitiveConfig(BaseModel):
                 "COGNITIVE_READER_OLLAMA_BASE_URL", "http://localhost:11434"
             ),
             # Summary optimization for RAG/Fine-tuning
-            target_summary_length=int(
-                os.getenv("COGNITIVE_READER_TARGET_SUMMARY_LENGTH", "800")
+            target_summary_words=int(
+                os.getenv("COGNITIVE_READER_TARGET_SUMMARY_WORDS", "250")
             ),
-            min_summary_length=int(
-                os.getenv("COGNITIVE_READER_MIN_SUMMARY_LENGTH", "400")
+            min_summary_words=int(
+                os.getenv("COGNITIVE_READER_MIN_SUMMARY_WORDS", "150")
             ),
-            max_summary_length=int(
-                os.getenv("COGNITIVE_READER_MAX_SUMMARY_LENGTH", "1200")
+            max_summary_words=int(
+                os.getenv("COGNITIVE_READER_MAX_SUMMARY_WORDS", "400")
+            ),
+            target_document_summary_words=int(
+                os.getenv("COGNITIVE_READER_TARGET_DOCUMENT_SUMMARY_WORDS", "400")
+            ),
+            min_document_summary_words=int(
+                os.getenv("COGNITIVE_READER_MIN_DOCUMENT_SUMMARY_WORDS", "250")
+            ),
+            max_document_summary_words=int(
+                os.getenv("COGNITIVE_READER_MAX_DOCUMENT_SUMMARY_WORDS", "600")
             ),
             max_hierarchy_depth=int(
                 os.getenv("COGNITIVE_READER_MAX_HIERARCHY_DEPTH", "10")

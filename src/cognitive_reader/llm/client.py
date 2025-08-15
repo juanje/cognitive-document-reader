@@ -145,6 +145,9 @@ class LLMClient:
                 section_content=content,
                 accumulated_context=context,
                 language=language,
+                target_words=self.config.target_summary_words,
+                min_words=self.config.min_summary_words,
+                max_words=self.config.max_summary_words,
             )
         elif prompt_type == "document_summary":
             # For document summary, content should be section summaries
@@ -152,6 +155,9 @@ class LLMClient:
                 document_title=section_title,
                 section_summaries=[content],  # Expecting formatted summaries
                 language=language,
+                target_words=self.config.target_document_summary_words,
+                min_words=self.config.min_document_summary_words,
+                max_words=self.config.max_document_summary_words,
             )
         else:
             raise ValueError(f"Unsupported prompt type: {prompt_type}")

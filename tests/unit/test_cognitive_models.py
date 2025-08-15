@@ -268,7 +268,7 @@ class TestModelIntegration:
         config = CognitiveConfig()
 
         # Verify config values are appropriate for knowledge creation
-        assert config.target_summary_length > 0
+        assert config.target_summary_words > 0
         assert config.max_hierarchy_depth >= 1
 
         # Create knowledge with config-appropriate values
@@ -277,9 +277,9 @@ class TestModelIntegration:
             document_summary="This document integrates configuration with knowledge creation models.",
             detected_language=config.document_language,
             total_sections=1,
-            avg_summary_length=config.target_summary_length,
+            avg_summary_length=config.target_summary_words * 5,  # Approximate char conversion
             total_concepts=0,
         )
 
         assert knowledge.detected_language == LanguageCode.AUTO
-        assert knowledge.avg_summary_length == 800
+        assert knowledge.avg_summary_length == 1250  # 250 words * 5 chars/word

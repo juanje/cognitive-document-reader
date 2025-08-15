@@ -16,7 +16,7 @@ class TestUnifiedPromptSystem:
         prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.EN)
 
         # Should contain the English instruction
-        assert "**IMPORTANT: Respond in English.**" in prompt
+        assert "**IMPORTANT: Respond in English." in prompt
 
         # Should contain the template variables
         assert "{section_title}" in prompt
@@ -28,7 +28,7 @@ class TestUnifiedPromptSystem:
         prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.ES)
 
         # Should contain the Spanish instruction
-        assert "**IMPORTANT: Respond in Spanish.**" in prompt
+        assert "**IMPORTANT: Respond in Spanish." in prompt
 
         # Should contain the template variables
         assert "{section_title}" in prompt
@@ -40,7 +40,7 @@ class TestUnifiedPromptSystem:
         prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.AUTO)
 
         # Should contain the English instruction
-        assert "**IMPORTANT: Respond in English.**" in prompt
+        assert "**IMPORTANT: Respond in English." in prompt
 
     def test_all_prompt_types_work_with_different_languages(self):
         """Test all prompt types work with different languages."""
@@ -60,7 +60,7 @@ class TestUnifiedPromptSystem:
                 expected_lang_name = (
                     "English" if language == LanguageCode.EN else "Spanish"
                 )
-                assert f"**IMPORTANT: Respond in {expected_lang_name}.**" in prompt
+                assert f"**IMPORTANT: Respond in {expected_lang_name}." in prompt
 
                 # Should not contain the placeholder anymore
                 assert "{{language}}" not in prompt
@@ -75,7 +75,7 @@ class TestUnifiedPromptSystem:
         )
 
         # Should contain the Spanish instruction
-        assert "**IMPORTANT: Respond in Spanish.**" in formatted
+        assert "**IMPORTANT: Respond in Spanish." in formatted
 
         # Should have variables replaced
         assert "Introducción" in formatted
@@ -97,7 +97,7 @@ class TestUnifiedPromptSystem:
         )
 
         # Should contain the English instruction
-        assert "**IMPORTANT: Respond in English.**" in formatted
+        assert "**IMPORTANT: Respond in English." in formatted
 
         # Should have variables replaced
         assert "Introduction" in formatted
@@ -115,7 +115,7 @@ class TestUnifiedPromptSystem:
 
             # Should contain correct language instruction
             expected_lang_name = "English" if language == LanguageCode.EN else "Spanish"
-            assert f"**IMPORTANT: Respond in {expected_lang_name}.**" in formatted
+            assert f"**IMPORTANT: Respond in {expected_lang_name}." in formatted
 
             # Should have variables replaced
             assert "Test Document" in formatted
@@ -288,7 +288,7 @@ class TestUnifiedPromptSystem:
 
         # Both should contain proper language instruction and guidance
         for prompt, lang in [(prompt_en, "English"), (prompt_es, "Spanish")]:
-            assert f"**IMPORTANT: Respond in {lang}.**" in prompt
+            assert f"**IMPORTANT: Respond in {lang}." in prompt
             assert "GOOD TYPES:" in prompt
             assert "BAD TYPES:" in prompt
             assert "domain-specific" in prompt.lower()

@@ -59,6 +59,9 @@ class PromptManager:
         section_content: str,
         accumulated_context: str = "",
         language: LanguageCode = LanguageCode.EN,
+        target_words: int = 250,
+        min_words: int = 150,
+        max_words: int = 400,
     ) -> str:
         """Format a prompt for section summarization.
 
@@ -67,6 +70,9 @@ class PromptManager:
             section_content: Content of the section.
             accumulated_context: Previously accumulated context from other sections.
             language: Target language for the prompt.
+            target_words: Target number of words for the summary.
+            min_words: Minimum number of words for the summary.
+            max_words: Maximum number of words for the summary.
 
         Returns:
             Formatted prompt ready for LLM.
@@ -79,6 +85,9 @@ class PromptManager:
             accumulated_context=accumulated_context
             if accumulated_context
             else "None available yet.",
+            target_words=target_words,
+            min_words=min_words,
+            max_words=max_words,
         )
 
     def format_document_summary_prompt(
@@ -86,6 +95,9 @@ class PromptManager:
         document_title: str,
         section_summaries: list[str],
         language: LanguageCode = LanguageCode.EN,
+        target_words: int = 400,
+        min_words: int = 250,
+        max_words: int = 600,
     ) -> str:
         """Format a prompt for document-level summarization.
 
@@ -93,6 +105,9 @@ class PromptManager:
             document_title: Title of the document.
             section_summaries: List of section summaries to synthesize.
             language: Target language for the prompt.
+            target_words: Target number of words for the document summary.
+            min_words: Minimum number of words for the document summary.
+            max_words: Maximum number of words for the document summary.
 
         Returns:
             Formatted prompt ready for LLM.
@@ -108,7 +123,11 @@ class PromptManager:
         )
 
         return template.format(
-            document_title=document_title, section_summaries=summaries_text
+            document_title=document_title,
+            section_summaries=summaries_text,
+            target_words=target_words,
+            min_words=min_words,
+            max_words=max_words,
         )
 
     def format_concept_extraction_prompt(
@@ -177,14 +196,17 @@ Content: {section_content}
 ACCUMULATED CONTEXT FROM PREVIOUS SECTIONS:
 {accumulated_context}
 
-INSTRUCTIONS:
-1. Create a clear, concise summary (2-4 sentences) that captures the main ideas
-2. Write in DIRECT SYNTHESIS style - present the content as facts, not meta-descriptions
-3. AVOID meta-references like "The section explains...", "The document states...", "The author says..."
-4. Consider how this section relates to the previous context
-5. Identify 2-3 key concepts that are central to this section
-6. Maintain consistency with the accumulated understanding
-7. Focus on information that would be valuable for human understanding
+SUMMARY INSTRUCTIONS:
+1. Create a comprehensive summary targeting approximately {target_words} words
+2. Minimum {min_words} words for sufficient detail - Maximum {max_words} words to maintain focus
+3. Count words as you write to stay within the {min_words}-{max_words} word range
+4. Provide enough detail for RAG context and AI fine-tuning applications
+5. Write in DIRECT SYNTHESIS style - present the content as facts, not meta-descriptions
+6. AVOID meta-references like "The section explains...", "The document states...", "The author says..."
+7. Consider how this section relates to the previous context only for coherent flow
+8. Identify 3-5 key concepts that are explicitly mentioned in the SOURCE TEXT
+9. Maintain consistency with accumulated understanding, but SOURCE TEXT overrides any conflicts
+10. Focus on accurate representation of what the source actually says
 
 STYLE EXAMPLES:
 ❌ BAD: "In this section, the document explains that [topic] is more than just [simple definition]..."
@@ -194,10 +216,10 @@ STYLE EXAMPLES:
 ✅ GOOD: "Throughout [time period], [subject] functioned as [specific role], establishing [key patterns]..."
 
 RESPONSE FORMAT:
-Summary: [Your 2-4 sentence direct synthesis here]
-Key Concepts: [concept1, concept2, concept3]
+Summary: [Your comprehensive ~{target_words} word summary here]
+Key Concepts: [concept1, concept2, concept3, concept4, concept5]
 
-**IMPORTANT: Respond in {{language}}.**
+**IMPORTANT: Respond in {{language}}. Target approximately {target_words} words for optimal RAG context.**
 
 Provide only the summary and key concepts, no additional commentary."""
 
@@ -211,13 +233,16 @@ SECTION SUMMARIES:
 {section_summaries}
 
 INSTRUCTIONS:
-1. Create a comprehensive summary (4-6 sentences) that synthesizes all sections
-2. Write in DIRECT SYNTHESIS style - present the content as unified knowledge, not meta-descriptions
-3. AVOID meta-references like "The document discusses...", "This text covers...", "The sections explain..."
-4. Maintain the logical flow and narrative structure of the document
-5. Highlight the most important insights and conclusions
-6. Ensure the summary is valuable for human reading and understanding
-7. Connect related concepts across sections
+1. Create a comprehensive document summary targeting approximately {target_words} words
+2. Minimum {min_words} words for sufficient coverage - Maximum {max_words} words to maintain focus
+3. Count words as you write to stay within the {min_words}-{max_words} word range
+4. Provide enough detail for RAG context and comprehensive understanding
+5. Write in DIRECT SYNTHESIS style - present the content as unified knowledge, not meta-descriptions
+6. AVOID meta-references like "The document discusses...", "This text covers...", "The sections explain..."
+7. Maintain the logical flow and narrative structure of the document
+8. Highlight the most important insights and conclusions across all sections
+9. Ensure the summary is valuable for human reading and AI applications
+10. Connect related concepts and themes across sections
 
 STYLE EXAMPLES:
 ❌ BAD: "This document explores the concept of [topic] and explains how..."
@@ -227,9 +252,9 @@ STYLE EXAMPLES:
 ✅ GOOD: "Human ancestors engaged in diverse movement patterns including walking, climbing, and carrying objects..."
 
 RESPONSE FORMAT:
-Document Summary: [Your comprehensive 4-6 sentence direct synthesis here]
+Document Summary: [Your comprehensive ~{target_words} word document synthesis here]
 
-**IMPORTANT: Respond in {{language}}.**
+**IMPORTANT: Respond in {{language}}. Target approximately {target_words} words for comprehensive coverage.**
 
 Provide only the document summary, no additional commentary."""
 

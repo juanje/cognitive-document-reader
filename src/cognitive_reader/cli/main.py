@@ -125,6 +125,21 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Save intermediate state between passes (useful for debugging and comparison)",
 )
+@click.option(
+    "--target-words",
+    type=int,
+    help="Target number of words for section summaries (optimized for RAG context)",
+)
+@click.option(
+    "--min-words",
+    type=int,
+    help="Minimum number of words for section summaries (ensures sufficient detail)",
+)
+@click.option(
+    "--max-words",
+    type=int,
+    help="Maximum number of words for section summaries (maintains focus)",
+)
 @click.version_option()
 def cli(
     document: Path | None,
@@ -148,6 +163,9 @@ def cli(
     skip_glossary: bool,
     single_pass: bool,
     save_intermediate: bool,
+    target_words: int | None,
+    min_words: int | None,
+    max_words: int | None,
 ) -> None:
     """Cognitive Document Reader - Human-like document understanding.
 
@@ -230,6 +248,9 @@ def cli(
                 skip_glossary=skip_glossary,
                 single_pass=single_pass,
                 save_intermediate=save_intermediate,
+                target_words=target_words,
+                min_words=min_words,
+                max_words=max_words,
             )
         )
     except KeyboardInterrupt:
@@ -268,6 +289,9 @@ async def _async_main(
     skip_glossary: bool,
     single_pass: bool,
     save_intermediate: bool,
+    target_words: int | None,
+    min_words: int | None,
+    max_words: int | None,
 ) -> None:
     """Async main function for CLI operations."""
 
@@ -288,6 +312,9 @@ async def _async_main(
         skip_glossary=skip_glossary,
         single_pass=single_pass,
         save_intermediate=save_intermediate,
+        target_words=target_words,
+        min_words=min_words,
+        max_words=max_words,
     )
 
     # Initialize reader
@@ -436,6 +463,9 @@ def _build_config(
     skip_glossary: bool,
     single_pass: bool,
     save_intermediate: bool,
+    target_words: int | None,
+    min_words: int | None,
+    max_words: int | None,
 ) -> CognitiveConfig:
     """Build configuration from CLI options and environment."""
 
@@ -485,6 +515,14 @@ def _build_config(
     # ✅ WORKING: max_depth with --structure-only
     if max_depth is not None:
         config_dict["max_hierarchy_depth"] = max_depth
+
+    # Word limits for summary optimization (RAG/Fine-tuning)
+    if target_words is not None:
+        config_dict["target_summary_words"] = target_words
+    if min_words is not None:
+        config_dict["min_summary_words"] = min_words
+    if max_words is not None:
+        config_dict["max_summary_words"] = max_words
 
     # Apply overrides
     if config_dict:
