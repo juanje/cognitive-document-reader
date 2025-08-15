@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -187,14 +188,30 @@ class CognitiveConfig(BaseModel):
 
     # NOTE: max_hierarchy_depth is used for --structure-only --max-depth functionality
 
+    @staticmethod
+    def _load_dotenv() -> None:
+        """Load environment variables from .env file if it exists."""
+        try:
+            from dotenv import load_dotenv
+            env_file = Path.cwd() / '.env'
+            if env_file.exists():
+                load_dotenv(env_file, override=False)  # Don't override existing env vars
+        except ImportError:
+            # python-dotenv not installed, skip loading
+            pass
+
     @classmethod
     def from_env(cls) -> CognitiveConfig:
         """Create configuration from environment variables with fallback to defaults.
+
+        Automatically loads .env file if present before reading environment variables.
 
         Returns:
             CognitiveConfig: Configuration instance with values from environment
                           variables or defaults according to SPECS v2.0.
         """
+        # Load .env file before reading environment variables
+        cls._load_dotenv()
         return cls(
             # LLM settings
             model_name=os.getenv("COGNITIVE_READER_MODEL", "qwen3:8b"),
