@@ -56,8 +56,8 @@ cognitive-reader examples/sample_document.md --dry-run
 # Validate configuration only
 cognitive-reader --validate-config
 
-# Multi-pass processing (enable second pass)
-cognitive-reader examples/sample_document.md --enable-second-pass
+# Multi-pass processing (default: 2 passes)
+cognitive-reader examples/sample_document.md
 
 # Single-pass mode (fast testing)
 cognitive-reader examples/sample_document.md --single-pass
@@ -145,7 +145,7 @@ from cognitive_reader.models import CognitiveConfig
 
 # Multi-pass cognitive reading (default: 2 passes)
 config = CognitiveConfig(
-    enable_second_pass=True,            # Enable multi-pass processing
+    num_passes=2,                       # Number of cognitive passes
     fast_pass_model="llama3.1:8b",      # Fast first pass
     main_model="qwen3:8b",              # Quality subsequent passes
     document_language="auto"            # auto, en, es
