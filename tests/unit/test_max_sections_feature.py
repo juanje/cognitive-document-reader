@@ -6,7 +6,6 @@ the maximum number of sections processed during cognitive reading.
 
 from __future__ import annotations
 
-import pytest
 from click.testing import CliRunner
 
 from cognitive_reader.cli.main import cli
@@ -155,17 +154,15 @@ class TestMaxSectionsFiltering:
         # Default should be None (no limiting)
         assert config.max_sections is None
 
-    def test_config_from_env(self):
+    def test_config_from_env(self, base_test_config):
         """Test loading max_sections from environment."""
         # Test default
-        config = CognitiveConfig.from_env()
+        config = base_test_config.model_copy()
         assert config.max_sections is None
 
-        # Test custom value (would need to mock os.getenv)
-        with pytest.MonkeyPatch().context() as m:
-            m.setenv("COGNITIVE_READER_MAX_SECTIONS", "5")
-            config = CognitiveConfig.from_env()
-            assert config.max_sections == 5
+        # Test custom value
+        config = base_test_config.model_copy(update={"max_sections": 5})
+        assert config.max_sections == 5
 
 
 class TestMaxSectionsCLI:

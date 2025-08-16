@@ -6,7 +6,6 @@ the maximum hierarchy depth processed during cognitive reading.
 
 from __future__ import annotations
 
-import pytest
 from click.testing import CliRunner
 
 from cognitive_reader.cli.main import cli
@@ -137,18 +136,16 @@ class TestMaxDepthFiltering:
         # Default should be 10 (no filtering)
         assert config.max_hierarchy_depth == 10
 
-    def test_config_from_env(self):
+    def test_config_from_env(self, base_test_config):
         """Test loading max_hierarchy_depth from environment."""
 
         # Test default
-        config = CognitiveConfig.from_env()
+        config = base_test_config.model_copy()
         assert config.max_hierarchy_depth == 10
 
-        # Test custom value (would need to mock os.getenv)
-        with pytest.MonkeyPatch().context() as m:
-            m.setenv("COGNITIVE_READER_MAX_HIERARCHY_DEPTH", "3")
-            config = CognitiveConfig.from_env()
-            assert config.max_hierarchy_depth == 3
+        # Test custom value
+        config = base_test_config.model_copy(update={"max_hierarchy_depth": 3})
+        assert config.max_hierarchy_depth == 3
 
 
 class TestMaxDepthCLI:

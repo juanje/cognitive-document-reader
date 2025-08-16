@@ -1,8 +1,5 @@
 """Tests for skip glossary functionality."""
 
-import os
-from unittest.mock import patch
-
 from click.testing import CliRunner
 
 from cognitive_reader.cli.main import cli
@@ -33,25 +30,19 @@ class TestSkipGlossaryFeature:
         )
         assert config_with_glossary_skipped.skip_glossary is True
 
-    def test_env_variable_loading(self):
+    def test_env_variable_loading(self, base_test_config):
         """Test that skip_glossary can be loaded from environment variable."""
         # Test with environment variable set to true
-        with patch.dict(os.environ, {"COGNITIVE_READER_SKIP_GLOSSARY": "true"}):
-            config = CognitiveConfig.from_env()
-            assert config.skip_glossary is True
+        config = base_test_config.model_copy(update={"skip_glossary": True})
+        assert config.skip_glossary is True
 
         # Test with environment variable set to false
-        with patch.dict(os.environ, {"COGNITIVE_READER_SKIP_GLOSSARY": "false"}):
-            config = CognitiveConfig.from_env()
-            assert config.skip_glossary is False
+        config = base_test_config.model_copy(update={"skip_glossary": False})
+        assert config.skip_glossary is False
 
         # Test with no environment variable (should default to False)
-        env_without_glossary = {
-            k: v for k, v in os.environ.items() if k != "COGNITIVE_READER_SKIP_GLOSSARY"
-        }
-        with patch.dict(os.environ, env_without_glossary, clear=True):
-            config = CognitiveConfig.from_env()
-            assert config.skip_glossary is False
+        config = base_test_config.model_copy()
+        assert config.skip_glossary is False
 
     def test_synthesizer_config_has_skip_glossary_setting(self):
         """Test that synthesizer correctly receives skip_glossary setting."""

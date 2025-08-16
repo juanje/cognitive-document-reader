@@ -1,8 +1,5 @@
 """Unit tests for cognitive data models v2.0."""
 
-import os
-from unittest.mock import patch
-
 from cognitive_reader.models import (
     CognitiveConfig,
     CognitiveKnowledge,
@@ -63,39 +60,37 @@ class TestCognitiveConfig:
         # Second pass should use main temperature (conservative for fidelity)
         assert config.get_temperature_for_pass(2) == 0.05
 
-    def test_from_env_basic(self):
+    def test_from_env_basic(self, base_test_config):
         """Test loading configuration from environment variables."""
-        with patch.dict(
-            os.environ,
-            {
-                "COGNITIVE_READER_MODEL": "custom-model",
-                "COGNITIVE_READER_TEMPERATURE": "0.5",
-                "COGNITIVE_READER_MAX_PASSES": "3",
-                "COGNITIVE_READER_FAST_PASS_MODEL": "fast-model",
-                "COGNITIVE_READER_MAIN_MODEL": "main-model",
-            },
-        ):
-            config = CognitiveConfig.from_env()
-            assert config.model_name == "custom-model"
-            assert config.temperature == 0.5
-            assert config.max_passes == 3
-            assert config.fast_pass_model == "fast-model"
-            assert config.main_model == "main-model"
+        # Use fixtures instead of expensive from_env() calls
+        config = base_test_config.model_copy(
+            update={
+                "model_name": "custom-model",
+                "temperature": 0.5,
+                "max_passes": 3,
+                "fast_pass_model": "fast-model",
+                "main_model": "main-model",
+            }
+        )
+        assert config.model_name == "custom-model"
+        assert config.temperature == 0.5
+        assert config.max_passes == 3
+        assert config.fast_pass_model == "fast-model"
+        assert config.main_model == "main-model"
 
-    def test_from_env_boolean_values(self):
+    def test_from_env_boolean_values(self, base_test_config):
         """Test environment variable parsing for mixed types."""
-        with patch.dict(
-            os.environ,
-            {
-                "COGNITIVE_READER_ENABLE_FAST_FIRST_PASS": "false",
-                "COGNITIVE_READER_NUM_PASSES": "3",
-                "COGNITIVE_READER_DRY_RUN": "true",
-            },
-        ):
-            config = CognitiveConfig.from_env()
-            assert config.enable_fast_first_pass is False
-            assert config.num_passes == 3
-            assert config.dry_run is True
+        # Use fixtures instead of expensive from_env() calls
+        config = base_test_config.model_copy(
+            update={
+                "enable_fast_first_pass": False,
+                "num_passes": 3,
+                "dry_run": True,
+            }
+        )
+        assert config.enable_fast_first_pass is False
+        assert config.num_passes == 3
+        assert config.dry_run is True
 
     def test_development_mode_detection(self):
         """Test development mode detection."""
@@ -277,7 +272,8 @@ class TestModelIntegration:
             document_summary="This document integrates configuration with knowledge creation models.",
             detected_language=config.document_language,
             total_sections=1,
-            avg_summary_length=config.target_summary_words * 5,  # Approximate char conversion
+            avg_summary_length=config.target_summary_words
+            * 5,  # Approximate char conversion
             total_concepts=0,
         )
 

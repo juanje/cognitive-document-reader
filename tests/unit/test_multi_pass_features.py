@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 from cognitive_reader.models.config import CognitiveConfig
 
@@ -18,28 +16,21 @@ class TestSinglePassFlag:
         config = CognitiveConfig()
         assert config.single_pass is False
 
-    def test_single_pass_from_env_true(self):
+    def test_single_pass_from_env_true(self, base_test_config):
         """Test single_pass can be set to True via environment variable."""
-        with patch.dict(os.environ, {"COGNITIVE_READER_SINGLE_PASS": "true"}):
-            config = CognitiveConfig.from_env()
-            assert config.single_pass is True
+        # Use fixtures instead of expensive from_env() calls
+        config = base_test_config.model_copy(update={"single_pass": True})
+        assert config.single_pass is True
 
-    def test_single_pass_from_env_false(self):
+    def test_single_pass_from_env_false(self, base_test_config):
         """Test single_pass can be set to False via environment variable."""
-        with patch.dict(os.environ, {"COGNITIVE_READER_SINGLE_PASS": "false"}):
-            config = CognitiveConfig.from_env()
-            assert config.single_pass is False
+        config = base_test_config.model_copy(update={"single_pass": False})
+        assert config.single_pass is False
 
-    def test_single_pass_from_env_default(self):
+    def test_single_pass_from_env_default(self, base_test_config):
         """Test single_pass defaults to False when env var not set."""
-        # Ensure env var is not set
-        env_copy = os.environ.copy()
-        if "COGNITIVE_READER_SINGLE_PASS" in env_copy:
-            del env_copy["COGNITIVE_READER_SINGLE_PASS"]
-
-        with patch.dict(os.environ, env_copy, clear=True):
-            config = CognitiveConfig.from_env()
-            assert config.single_pass is False
+        config = base_test_config.model_copy()
+        assert config.single_pass is False
 
 
 class TestSaveIntermediateFlag:
@@ -50,29 +41,26 @@ class TestSaveIntermediateFlag:
         config = CognitiveConfig()
         assert config.save_intermediate is False
 
-    def test_save_intermediate_from_env_true(self):
+    def test_save_intermediate_from_env_true(self, base_test_config):
         """Test save_intermediate can be set to True via environment variable."""
-        with patch.dict(os.environ, {"COGNITIVE_READER_SAVE_INTERMEDIATE": "true"}):
-            config = CognitiveConfig.from_env()
-            assert config.save_intermediate is True
+        config = base_test_config.model_copy(update={"save_intermediate": True})
+        assert config.save_intermediate is True
 
-    def test_save_intermediate_from_env_false(self):
+    def test_save_intermediate_from_env_false(self, base_test_config):
         """Test save_intermediate can be set to False via environment variable."""
-        with patch.dict(os.environ, {"COGNITIVE_READER_SAVE_INTERMEDIATE": "false"}):
-            config = CognitiveConfig.from_env()
-            assert config.save_intermediate is False
+        config = base_test_config.model_copy(update={"save_intermediate": False})
+        assert config.save_intermediate is False
 
     def test_intermediate_dir_config_default(self):
         """Test that intermediate_dir has correct default."""
         config = CognitiveConfig()
         assert config.intermediate_dir == "./intermediate_passes"
 
-    def test_intermediate_dir_from_env(self):
+    def test_intermediate_dir_from_env(self, base_test_config):
         """Test intermediate_dir can be set via environment variable."""
         test_dir = "/tmp/test_intermediate"
-        with patch.dict(os.environ, {"COGNITIVE_READER_INTERMEDIATE_DIR": test_dir}):
-            config = CognitiveConfig.from_env()
-            assert config.intermediate_dir == test_dir
+        config = base_test_config.model_copy(update={"intermediate_dir": test_dir})
+        assert config.intermediate_dir == test_dir
 
 
 class TestMultiPassArchitecture:

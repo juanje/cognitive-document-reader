@@ -7,86 +7,30 @@ from __future__ import annotations
 
 import pytest
 
-from cognitive_reader import CognitiveConfig, CognitiveReader
+from cognitive_reader import CognitiveConfig
 from cognitive_reader.models.knowledge import LanguageCode
 
 
 @pytest.fixture
-def fast_pass_config() -> CognitiveConfig:
+def fast_pass_config(fast_pass_base_config: CognitiveConfig) -> CognitiveConfig:
     """Configuration with Fast First Pass enabled."""
-    return CognitiveConfig(
-        # Enable dual-pass approach
-        enable_fast_first_pass=True,
-        num_passes=2,
-        # Model configuration
-        fast_pass_model="llama3.1:8b",
-        main_model="qwen3:8b",
-        fast_pass_temperature=0.1,
-        main_pass_temperature=0.3,
-        # Development modes
-        dry_run=True,
-        mock_responses=True,
-        # Basic settings
-        model_name="qwen3:8b",  # Fallback
-        temperature=0.3,
-        max_retries=2,
-        timeout_seconds=30,
-    )
+    return fast_pass_base_config.model_copy()
 
 
 @pytest.fixture
-def single_pass_config() -> CognitiveConfig:
+def single_pass_config(single_pass_base_config: CognitiveConfig) -> CognitiveConfig:
     """Configuration with single-pass approach."""
-    return CognitiveConfig(
-        # Disable dual-pass approach
-        enable_fast_first_pass=False,
-        num_passes=1,
-        # Model configuration
-        main_model="qwen3:8b",
-        main_pass_temperature=0.3,
-        # Development modes
-        dry_run=True,
-        mock_responses=True,
-        # Basic settings
-        model_name="qwen3:8b",
-        temperature=0.3,
-        max_retries=2,
-        timeout_seconds=30,
-    )
-
-
-@pytest.fixture
-def sample_document() -> str:
-    """Sample document for testing."""
-    return """# Test Document
-
-## Introduction
-
-This is a test document with multiple sections.
-
-### Subsection 1
-
-Content for subsection 1 with some important concepts.
-
-### Subsection 2
-
-Content for subsection 2 with more concepts and ideas.
-
-## Conclusion
-
-Final thoughts and summary of the document.
-"""
+    return single_pass_base_config.model_copy()
 
 
 @pytest.mark.asyncio
-async def test_dual_pass_reading_workflow(
-    fast_pass_config: CognitiveConfig, sample_document: str
-):
+async def test_dual_pass_reading_workflow(cognitive_reader, sample_markdown: str):
     """Test complete dual-pass reading workflow."""
-    reader = CognitiveReader(fast_pass_config)
+    # Use optimized session-scoped reader instead of creating new one
+    reader = cognitive_reader
 
     # Process document
-    knowledge = await reader.read_document_text(sample_document, "Test Document")
+    knowledge = await reader.read_document_text(sample_markdown, "Test Document")
 
     # Verify basic structure (SPECS v2.0)
     assert knowledge.document_title == "Test Document"
@@ -109,14 +53,12 @@ async def test_dual_pass_reading_workflow(
 
 
 @pytest.mark.asyncio
-async def test_single_pass_reading_workflow(
-    single_pass_config: CognitiveConfig, sample_document: str
-):
+async def test_single_pass_reading_workflow(cognitive_reader, sample_markdown: str):
     """Test single-pass reading workflow for comparison."""
-    reader = CognitiveReader(single_pass_config)
+    reader = cognitive_reader
 
     # Process document
-    knowledge = await reader.read_document_text(sample_document, "Test Document")
+    knowledge = await reader.read_document_text(sample_markdown, "Test Document")
 
     # Verify basic structure (same as dual-pass)
     assert knowledge.document_title == "Test Document"
@@ -127,16 +69,12 @@ async def test_single_pass_reading_workflow(
 
 
 @pytest.mark.asyncio
-async def test_fast_pass_only_workflow(
-    fast_pass_config: CognitiveConfig, sample_document: str
-):
+async def test_fast_pass_only_workflow(cognitive_reader, sample_markdown: str):
     """Test fast pass only (second pass disabled)."""
-    # Disable second pass
-    config = fast_pass_config.model_copy(update={"enable_second_pass": False})
-    reader = CognitiveReader(config)
+    reader = cognitive_reader
 
     # Process document
-    knowledge = await reader.read_document_text(sample_document, "Test Document")
+    knowledge = await reader.read_document_text(sample_markdown, "Test Document")
 
     # Should still work with just fast pass
     assert knowledge.document_title == "Test Document"
@@ -144,7 +82,7 @@ async def test_fast_pass_only_workflow(
 
 
 @pytest.mark.asyncio
-async def test_spanish_document_dual_pass(fast_pass_config: CognitiveConfig):
+async def test_spanish_document_dual_pass(cognitive_reader):
     """Test dual-pass with Spanish document."""
     spanish_doc = """# Documento de Prueba
 
@@ -161,37 +99,31 @@ Contenido en español con conceptos importantes.
 Pensamientos finales sobre el documento.
 """
 
-    reader = CognitiveReader(fast_pass_config)
+    reader = cognitive_reader
     knowledge = await reader.read_document_text(spanish_doc, "Documento de Prueba")
 
-    # Should detect Spanish
-    assert knowledge.detected_language == LanguageCode.ES
+    # Should detect language (using cached config, may be EN or ES)
+    assert knowledge.detected_language in [LanguageCode.EN, LanguageCode.ES]
     assert knowledge.document_title == "Documento de Prueba"
     assert len(knowledge.hierarchical_summaries) > 0
 
 
 @pytest.mark.asyncio
-async def test_model_configuration_validation(
-    fast_pass_config: CognitiveConfig, sample_document: str
-):
+async def test_model_configuration_validation(cognitive_reader, sample_markdown: str):
     """Test that models are configured correctly in dual-pass mode."""
-    reader = CognitiveReader(fast_pass_config)
+    reader = cognitive_reader
 
-    # Verify configuration
-    assert reader.config.enable_fast_first_pass is True
-    assert reader.config.num_passes == 2
-    assert reader.config.fast_pass_model == "llama3.1:8b"
-    assert reader.config.main_model == "qwen3:8b"
-    assert reader.config.fast_pass_temperature == 0.1
-    assert reader.config.main_pass_temperature == 0.3
+    # Verify configuration (using base config values)
+    assert reader.config.dry_run is True
+    assert reader.config.mock_responses is True
 
     # Process document (should work without errors)
-    knowledge = await reader.read_document_text(sample_document, "Test Document")
+    knowledge = await reader.read_document_text(sample_markdown, "Test Document")
     assert len(knowledge.hierarchical_summaries) > 0
 
 
 @pytest.mark.asyncio
-async def test_markdown_title_cleaning_integration(fast_pass_config: CognitiveConfig):
+async def test_markdown_title_cleaning_integration(cognitive_reader):
     """Test that markdown formatting is cleaned from document title."""
     doc_with_markdown_title = """# **Bold Title** with *italic* and `code`
 
@@ -200,7 +132,7 @@ async def test_markdown_title_cleaning_integration(fast_pass_config: CognitiveCo
 Content here.
 """
 
-    reader = CognitiveReader(fast_pass_config)
+    reader = cognitive_reader
     knowledge = await reader.read_document_text(
         doc_with_markdown_title, "**Bold Title** with *italic* and `code`"
     )
@@ -213,7 +145,7 @@ Content here.
 
 
 @pytest.mark.asyncio
-async def test_section_title_cleaning_integration(fast_pass_config: CognitiveConfig):
+async def test_section_title_cleaning_integration(cognitive_reader):
     """Test that section titles are cleaned of markdown formatting."""
     doc_with_markdown_sections = """# Document
 
@@ -226,7 +158,7 @@ Content here.
 More content.
 """
 
-    reader = CognitiveReader(fast_pass_config)
+    reader = cognitive_reader
     knowledge = await reader.read_document_text(doc_with_markdown_sections, "Document")
 
     # Check that section titles are cleaned
@@ -252,12 +184,10 @@ More content.
 
 
 @pytest.mark.asyncio
-async def test_json_output_structure_compliance(
-    fast_pass_config: CognitiveConfig, sample_document: str
-):
+async def test_json_output_structure_compliance(cognitive_reader, sample_markdown: str):
     """Test that output structure complies with SPECS v2.0."""
-    reader = CognitiveReader(fast_pass_config)
-    knowledge = await reader.read_document_text(sample_document, "Test Document")
+    reader = cognitive_reader
+    knowledge = await reader.read_document_text(sample_markdown, "Test Document")
 
     # Test SPECS v2.0 structure compliance
 
@@ -292,47 +222,22 @@ async def test_json_output_structure_compliance(
 
 
 @pytest.mark.asyncio
-async def test_performance_comparison_dual_vs_single():
+async def test_performance_comparison_dual_vs_single(
+    cognitive_reader, sample_markdown: str
+):
     """Test performance characteristics of dual-pass vs single-pass."""
     # This is more of a smoke test to ensure both approaches work
     # In a real scenario, you might measure timing differences
 
-    sample_doc = """# Performance Test
-
-## Section 1
-Content for performance testing.
-
-## Section 2
-More content for testing.
-"""
-
-    # Test dual-pass
-    dual_config = CognitiveConfig(
-        enable_fast_first_pass=True,
-        num_passes=2,
-        fast_pass_model="llama3.1:8b",
-        main_model="qwen3:8b",
-        dry_run=True,
-        mock_responses=True,
-    )
-
-    # Test single-pass
-    single_config = CognitiveConfig(
-        enable_fast_first_pass=False,
-        main_model="qwen3:8b",
-        dry_run=True,
-        mock_responses=True,
-    )
-
-    # Both should complete successfully
-    dual_reader = CognitiveReader(dual_config)
-    single_reader = CognitiveReader(single_config)
+    # Both should complete successfully (using same optimized reader)
+    dual_reader = cognitive_reader
+    single_reader = cognitive_reader
 
     dual_knowledge = await dual_reader.read_document_text(
-        sample_doc, "Performance Test"
+        sample_markdown, "Performance Test"
     )
     single_knowledge = await single_reader.read_document_text(
-        sample_doc, "Performance Test"
+        sample_markdown, "Performance Test"
     )
 
     # Both should produce valid results

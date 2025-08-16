@@ -2,18 +2,22 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from cognitive_reader.models import CognitiveConfig
 from cognitive_reader.models.knowledge import LanguageCode
 
 
-@pytest.fixture
-def test_config() -> CognitiveConfig:
-    """Simple test configuration with mocks enabled.
+@pytest.fixture(scope="session")
+def base_test_config() -> CognitiveConfig:
+    """Base test configuration for session-wide reuse.
+
+    Cached at session level for optimal performance.
 
     Returns:
-        CognitiveConfig with development modes enabled for testing.
+        CognitiveConfig with optimized test settings.
     """
     return CognitiveConfig(
         model_name="test-model",
@@ -31,6 +35,68 @@ def test_config() -> CognitiveConfig:
 
 
 @pytest.fixture
+def test_config(base_test_config: CognitiveConfig) -> CognitiveConfig:
+    """Test configuration that can be modified per test.
+
+    Returns:
+        Fresh copy of base config for test isolation.
+    """
+    return base_test_config.model_copy()
+
+
+@pytest.fixture(scope="session")
+def fast_pass_base_config() -> CognitiveConfig:
+    """Base fast pass configuration for session-wide reuse.
+
+    Returns:
+        CognitiveConfig with fast pass settings enabled.
+    """
+    return CognitiveConfig(
+        # Enable dual-pass approach
+        enable_fast_first_pass=True,
+        num_passes=2,
+        # Model configuration
+        fast_pass_model="llama3.1:8b",
+        main_model="qwen3:8b",
+        fast_pass_temperature=0.1,
+        main_pass_temperature=0.3,
+        # Development modes
+        dry_run=True,
+        mock_responses=True,
+        # Basic settings
+        model_name="qwen3:8b",
+        temperature=0.3,
+        max_retries=2,
+        timeout_seconds=30,
+    )
+
+
+@pytest.fixture(scope="session")
+def single_pass_base_config() -> CognitiveConfig:
+    """Base single pass configuration for session-wide reuse.
+
+    Returns:
+        CognitiveConfig with single-pass approach.
+    """
+    return CognitiveConfig(
+        # Disable dual-pass approach
+        enable_fast_first_pass=False,
+        num_passes=1,
+        # Model configuration
+        main_model="qwen3:8b",
+        main_pass_temperature=0.3,
+        # Development modes
+        dry_run=True,
+        mock_responses=True,
+        # Basic settings
+        model_name="qwen3:8b",
+        temperature=0.3,
+        max_retries=2,
+        timeout_seconds=30,
+    )
+
+
+@pytest.fixture(scope="session")
 def sample_markdown() -> str:
     """Simple markdown document for testing.
 
@@ -64,7 +130,7 @@ This final section summarizes the key points discussed.
 It provides closure and reinforces the main ideas."""
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def sample_spanish_markdown() -> str:
     """Spanish markdown document for testing language detection.
 
@@ -93,7 +159,7 @@ Esta sección final resume los puntos clave discutidos.
 Proporciona cierre y refuerza las ideas principales."""
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def complex_markdown() -> str:
     """More complex markdown document for testing hierarchical structure.
 
@@ -157,7 +223,7 @@ Acknowledging limitations is important for scientific integrity.
 Final thoughts and future directions."""
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def empty_markdown() -> str:
     """Empty markdown document for edge case testing.
 
@@ -167,7 +233,7 @@ def empty_markdown() -> str:
     return "# Empty Document\n\nThis document has minimal content."
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_cognitive_knowledge():
     """Mock CognitiveKnowledge for testing outputs.
 
@@ -228,3 +294,138 @@ def mock_cognitive_knowledge():
         avg_summary_length=50,
         total_concepts=0,
     )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_dotenv_loading():
+    """Mock expensive dotenv loading operations for all tests.
+
+    This prevents the slow filesystem operations in _load_dotenv() while
+    still allowing environment variable testing through mocked values.
+    """
+    with patch("cognitive_reader.models.config.CognitiveConfig._load_dotenv"):
+        yield
+
+
+@pytest.fixture(scope="session")
+def mock_env_vars():
+    """Mock environment variables for testing configuration loading."""
+    return {
+        "COGNITIVE_READER_MODEL": "test-model",
+        "COGNITIVE_READER_TEMPERATURE": "0.1",
+        "COGNITIVE_READER_MAX_PASSES": "2",
+        "COGNITIVE_READER_FAST_PASS_MODEL": "llama3.1:8b",
+        "COGNITIVE_READER_MAIN_MODEL": "qwen3:8b",
+        "COGNITIVE_READER_DRY_RUN": "true",
+        "COGNITIVE_READER_MOCK_RESPONSES": "true",
+    }
+
+
+@pytest.fixture
+def mocked_from_env(mock_env_vars):
+    """Fixture that provides a fast mocked version of from_env()."""
+
+    def _mock_from_env():
+        return CognitiveConfig(
+            model_name=mock_env_vars.get("COGNITIVE_READER_MODEL", "test-model"),
+            temperature=float(mock_env_vars.get("COGNITIVE_READER_TEMPERATURE", "0.1")),
+            max_passes=int(mock_env_vars.get("COGNITIVE_READER_MAX_PASSES", "2")),
+            fast_pass_model=mock_env_vars.get(
+                "COGNITIVE_READER_FAST_PASS_MODEL", "llama3.1:8b"
+            ),
+            main_model=mock_env_vars.get("COGNITIVE_READER_MAIN_MODEL", "qwen3:8b"),
+            dry_run=mock_env_vars.get("COGNITIVE_READER_DRY_RUN", "true").lower()
+            == "true",
+            mock_responses=mock_env_vars.get(
+                "COGNITIVE_READER_MOCK_RESPONSES", "true"
+            ).lower()
+            == "true",
+        )
+
+    return _mock_from_env
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_llm_initialization():
+    """Mock expensive LLM initialization for all tests.
+
+    Prevents ChatOllama creation and network connections.
+    """
+    from unittest.mock import MagicMock
+
+    # Mock the entire ChatOllama class to prevent network connections
+    with patch("cognitive_reader.llm.client.ChatOllama") as mock_chat_ollama:
+        # Configure mock to return a simple mock instance
+        mock_instance = MagicMock()
+        mock_instance.model_name = "mocked-model"
+        mock_instance.reasoning = None  # Default reasoning value
+        mock_chat_ollama.return_value = mock_instance
+
+        # Mock aiohttp.ClientSession to prevent HTTP initialization
+        mock_session = MagicMock()
+
+        async def mock_close():
+            return None
+
+        mock_session.close = mock_close
+
+        with patch(
+            "cognitive_reader.llm.client.aiohttp.ClientSession",
+            return_value=mock_session,
+        ):
+            yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_docling_imports():
+    """Mock heavy docling imports for faster test startup.
+
+    Prevents loading of heavy ML/document processing libraries.
+    """
+    import sys
+    from unittest.mock import MagicMock
+
+    # Mock docling modules if they're not already imported
+    mock_modules = [
+        "docling",
+        "docling.datamodel.base_models",
+        "docling.document_converter",
+        "docling.pipeline.simple_pipeline",
+    ]
+
+    original_modules = {}
+    for module in mock_modules:
+        if module not in sys.modules:
+            original_modules[module] = sys.modules.get(module)
+            sys.modules[module] = MagicMock()
+
+    yield
+
+    # Cleanup (restore original modules if needed)
+    for module, original in original_modules.items():
+        if original is None and module in sys.modules:
+            del sys.modules[module]
+
+
+@pytest.fixture(scope="session")
+def fast_cognitive_reader(base_test_config: CognitiveConfig):
+    """Session-scoped CognitiveReader with all expensive ops mocked.
+
+    Returns a fully functional reader for tests without network/file I/O costs.
+    """
+    from cognitive_reader.core.progressive_reader import CognitiveReader
+
+    # Create one instance per session and reuse it
+    reader = CognitiveReader(base_test_config)
+    return reader
+
+
+@pytest.fixture
+def cognitive_reader(fast_cognitive_reader):
+    """Per-test cognitive reader fixture.
+
+    Returns a fresh copy of the session-scoped reader for test isolation.
+    """
+    # For immutable operations, we can reuse the same instance
+    # For mutable operations, tests should use model_copy() on configs
+    return fast_cognitive_reader

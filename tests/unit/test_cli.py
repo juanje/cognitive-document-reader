@@ -18,9 +18,9 @@ def runner():
     return CliRunner()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def sample_md_file():
-    """Create temporary markdown file for testing."""
+    """Create temporary markdown file for testing - session scoped for reuse."""
     content = """# Test Document
 
 ## Introduction
@@ -130,36 +130,29 @@ def test_cli_markdown_output(runner, sample_md_file):
     assert "## Processing Information" in result.output
 
 
-def test_cli_output_to_file(runner, sample_md_file):
+def test_cli_output_to_file(runner, sample_md_file, tmp_path):
     """Test CLI with output to file."""
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".md", delete=False
-    ) as output_file:
-        output_path = Path(output_file.name)
+    output_path = tmp_path / "output.md"
 
-    try:
-        result = runner.invoke(
-            cli,
-            [
-                str(sample_md_file),
-                "--output",
-                "markdown",
-                "--output-file",
-                str(output_path),
-                "--dry-run",
-            ],
-        )
+    result = runner.invoke(
+        cli,
+        [
+            str(sample_md_file),
+            "--output",
+            "markdown",
+            "--output-file",
+            str(output_path),
+            "--dry-run",
+        ],
+    )
 
-        assert result.exit_code == 0
-        assert "Output saved" in result.output
+    assert result.exit_code == 0
+    assert "Output saved" in result.output
 
-        # Check file was created and has content
-        assert output_path.exists()
-        content = output_path.read_text()
-        assert "# Test Document" in content
-
-    finally:
-        output_path.unlink(missing_ok=True)
+    # Check file was created and has content
+    assert output_path.exists()
+    content = output_path.read_text()
+    assert "# Test Document" in content
 
 
 def test_cli_language_option(runner, sample_md_file):

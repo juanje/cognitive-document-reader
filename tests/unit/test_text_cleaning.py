@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from cognitive_reader.utils.text_cleaning import (
     clean_markdown_formatting,
     clean_markdown_internal_links,
@@ -13,46 +15,30 @@ from cognitive_reader.utils.text_cleaning import (
 class TestCleanMarkdownInternalLinks:
     """Test markdown internal link cleaning functionality."""
 
-    def test_clean_basic_internal_link(self) -> None:
-        """Test cleaning basic internal link pattern."""
-        text = "## Introduction {#introduction}"
-        expected = "## Introduction"
-        assert clean_markdown_internal_links(text) == expected
-
-    def test_clean_spanish_example(self) -> None:
-        """Test cleaning the specific Spanish example from the issue."""
-        text = "## De nómadas a sedentarios {#de-nómadas-a-sedentarios}"
-        expected = "## De nómadas a sedentarios"
-        assert clean_markdown_internal_links(text) == expected
-
-    def test_clean_link_with_dashes(self) -> None:
-        """Test cleaning links with dashes."""
-        text = "Title with {#link-with-dashes} here"
-        expected = "Title with here"
-        assert clean_markdown_internal_links(text) == expected
-
-    def test_clean_link_with_underscores(self) -> None:
-        """Test cleaning links with underscores."""
-        text = "Title with {#link_with_underscores} here"
-        expected = "Title with here"
-        assert clean_markdown_internal_links(text) == expected
-
-    def test_clean_multiple_links(self) -> None:
-        """Test cleaning multiple internal links."""
-        text = "Multiple {#link1} patterns {#link2} in text"
-        expected = "Multiple patterns in text"
-        assert clean_markdown_internal_links(text) == expected
-
-    def test_clean_link_at_end(self) -> None:
-        """Test cleaning link at the end of text."""
-        text = "Section title {#section}"
-        expected = "Section title"
-        assert clean_markdown_internal_links(text) == expected
-
-    def test_clean_link_at_beginning(self) -> None:
-        """Test cleaning link at the beginning of text."""
-        text = "{#intro} Introduction text"
-        expected = "Introduction text"
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            # Basic patterns
+            ("## Introduction {#introduction}", "## Introduction"),
+            (
+                "## De nómadas a sedentarios {#de-nómadas-a-sedentarios}",
+                "## De nómadas a sedentarios",
+            ),
+            ("Title with {#link-with-dashes} here", "Title with here"),
+            ("Title with {#link_with_underscores} here", "Title with here"),
+            (
+                "Multiple {#link1} patterns {#link2} in text",
+                "Multiple patterns in text",
+            ),
+            # Position variations
+            ("Section title {#section}", "Section title"),
+            ("{#intro} Introduction text", "Introduction text"),
+            # Complex anchor names
+            ("Section {#section-1.2_example-test} title", "Section title"),
+        ],
+    )
+    def test_clean_internal_links_patterns(self, text: str, expected: str) -> None:
+        """Test cleaning various internal link patterns."""
         assert clean_markdown_internal_links(text) == expected
 
     def test_preserve_normal_braces(self) -> None:
@@ -95,52 +81,26 @@ class TestCleanMarkdownInternalLinks:
 class TestCleanMarkdownFormatting:
     """Test markdown formatting removal functionality."""
 
-    def test_clean_bold_double_asterisk(self) -> None:
-        """Test cleaning bold text with double asterisks."""
-        text = "**Bold text**"
-        expected = "Bold text"
-        assert clean_markdown_formatting(text) == expected
-
-    def test_clean_bold_double_underscore(self) -> None:
-        """Test cleaning bold text with double underscores."""
-        text = "__Bold text__"
-        expected = "Bold text"
-        assert clean_markdown_formatting(text) == expected
-
-    def test_clean_italic_single_asterisk(self) -> None:
-        """Test cleaning italic text with single asterisks."""
-        text = "*Italic text*"
-        expected = "Italic text"
-        assert clean_markdown_formatting(text) == expected
-
-    def test_clean_italic_single_underscore(self) -> None:
-        """Test cleaning italic text with single underscores."""
-        text = "_Italic text_"
-        expected = "Italic text"
-        assert clean_markdown_formatting(text) == expected
-
-    def test_clean_bold_italic_triple_asterisk(self) -> None:
-        """Test cleaning bold italic text with triple asterisks."""
-        text = "***Bold and italic***"
-        expected = "Bold and italic"
-        assert clean_markdown_formatting(text) == expected
-
-    def test_clean_bold_italic_triple_underscore(self) -> None:
-        """Test cleaning bold italic text with triple underscores."""
-        text = "___Bold and italic___"
-        expected = "Bold and italic"
-        assert clean_markdown_formatting(text) == expected
-
-    def test_clean_code_backticks(self) -> None:
-        """Test cleaning code text with backticks."""
-        text = "`Code text`"
-        expected = "Code text"
-        assert clean_markdown_formatting(text) == expected
-
-    def test_clean_strikethrough(self) -> None:
-        """Test cleaning strikethrough text."""
-        text = "~~Strikethrough text~~"
-        expected = "Strikethrough text"
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            # Bold formatting
+            ("**Bold text**", "Bold text"),
+            ("__Bold text__", "Bold text"),
+            # Italic formatting
+            ("*Italic text*", "Italic text"),
+            ("_Italic text_", "Italic text"),
+            # Bold + Italic formatting
+            ("***Bold and italic***", "Bold and italic"),
+            ("___Bold and italic___", "Bold and italic"),
+            # Code formatting
+            ("`Code text`", "Code text"),
+            # Strikethrough formatting
+            ("~~Strikethrough text~~", "Strikethrough text"),
+        ],
+    )
+    def test_clean_basic_markdown_formatting(self, text: str, expected: str) -> None:
+        """Test cleaning various markdown formatting patterns."""
         assert clean_markdown_formatting(text) == expected
 
     def test_clean_mixed_formatting(self) -> None:
@@ -195,36 +155,29 @@ class TestCleanMarkdownFormatting:
 class TestMarkdownToPlainText:
     """Test comprehensive markdown to plain text conversion."""
 
-    def test_links_conversion(self) -> None:
-        """Test conversion of markdown links to plain text."""
-        text = "[Link text](https://example.com)"
-        expected = "Link text"
-        assert markdown_to_plain_text(text) == expected
-
-    def test_images_conversion(self) -> None:
-        """Test conversion of markdown images to alt text."""
-        text = "![Alt text](image.jpg)"
-        expected = "Alt text"
-        assert markdown_to_plain_text(text) == expected
-
-    def test_headers_conversion(self) -> None:
-        """Test conversion of markdown headers."""
-        assert markdown_to_plain_text("# Header 1") == "Header 1"
-        assert markdown_to_plain_text("## Header 2") == "Header 2"
-        assert markdown_to_plain_text("### Header 3") == "Header 3"
-
-    def test_lists_conversion(self) -> None:
-        """Test conversion of markdown lists."""
-        assert markdown_to_plain_text("- List item") == "List item"
-        assert markdown_to_plain_text("* Another item") == "Another item"
-        assert markdown_to_plain_text("+ Plus item") == "Plus item"
-        assert markdown_to_plain_text("1. Numbered item") == "Numbered item"
-
-    def test_blockquotes_conversion(self) -> None:
-        """Test conversion of blockquotes."""
-        text = "> This is a quote"
-        expected = "This is a quote"
-        assert markdown_to_plain_text(text) == expected
+    @pytest.mark.parametrize(
+        "markdown_text,expected",
+        [
+            # Headers
+            ("# Header 1", "Header 1"),
+            ("## Header 2", "Header 2"),
+            ("### Header 3", "Header 3"),
+            # Lists
+            ("- List item", "List item"),
+            ("* Another item", "Another item"),
+            ("+ Plus item", "Plus item"),
+            ("1. Numbered item", "Numbered item"),
+            # Basic conversions
+            ("[Link text](https://example.com)", "Link text"),
+            ("![Alt text](image.jpg)", "Alt text"),
+            ("> This is a quote", "This is a quote"),
+        ],
+    )
+    def test_markdown_basic_conversions(
+        self, markdown_text: str, expected: str
+    ) -> None:
+        """Test basic markdown to plain text conversions."""
+        assert markdown_to_plain_text(markdown_text) == expected
 
     def test_code_blocks_removal(self) -> None:
         """Test removal of code blocks."""
