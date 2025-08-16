@@ -67,6 +67,9 @@ cognitive-reader examples/sample_document.md --save-intermediate
 
 # Show processing statistics (performance monitoring)
 cognitive-reader examples/sample_document.md --stats
+
+# Spanish document processing
+cognitive-reader examples/sample_document_es.md --language es
 ```
 
 #### Python Library
@@ -192,7 +195,17 @@ See the `examples/` directory for comprehensive usage examples:
 
 - `basic_usage.py`: Core functionality demonstration with simple document processing
 - `advanced_parsing.py`: Multi-format parsing with docling integration and capability detection
-- `sample_document.md`: Example Markdown document for testing and demonstrations
+- `sample_document.md`: **Fictional test document** designed specifically to evaluate cognitive reading capabilities
+- `sample_document_es.md`: Spanish version of the test document for multilingual evaluation
+
+**About the Sample Documents:**
+The sample documents present "Aethelgard's Crystalline Consciousness Theory" - a **completely fictional scientific theory** created specifically to test the cognitive reader's capabilities:
+
+- 📊 **Structural Testing**: Contains both parent sections with content and parent sections without content to test hierarchical processing
+- 🧪 **Novel Semantic Content**: Introduces concepts and terminology not present in LLM training data to evaluate how the system processes genuinely new information  
+- 🔄 **Concept Redefinition**: Deliberately redefines existing concepts (like "empathy") to test whether the system prioritizes the document's semantic meaning over pre-trained knowledge
+- 🌐 **Multilingual Evaluation**: Available in English and Spanish with identical structure and semantic content
+- 🧹 **Title Cleaning**: Includes various formatting patterns to test automatic title normalization
 
 ### 🔧 Parser Capabilities Detection
 
@@ -463,6 +476,8 @@ cognitive-reader large_doc.md --stats --max-sections 10 --save-partials
 
 ## 📊 Output Formats
 
+> **📝 Note**: The examples below use "Aethelgard's Crystalline Consciousness Theory" - a **completely fictional scientific theory** created specifically to demonstrate the cognitive reader's capabilities with novel semantic content.
+
 ### JSON (for integration)
 ```json
 {
@@ -480,12 +495,20 @@ cognitive-reader large_doc.md --stats --max-sections 10 --save-partials
 # Document Title
 
 ## Document Summary
-...
+
+**Aethelgard's Crystalline Consciousness Theory** explores the revolutionary theory proposed by xenophysicist Elara Aethelgard, which postulates that consciousness is not created by neural complexity but is a fundamental universal property received through biological resonance mechanisms...
 
 ## Section Analysis
-### Section Title
-**Summary**: ...
-**Key Concepts**: concept1, concept2, concept3
+
+### The Primordial Resonant Frequency
+**Summary**: Detailed explanation of the PRF as the basal subatomic vibration that determines an organism's affinity with consciousness patterns. Measured in states of total somatic deprivation using gravito-quantum field sensors...
+
+**Key Concepts**: primordial_resonant_frequency, gravito_quantum_vibration, harmonic_dissonance
+
+### Empathic Resonance: A Redefinition
+**Summary**: Revolutionary redefinition of empathy as a measurable physical phenomenon of harmonic coupling between somatic frameworks, explaining instant connections and antipathy through PRF compatibility...
+
+**Key Concepts**: empathic_resonance, somatic_framework, harmonic_coupling
 ```
 
 ## 🤖 AI Tools Disclaimer

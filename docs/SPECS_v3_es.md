@@ -1281,11 +1281,20 @@ def mock_docling_parser():
 # conftest.py
 @pytest.fixture
 def sample_markdown_document():
-    """Sample markdown document for testing."""
-    return """# Test Document
+    """
+    Fictional sample document designed for cognitive reading evaluation.
+    
+    Note: 'Aethelgard's Crystalline Consciousness Theory' is completely fictional,
+    created specifically to test:
+    - Novel semantic content processing (not in LLM training data)
+    - Concept redefinition handling (e.g., empathy redefined as physical resonance)
+    - Structural hierarchy processing (parents with/without content)
+    - Title cleaning and normalization
+    """
+    return """# Aethelgard's Crystalline Consciousness Theory
 
-## Introduction
-This is a test document for cognitive reading.
+## Fundamental Principles
+The crystalline consciousness theory, proposed by xenophysicist Elara Aethelgard...
 
 ### Background
 Historical context and previous work.
@@ -1305,15 +1314,15 @@ def sample_document_sections():
     return [
         DocumentSection(
             id="root",
-            title="Test Document",
-            content="# Test Document",
+            title="Aethelgard's Crystalline Consciousness Theory",
+            content="# Aethelgard's Crystalline Consciousness Theory",
             level=0,
             order_index=0
         ),
         DocumentSection(
-            id="intro",
-            title="Introduction", 
-            content="This is a test document for cognitive reading.",
+            id="principles",
+            title="Fundamental Principles", 
+            content="The crystalline consciousness theory, proposed by xenophysicist Elara Aethelgard...",
             level=1,
             parent_id="root",
             order_index=1

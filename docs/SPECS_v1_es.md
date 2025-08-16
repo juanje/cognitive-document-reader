@@ -808,9 +808,9 @@ def test_config():
 def sample_markdown():
     """Markdown simple para pruebas."""
     return """
-# Test Document
+# La teoría de la conciencia cristalina de Aethelgard
 
-## Section 1
+## Principios fundamentales
 Content of section 1.
 
 ## Section 2  
@@ -836,7 +836,7 @@ async def test_basic_reading(test_config, sample_markdown):
     reader = CognitiveReader(test_config)
     knowledge = await reader.read_document_text(sample_markdown)
     
-    assert knowledge.document_title == "Test Document"
+    assert knowledge.document_title == "La teoría de la conciencia cristalina de Aethelgard"
     assert len(knowledge.sections) >= 2
     assert knowledge.detected_language in ["en", "auto"]
 

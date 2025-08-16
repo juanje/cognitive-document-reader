@@ -161,7 +161,7 @@ class TestMaxDepthCLI:
         )
 
         assert result.exit_code == 0
-        assert "Cognitive Document Reader Example" in result.output
+        assert "Aethelgard's Crystalline Consciousness Theory" in result.output
 
     def test_cli_max_depth_with_dry_run(self):
         """Test that --max-depth works with processing mode."""

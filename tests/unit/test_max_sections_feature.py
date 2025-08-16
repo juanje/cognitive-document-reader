@@ -178,7 +178,7 @@ class TestMaxSectionsCLI:
         )
 
         assert result.exit_code == 0
-        assert "Cognitive Document Reader Example" in result.output
+        assert "Aethelgard's Crystalline Consciousness Theory" in result.output
 
     def test_cli_max_sections_with_dry_run(self):
         """Test that --max-sections works with processing mode."""

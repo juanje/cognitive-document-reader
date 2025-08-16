@@ -8,18 +8,19 @@ El Lector Cognitivo de Documentos implementa un proceso de lectura que simula lo
 
 Usando `examples/sample_document.md` como referencia:
 
+> **📝 Nota**: El documento de ejemplo presenta "La teoría de la conciencia cristalina de Aethelgard" - una **teoría científica completamente ficticia** creada específicamente para probar las capacidades de lectura cognitiva. Contiene contenido semántico novedoso no presente en los datos de entrenamiento de LLM y redefine deliberadamente conceptos existentes para evaluar cómo el sistema procesa información nueva vs. conocimiento pre-entrenado.
+
 ```
-📄 Cognitive Document Reader Example (Padre con contenido)
-├── 📖 Introduction (Padre con contenido)
-│   └── 🔹 Purpose (Hoja)
-├── 📁 Key Features (Padre sin contenido)
-│   ├── 🔹 1. Document Processing (Hoja)
-│   ├── 🔹 2. Language Detection (Hoja)
-│   └── 🔹 3. Structured Output (Hoja)
-├── 📖 Technical Architecture (Padre con contenido)
-│   ├── 🔹 Core Components (Hoja)
-│   └── 🔹 Processing Flow (Hoja)
-└── 🔹 Conclusion (Hoja)
+📄 La teoría de la conciencia cristalina de Aethelgard (Padre con contenido)
+├── 📖 Principios fundamentales (Padre con contenido)
+│   ├── 🔹 La frecuencia resonante primordial (Hoja)
+│   └── 🔹 La refracción cognitiva (Hoja)
+├── 📁 El entramado somático (Padre sin contenido)
+│   ├── 🔹 La estructura del entramado (Hoja)
+│   └── 🔹 La resonancia empática: una redefinición (Hoja)
+└── 📖 Aplicaciones y paradojas (Padre con contenido)
+    ├── 🔹 El concepto de la cristalización del yo (Hoja)
+    └── 🔹 La paradoja del observador disonante (Hoja)
 ```
 
 **Patrones Identificados:**
@@ -73,9 +74,9 @@ PARA cada sección en orden del documento:
 - Sin contexto previo (es la raíz)
 - Procesar su texto introductorio → `resumen_raíz_v1`
 
-**2. Procesar "Introduction" (Nivel 2, Padre CON contenido)**
+**2. Procesar "Principios fundamentales" (Nivel 2, Padre CON contenido)**
 - Contexto: `resumen_raíz_v1`
-- Procesar su texto → `resumen_intro_v1`
+- Procesar su texto → `resumen_principios_v1`
 - Actualizar raíz: `resumen_raíz_v1 + resumen_intro_v1` → `resumen_raíz_v2`
 
 **3. Procesar "Purpose" (Nivel 3, Hoja)**
@@ -149,10 +150,10 @@ PARA cada sección en pasadas posteriores:
 **Procesamiento:**
 ```
 CONTEXTO (información de apoyo):
-- Resumen Raíz: [comprensión actual del documento]
-- Resumen Introduction: [comprensión actual de la sección padre]
+- Resumen Raíz: [comprensión actual de la teoría de Aethelgard]
+- Resumen Principios fundamentales: [comprensión actual de la sección padre]
 - Resumen Previo: [comprensión de primera pasada]
-- Conceptos: [glosario con definiciones]
+- Conceptos: [glosario con definiciones incluyendo frecuencia_resonante_primordial, refracción_cognitiva, etc.]
 
 TEXTO FUENTE (autoridad suprema):
 [contenido original de la sección "Purpose"]

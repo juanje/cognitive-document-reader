@@ -8,18 +8,19 @@ The Cognitive Document Reader implements a reading process that simulates human 
 
 Using `examples/sample_document.md` as reference:
 
+> **📝 Note**: The sample document presents "Aethelgard's Crystalline Consciousness Theory" - a **completely fictional scientific theory** created specifically to test cognitive reading capabilities. It contains novel semantic content not present in LLM training data and deliberately redefines existing concepts to evaluate how the system processes new information vs. pre-trained knowledge.
+
 ```
-📄 Cognitive Document Reader Example (Parent with content)
-├── 📖 Introduction (Parent with content)
-│   └── 🔹 Purpose (Leaf)
-├── 📁 Key Features (Parent without content)
-│   ├── 🔹 1. Document Processing (Leaf)
-│   ├── 🔹 2. Language Detection (Leaf)
-│   └── 🔹 3. Structured Output (Leaf)
-├── 📖 Technical Architecture (Parent with content)
-│   ├── 🔹 Core Components (Leaf)
-│   └── 🔹 Processing Flow (Leaf)
-└── 🔹 Conclusion (Leaf)
+📄 Aethelgard's Crystalline Consciousness Theory (Parent with content)
+├── 📖 Fundamental Principles (Parent with content)
+│   ├── 🔹 The Primordial Resonant Frequency (Leaf)
+│   └── 🔹 Cognitive Refraction (Leaf)
+├── 📁 The Somatic Framework (Parent without content)
+│   ├── 🔹 The Structure of the Framework (Leaf)
+│   └── 🔹 Empathic Resonance: A Redefinition (Leaf)
+└── 📖 Applications and Paradoxes (Parent with content)
+    ├── 🔹 The Concept of Self-Crystallization (Leaf)
+    └── 🔹 The Dissonant Observer Paradox (Leaf)
 ```
 
 **Identified Patterns:**
@@ -73,43 +74,55 @@ FOR each section in document order:
 - No previous context (it's the root)
 - Process its introductory text → `root_summary_v1`
 
-**2. Process "Introduction" (Level 2, Parent WITH content)**
+**2. Process "Fundamental Principles" (Level 2, Parent WITH content)**
 - Context: `root_summary_v1`
-- Process its text → `intro_summary_v1`
-- Update root: `root_summary_v1 + intro_summary_v1` → `root_summary_v2`
+- Process its text → `principles_summary_v1`
+- Update root: `root_summary_v1 + principles_summary_v1` → `root_summary_v2`
 
-**3. Process "Purpose" (Level 3, Leaf)**
-- Context: `root_summary_v2 + intro_summary_v1`
-- Process content → `purpose_summary`
-- Update "Introduction": `intro_summary_v1 + purpose_summary` → `intro_summary_final`
-- Update root: `root_summary_v2 + intro_summary_final` → `root_summary_v3`
+**3. Process "The Primordial Resonant Frequency" (Level 3, Leaf)**
+- Context: `root_summary_v2 + principles_summary_v1`
+- Process content → `prf_summary`
+- Update "Fundamental Principles": `principles_summary_v1 + prf_summary` → `principles_summary_v2`
+- Update root: `root_summary_v2 + principles_summary_v2` → `root_summary_v3`
 
-**4. Process "Key Features" (Level 2, Parent WITHOUT content)**
+**4. Process "Cognitive Refraction" (Level 3, Leaf)**
+- Context: `root_summary_v3 + principles_summary_v2`
+- Process content → `refraction_summary`
+- Update "Fundamental Principles": `principles_summary_v2 + refraction_summary` → `principles_summary_final`
+- Update root: `root_summary_v3 + principles_summary_final` → `root_summary_v4`
+
+**5. Process "The Somatic Framework" (Level 2, Parent WITHOUT content)**
 - Defer until processing all its children
 
-**5. Process "1. Document Processing" (Level 3, Leaf)**
-- Context: `root_summary_v3` (Key Features doesn't have summary yet)
-- Process content → `doc_proc_summary`
+**6. Process "The Structure of the Framework" (Level 3, Leaf)**
+- Context: `root_summary_v4` (The Somatic Framework doesn't have summary yet)
+- Process content → `structure_summary`
 
-**6. Process "2. Language Detection" (Level 3, Leaf)**
-- Context: `root_summary_v3 + doc_proc_summary`
-- Process content → `lang_det_summary`
+**7. Process "Empathic Resonance: A Redefinition" (Level 3, Leaf)**
+- Context: `root_summary_v4 + structure_summary`
+- Process content → `empathic_resonance_summary`
 
-**7. Process "3. Structured Output" (Level 3, Leaf)**
-- Context: `root_summary_v3 + doc_proc_summary + lang_det_summary`
-- Process content → `struct_out_summary`
+**8. Synthesize "The Somatic Framework" (Deferred Synthesis)**
+- Parent context: `root_summary_v4`
+- Synthesize from children: `structure_summary + empathic_resonance_summary` → `somatic_framework_summary`
+- Update root: `root_summary_v4 + somatic_framework_summary` → `root_summary_v5`
 
-**8. Synthesize "Key Features" (Deferred Synthesis)**
-- Parent context: `root_summary_v3`
-- Synthesize from children: `doc_proc_summary + lang_det_summary + struct_out_summary` → `key_features_summary`
-- Update root: `root_summary_v3 + key_features_summary` → `root_summary_v4`
+**9. Process "Applications and Paradoxes" (Level 2, Parent WITH content)**
+- Context: `root_summary_v5`
+- Process its text → `applications_summary_v1`
+- Update root: `root_summary_v5 + applications_summary_v1` → `root_summary_v6`
 
-**9-11. Process "Technical Architecture" and its children**
-- Follows the same pattern as "Introduction"
+**10. Process "The Concept of Self-Crystallization" (Level 3, Leaf)**
+- Context: `root_summary_v6 + applications_summary_v1`
+- Process content → `crystallization_summary`
+- Update "Applications and Paradoxes": `applications_summary_v1 + crystallization_summary` → `applications_summary_v2`
+- Update root: `root_summary_v6 + applications_summary_v2` → `root_summary_v7`
 
-**12. Process "Conclusion" (Level 2, Leaf)**
-- Context: `root_summary_v5` (most updated version)
-- Final update: `root_summary_v5 + conclusion_summary` → `final_root_summary`
+**11. Process "The Dissonant Observer Paradox" (Level 3, Leaf)**
+- Context: `root_summary_v7 + applications_summary_v2`
+- Process content → `paradox_summary`
+- Update "Applications and Paradoxes": `applications_summary_v2 + paradox_summary` → `applications_summary_final`
+- Final update: `root_summary_v7 + applications_summary_final` → `final_root_summary`
 
 ---
 
@@ -149,10 +162,10 @@ FOR each section in subsequent passes:
 **Processing:**
 ```
 CONTEXT (supporting information):
-- Root Summary: [current understanding of document]
-- Introduction Summary: [current understanding of parent section]
+- Root Summary: [current understanding of Aethelgard's theory]
+- Fundamental Principles Summary: [current understanding of parent section]
 - Previous Summary: [understanding from first pass]
-- Concepts: [glossary with definitions]
+- Concepts: [glossary with definitions including primordial_resonant_frequency, cognitive_refraction, etc.]
 
 SOURCE TEXT (supreme authority):
 [original content of "Purpose" section]
