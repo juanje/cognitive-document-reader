@@ -55,7 +55,9 @@ class SemanticTest(ABC):
         """
         pass
 
-    def _search_in_text(self, text: str, keywords: list[str], case_sensitive: bool = False) -> bool:
+    def _search_in_text(
+        self, text: str, keywords: list[str], case_sensitive: bool = False
+    ) -> bool:
         """Helper to search for keywords in text.
 
         Args:
@@ -71,7 +73,9 @@ class SemanticTest(ABC):
 
         return all(keyword in search_text for keyword in search_keywords)
 
-    def _extract_concept_definitions(self, knowledge_data: dict[str, Any]) -> dict[str, str]:
+    def _extract_concept_definitions(
+        self, knowledge_data: dict[str, Any]
+    ) -> dict[str, str]:
         """Extract concept definitions from knowledge data.
 
         Args:
@@ -85,7 +89,11 @@ class SemanticTest(ABC):
         # Extract from concepts array
         if "concepts" in knowledge_data:
             for concept in knowledge_data["concepts"]:
-                if isinstance(concept, dict) and "name" in concept and "definition" in concept:
+                if (
+                    isinstance(concept, dict)
+                    and "name" in concept
+                    and "definition" in concept
+                ):
                     concepts[concept["name"].lower()] = concept["definition"]
 
         return concepts
@@ -113,7 +121,9 @@ class SemanticTest(ABC):
 
         return " ".join(text_parts)
 
-    def _find_section_by_title(self, knowledge_data: dict[str, Any], title_keywords: list[str]) -> dict[str, Any] | None:
+    def _find_section_by_title(
+        self, knowledge_data: dict[str, Any], title_keywords: list[str]
+    ) -> dict[str, Any] | None:
         """Find a section by title keywords.
 
         Args:

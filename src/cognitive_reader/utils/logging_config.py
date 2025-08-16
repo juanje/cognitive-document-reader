@@ -55,7 +55,7 @@ def configure_logging(
     if log_file:
         # Ensure parent directory exists
         log_file.parent.mkdir(parents=True, exist_ok=True)
-        handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+        handler = logging.FileHandler(log_file, mode="w", encoding="utf-8")
     else:
         handler = logging.StreamHandler(sys.stderr)
 

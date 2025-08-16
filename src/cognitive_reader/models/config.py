@@ -347,7 +347,9 @@ class CognitiveConfig(BaseModel):
             == "true",
             skip_glossary=os.getenv("COGNITIVE_READER_SKIP_GLOSSARY", "false").lower()
             == "true",
-            log_file=Path(log_path) if (log_path := os.getenv("COGNITIVE_READER_LOG_FILE")) else None,
+            log_file=Path(log_path)
+            if (log_path := os.getenv("COGNITIVE_READER_LOG_FILE"))
+            else None,
             # Concept filtering parameters
             max_glossary_concepts=int(
                 os.getenv("COGNITIVE_READER_MAX_GLOSSARY_CONCEPTS", "50")

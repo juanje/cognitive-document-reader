@@ -12,19 +12,19 @@ from ..evaluation.semantic_evaluator import SemanticEvaluator
 @click.command()
 @click.argument("json_file", type=click.Path(exists=True, path_type=Path))
 @click.option(
-    "--detailed", "-d",
-    is_flag=True,
-    help="Show detailed test results for each test"
+    "--detailed", "-d", is_flag=True, help="Show detailed test results for each test"
 )
 @click.option(
-    "--export", "-e",
+    "--export",
+    "-e",
     type=click.Path(path_type=Path),
-    help="Export evaluation report to JSON file"
+    help="Export evaluation report to JSON file",
 )
 @click.option(
-    "--verbose", "-v",
+    "--verbose",
+    "-v",
     is_flag=True,
-    help="Show verbose output during evaluation process"
+    help="Show verbose output during evaluation process",
 )
 def semantic_eval(
     json_file: Path,
@@ -79,8 +79,12 @@ def semantic_eval(
 
         # Summary for CI/automation
         if not verbose:
-            click.echo(f"Overall Score: {report.overall_score:.2f} ({report.quality_grade})")
-            click.echo(f"Pass Rate: {report.pass_rate:.1%} ({report.passed_tests + report.partial_tests}/{report.total_tests})")
+            click.echo(
+                f"Overall Score: {report.overall_score:.2f} ({report.quality_grade})"
+            )
+            click.echo(
+                f"Pass Rate: {report.pass_rate:.1%} ({report.passed_tests + report.partial_tests}/{report.total_tests})"
+            )
 
         return exit_code
 
@@ -91,6 +95,7 @@ def semantic_eval(
         click.echo(f"❌ Evaluation failed: {e}", err=True)
         if verbose:
             import traceback
+
             traceback.print_exc()
         return 4
 

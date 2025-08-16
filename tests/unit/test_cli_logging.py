@@ -18,12 +18,16 @@ class TestCLILogging:
         log_file = tmp_path / "test.log"
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            str(test_file),
-            "--log", str(log_file),
-            "--dry-run",
-            "--verbose"  # Use verbose to ensure logs are generated
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                str(test_file),
+                "--log",
+                str(log_file),
+                "--dry-run",
+                "--verbose",  # Use verbose to ensure logs are generated
+            ],
+        )
 
         assert result.exit_code == 0
         assert log_file.exists()
@@ -45,12 +49,9 @@ class TestCLILogging:
         assert not log_file.parent.exists()
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            str(test_file),
-            "--log", str(log_file),
-            "--dry-run",
-            "--quiet"
-        ])
+        result = runner.invoke(
+            cli, [str(test_file), "--log", str(log_file), "--dry-run", "--quiet"]
+        )
 
         assert result.exit_code == 0
         assert log_file.exists()
@@ -64,12 +65,9 @@ class TestCLILogging:
         log_file = tmp_path / "verbose_test.log"
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            str(test_file),
-            "--log", str(log_file),
-            "--verbose",
-            "--dry-run"
-        ])
+        result = runner.invoke(
+            cli, [str(test_file), "--log", str(log_file), "--verbose", "--dry-run"]
+        )
 
         assert result.exit_code == 0
         assert log_file.exists()
@@ -86,12 +84,9 @@ class TestCLILogging:
         log_file = tmp_path / "quiet_test.log"
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            str(test_file),
-            "--log", str(log_file),
-            "--quiet",
-            "--dry-run"
-        ])
+        result = runner.invoke(
+            cli, [str(test_file), "--log", str(log_file), "--quiet", "--dry-run"]
+        )
 
         assert result.exit_code == 0
         assert log_file.exists()
@@ -108,11 +103,14 @@ class TestCLILogging:
         test_file.write_text(sample_markdown)
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            str(test_file),
-            "--dry-run",
-            "--verbose"  # Ensure some logs are generated
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                str(test_file),
+                "--dry-run",
+                "--verbose",  # Ensure some logs are generated
+            ],
+        )
 
         assert result.exit_code == 0
         # stderr should contain log messages (captured by CliRunner)
@@ -128,12 +126,10 @@ class TestCLILogging:
         log_file = tmp_path / "structure_test.log"
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            str(test_file),
-            "--log", str(log_file),
-            "--structure-only",
-            "--verbose"
-        ])
+        result = runner.invoke(
+            cli,
+            [str(test_file), "--log", str(log_file), "--structure-only", "--verbose"],
+        )
 
         assert result.exit_code == 0
         assert log_file.exists()
@@ -159,13 +155,10 @@ class TestCLILogging:
         log_file = tmp_path / "stats_test.log"
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            str(test_file),
-            "--log", str(log_file),
-            "--stats",
-            "--dry-run",
-            "--quiet"
-        ])
+        result = runner.invoke(
+            cli,
+            [str(test_file), "--log", str(log_file), "--stats", "--dry-run", "--quiet"],
+        )
 
         assert result.exit_code == 0
         assert log_file.exists()
@@ -187,12 +180,16 @@ class TestCLILogging:
         invalid_log_path.mkdir()  # Create as directory
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            str(test_file),
-            "--log", str(invalid_log_path),  # Directory instead of file
-            "--dry-run",
-            "--quiet"
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                str(test_file),
+                "--log",
+                str(invalid_log_path),  # Directory instead of file
+                "--dry-run",
+                "--quiet",
+            ],
+        )
 
         # Command should handle the error gracefully
         # Exact behavior depends on how Python's logging handles this

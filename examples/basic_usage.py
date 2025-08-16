@@ -56,7 +56,9 @@ The main problem is the "dissonant observer paradox." If a scientist's conscious
 
     # Process the document
     print("Processing document...")
-    knowledge = await reader.read_document_text(sample_text, "Aethelgard's Crystalline Consciousness Theory")
+    knowledge = await reader.read_document_text(
+        sample_text, "Aethelgard's Crystalline Consciousness Theory"
+    )
 
     # Display results
     print(f"\nDocument Title: {knowledge.document_title}")
@@ -135,8 +137,12 @@ This frequency determines an organism's affinity with certain patterns of the un
         mock_responses=True,
     )
 
-    print(f"Dual-pass config: Fast={dual_config.fast_pass_model}, Main={dual_config.main_model}")
-    print(f"Single-pass config: Main={single_config.main_model}, Passes={1 if single_config.single_pass else dual_config.num_passes}")
+    print(
+        f"Dual-pass config: Fast={dual_config.fast_pass_model}, Main={dual_config.main_model}"
+    )
+    print(
+        f"Single-pass config: Main={single_config.main_model}, Passes={1 if single_config.single_pass else dual_config.num_passes}"
+    )
 
     # Process with dual-pass mode
     print("\n📊 Processing with dual-pass mode (comprehensive analysis)...")
@@ -148,7 +154,9 @@ This frequency determines an organism's affinity with certain patterns of the un
     # Process with single-pass mode
     print("\n⚡ Processing with single-pass mode (quick analysis)...")
     single_reader = CognitiveReader(single_config)
-    single_result = await single_reader.read_document_text(test_text, "The Primordial Resonant Frequency")
+    single_result = await single_reader.read_document_text(
+        test_text, "The Primordial Resonant Frequency"
+    )
 
     print(f"\nDual-pass result - Total concepts: {dual_result.total_concepts}")
     print(f"Single-pass result - Total concepts: {single_result.total_concepts}")
@@ -186,7 +194,9 @@ La frecuencia resonante primordial (FRP) es el pilar de la teoría de Aethelgard
 Dentro de esta teoría, el concepto de "empatía" es redefinido radicalmente. Aethelgard descarta la empatía como simple comprensión emocional o cognitiva del estado de otro. En su lugar, la define como **resonancia empática**: un fenómeno físico y medible en el que los entramados somáticos de dos o más individuos entran en una fase de acoplamiento armónico.
 """
 
-    knowledge = await reader.read_document_text(spanish_text, "La teoría de la conciencia cristalina de Aethelgard")
+    knowledge = await reader.read_document_text(
+        spanish_text, "La teoría de la conciencia cristalina de Aethelgard"
+    )
 
     print(f"Título: {knowledge.document_title}")
     print(f"Idioma detectado: {knowledge.detected_language.value}")
@@ -263,15 +273,12 @@ async def new_features_example():
         main_model="qwen3:8b",
         enable_fast_first_pass=True,
         num_passes=2,
-
         # Processing optimization
         max_sections=5,  # Limit sections for demo
         save_intermediate=True,  # Save intermediate results
         intermediate_dir="./demo_intermediate",
-
         # Logging configuration
         log_file=log_file,
-
         # Development mode
         dry_run=True,
         mock_responses=True,
@@ -309,10 +316,13 @@ The somatic therapies proposed by Aethelgard focus on identifying and releasing 
 
     # Record processing start time
     import time
+
     start_time = time.time()
 
     # Process the document
-    knowledge = await reader.read_document_text(test_content, "Cognitive Refraction Principles")
+    knowledge = await reader.read_document_text(
+        test_content, "Cognitive Refraction Principles"
+    )
 
     # Update final metrics
     metrics.sections_processed = knowledge.total_sections
@@ -342,7 +352,7 @@ The somatic therapies proposed by Aethelgard focus on identifying and releasing 
         if log_file.exists():
             print("\n📋 Log file content preview:")
             log_content = log_file.read_text()
-            lines = log_content.split('\n')[:3]  # First 3 lines
+            lines = log_content.split("\n")[:3]  # First 3 lines
             for line in lines:
                 if line.strip():
                     print(f"     {line}")

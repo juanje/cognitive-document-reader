@@ -87,13 +87,17 @@ class SemanticEvaluator:
             raise FileNotFoundError(f"Knowledge JSON file not found: {json_path}")
 
         try:
-            with open(json_path, encoding='utf-8') as f:
+            with open(json_path, encoding="utf-8") as f:
                 data: dict[str, Any] = json.load(f)
                 return data
         except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(f"Invalid JSON in {json_path}: {e}", "", 0) from e
+            raise json.JSONDecodeError(
+                f"Invalid JSON in {json_path}: {e}", "", 0
+            ) from e
 
-    def evaluate_document(self, json_path: Path, verbose: bool = False) -> EvaluationReport:
+    def evaluate_document(
+        self, json_path: Path, verbose: bool = False
+    ) -> EvaluationReport:
         """Evaluate a processed document against all semantic tests.
 
         Args:
@@ -127,7 +131,9 @@ class SemanticEvaluator:
 
                 if verbose:
                     status_icon = self._get_status_icon(outcome.result)
-                    self.console.print(f"    {status_icon} {outcome.result.value} (Score: {outcome.score:.2f})")
+                    self.console.print(
+                        f"    {status_icon} {outcome.result.value} (Score: {outcome.score:.2f})"
+                    )
 
             except Exception as e:
                 # Handle test failures gracefully
@@ -138,7 +144,7 @@ class SemanticEvaluator:
                     details=f"Test failed with error: {str(e)}",
                     expected_answer="Test could not be completed",
                     found_evidence="Error occurred during evaluation",
-                    failure_reason=f"Exception: {str(e)}"
+                    failure_reason=f"Exception: {str(e)}",
                 )
                 test_outcomes.append(error_outcome)
 
@@ -146,14 +152,30 @@ class SemanticEvaluator:
                     self.console.print(f"    ❌ ERROR: {str(e)}")
 
         # Calculate summary statistics
-        passed = sum(1 for outcome in test_outcomes if outcome.result == TestResult.PASS)
-        partial = sum(1 for outcome in test_outcomes if outcome.result == TestResult.PARTIAL)
-        failed = sum(1 for outcome in test_outcomes if outcome.result == TestResult.FAIL)
-        unable = sum(1 for outcome in test_outcomes if outcome.result == TestResult.UNABLE_TO_EVALUATE)
+        passed = sum(
+            1 for outcome in test_outcomes if outcome.result == TestResult.PASS
+        )
+        partial = sum(
+            1 for outcome in test_outcomes if outcome.result == TestResult.PARTIAL
+        )
+        failed = sum(
+            1 for outcome in test_outcomes if outcome.result == TestResult.FAIL
+        )
+        unable = sum(
+            1
+            for outcome in test_outcomes
+            if outcome.result == TestResult.UNABLE_TO_EVALUATE
+        )
 
         # Calculate overall score (exclude unable to evaluate from denominator)
-        evaluable_outcomes = [o for o in test_outcomes if o.result != TestResult.UNABLE_TO_EVALUATE]
-        overall_score = sum(o.score for o in evaluable_outcomes) / len(evaluable_outcomes) if evaluable_outcomes else 0.0
+        evaluable_outcomes = [
+            o for o in test_outcomes if o.result != TestResult.UNABLE_TO_EVALUATE
+        ]
+        overall_score = (
+            sum(o.score for o in evaluable_outcomes) / len(evaluable_outcomes)
+            if evaluable_outcomes
+            else 0.0
+        )
 
         return EvaluationReport(
             document_title=document_title,
@@ -164,7 +186,7 @@ class SemanticEvaluator:
             failed_tests=failed,
             unable_to_evaluate=unable,
             overall_score=overall_score,
-            test_outcomes=test_outcomes
+            test_outcomes=test_outcomes,
         )
 
     def print_report(self, report: EvaluationReport, detailed: bool = False) -> None:
@@ -174,9 +196,9 @@ class SemanticEvaluator:
             report: Evaluation report to display
             detailed: Whether to show detailed test results
         """
-        self.console.print("\n" + "="*60)
+        self.console.print("\n" + "=" * 60)
         self.console.print("🧠 [bold]Semantic Evaluation Report[/bold]")
-        self.console.print("="*60)
+        self.console.print("=" * 60)
 
         # Document info
         self.console.print(f"📚 Document: [bold]{report.document_title}[/bold]")
@@ -189,18 +211,38 @@ class SemanticEvaluator:
         summary_table.add_column("Count", justify="right", style="green")
         summary_table.add_column("Percentage", justify="right", style="yellow")
 
-        summary_table.add_row("✅ Passed", str(report.passed_tests), f"{report.passed_tests/report.total_tests*100:.1f}%")
-        summary_table.add_row("🟡 Partial", str(report.partial_tests), f"{report.partial_tests/report.total_tests*100:.1f}%")
-        summary_table.add_row("❌ Failed", str(report.failed_tests), f"{report.failed_tests/report.total_tests*100:.1f}%")
-        summary_table.add_row("❓ Unable", str(report.unable_to_evaluate), f"{report.unable_to_evaluate/report.total_tests*100:.1f}%")
-        summary_table.add_row("[bold]Total Tests[/bold]", f"[bold]{report.total_tests}[/bold]", "100.0%")
+        summary_table.add_row(
+            "✅ Passed",
+            str(report.passed_tests),
+            f"{report.passed_tests / report.total_tests * 100:.1f}%",
+        )
+        summary_table.add_row(
+            "🟡 Partial",
+            str(report.partial_tests),
+            f"{report.partial_tests / report.total_tests * 100:.1f}%",
+        )
+        summary_table.add_row(
+            "❌ Failed",
+            str(report.failed_tests),
+            f"{report.failed_tests / report.total_tests * 100:.1f}%",
+        )
+        summary_table.add_row(
+            "❓ Unable",
+            str(report.unable_to_evaluate),
+            f"{report.unable_to_evaluate / report.total_tests * 100:.1f}%",
+        )
+        summary_table.add_row(
+            "[bold]Total Tests[/bold]", f"[bold]{report.total_tests}[/bold]", "100.0%"
+        )
 
         self.console.print(summary_table)
         self.console.print()
 
         # Overall score
         grade_color = self._get_grade_color(report.overall_score)
-        self.console.print(f"🎯 Overall Score: [{grade_color}]{report.overall_score:.2f}[/{grade_color}] ({report.quality_grade})")
+        self.console.print(
+            f"🎯 Overall Score: [{grade_color}]{report.overall_score:.2f}[/{grade_color}] ({report.quality_grade})"
+        )
         self.console.print(f"📊 Pass Rate: {report.pass_rate:.1%}")
         self.console.print()
 
@@ -214,7 +256,9 @@ class SemanticEvaluator:
                 score_color = self._get_score_color(outcome.score)
 
                 self.console.print(f"{status_icon} [bold]{outcome.test_name}[/bold]")
-                self.console.print(f"   Score: [{score_color}]{outcome.score:.2f}[/{score_color}]")
+                self.console.print(
+                    f"   Score: [{score_color}]{outcome.score:.2f}[/{score_color}]"
+                )
                 self.console.print(f"   Expected: {outcome.expected_answer}")
                 self.console.print(f"   Found: {outcome.found_evidence}")
 
@@ -255,10 +299,10 @@ class SemanticEvaluator:
                     "failure_reason": outcome.failure_reason,
                 }
                 for outcome in report.test_outcomes
-            ]
+            ],
         }
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(report_data, f, indent=2, ensure_ascii=False)
 
         self.console.print(f"📄 Report exported to: {output_path}")
@@ -269,7 +313,7 @@ class SemanticEvaluator:
             TestResult.PASS: "✅",
             TestResult.PARTIAL: "🟡",
             TestResult.FAIL: "❌",
-            TestResult.UNABLE_TO_EVALUATE: "❓"
+            TestResult.UNABLE_TO_EVALUATE: "❓",
         }
         return icons.get(result, "❓")
 
@@ -302,11 +346,19 @@ def main() -> int:
     """CLI entry point for semantic evaluation."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Semantic Evaluation of Cognitive Reading Results")
-    parser.add_argument("json_file", type=Path, help="Path to cognitive reader JSON output")
-    parser.add_argument("--detailed", "-d", action="store_true", help="Show detailed test results")
+    parser = argparse.ArgumentParser(
+        description="Semantic Evaluation of Cognitive Reading Results"
+    )
+    parser.add_argument(
+        "json_file", type=Path, help="Path to cognitive reader JSON output"
+    )
+    parser.add_argument(
+        "--detailed", "-d", action="store_true", help="Show detailed test results"
+    )
     parser.add_argument("--export", "-e", type=Path, help="Export report to JSON file")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output during evaluation")
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Verbose output during evaluation"
+    )
 
     args = parser.parse_args()
 

@@ -17,7 +17,7 @@ async def process_and_evaluate_document(
     document_path: Path,
     output_dir: Path,
     language: LanguageCode = LanguageCode.AUTO,
-    verbose: bool = True
+    verbose: bool = True,
 ) -> Any:
     """Process a document and evaluate its semantic quality.
 
@@ -90,7 +90,7 @@ async def process_and_evaluate_document(
         "parent_child_map": knowledge.parent_child_map,
     }
 
-    with open(json_path, 'w', encoding='utf-8') as f:
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(knowledge_dict, f, indent=2, ensure_ascii=False)
 
     if verbose:
@@ -133,7 +133,7 @@ async def demo_english_document() -> Any | None:
         document_path=document_path,
         output_dir=output_dir,
         language=LanguageCode.EN,
-        verbose=True
+        verbose=True,
     )
 
 
@@ -156,7 +156,7 @@ async def demo_spanish_document() -> Any | None:
         document_path=document_path,
         output_dir=output_dir,
         language=LanguageCode.ES,
-        verbose=True
+        verbose=True,
     )
 
 
@@ -170,13 +170,21 @@ async def compare_language_results(english_report: Any, spanish_report: Any) -> 
     print("📊 CROSS-LANGUAGE COMPARISON")
     print("=" * 70)
 
-    print(f"🇬🇧 English Overall Score: {english_report.overall_score:.2f} ({english_report.quality_grade})")
-    print(f"🇪🇸 Spanish Overall Score: {spanish_report.overall_score:.2f} ({spanish_report.quality_grade})")
+    print(
+        f"🇬🇧 English Overall Score: {english_report.overall_score:.2f} ({english_report.quality_grade})"
+    )
+    print(
+        f"🇪🇸 Spanish Overall Score: {spanish_report.overall_score:.2f} ({spanish_report.quality_grade})"
+    )
     print()
 
     # Compare individual test categories
-    english_tests = {outcome.test_name: outcome.score for outcome in english_report.test_outcomes}
-    spanish_tests = {outcome.test_name: outcome.score for outcome in spanish_report.test_outcomes}
+    english_tests = {
+        outcome.test_name: outcome.score for outcome in english_report.test_outcomes
+    }
+    spanish_tests = {
+        outcome.test_name: outcome.score for outcome in spanish_report.test_outcomes
+    }
 
     print("📋 Test-by-Test Comparison:")
     for test_name in english_tests:
@@ -186,7 +194,9 @@ async def compare_language_results(english_report: Any, spanish_report: Any) -> 
 
         trend_icon = "📈" if difference > 0.1 else ("📉" if difference < -0.1 else "➡️")
 
-        print(f"   {test_name:25} | EN: {en_score:.2f} | ES: {es_score:.2f} | Diff: {difference:+.2f} {trend_icon}")
+        print(
+            f"   {test_name:25} | EN: {en_score:.2f} | ES: {es_score:.2f} | Diff: {difference:+.2f} {trend_icon}"
+        )
 
     # Analysis
     print("\n🔍 Analysis:")
@@ -236,6 +246,7 @@ async def main() -> int:
     except Exception as e:
         print(f"❌ Demo failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

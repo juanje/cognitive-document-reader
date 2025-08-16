@@ -175,7 +175,7 @@ class TestIntegrationWithCognitiveConfig:
     def test_log_file_field_exists(self):
         """Test that log_file field exists in CognitiveConfig."""
         config = CognitiveConfig()
-        assert hasattr(config, 'log_file')
+        assert hasattr(config, "log_file")
         assert config.log_file is None
 
     def test_log_file_field_accepts_path(self, tmp_path):

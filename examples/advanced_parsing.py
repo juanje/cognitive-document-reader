@@ -114,7 +114,9 @@ with intelligent format detection and fallback mechanisms.
                 for child_id in children:
                     child_summary = knowledge.get_summary_by_id(child_id)
                     if child_summary:
-                        print(f"{child_indent}- {child_summary.title} (Level {child_summary.level})")
+                        print(
+                            f"{child_indent}- {child_summary.title} (Level {child_summary.level})"
+                        )
 
 
 async def test_enhanced_parsing():
