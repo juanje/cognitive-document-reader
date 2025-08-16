@@ -10,12 +10,11 @@ class PromptManager:
 
     Centralizes all prompt templates with versioning and language support.
     Ensures consistent and optimized prompts for cognitive reading tasks.
+    Now supports separate system prompts for better LLM behavior control.
     """
 
     # Prompt version for tracking changes
-    PROMPT_VERSION = (
-        "v1.4.0"  # Fixed concept contamination and improved definition accuracy
-    )
+    PROMPT_VERSION = "v1.5.0"  # Added system prompts support for better LLM behavior
 
     # Language code to full name mapping
     LANGUAGE_NAMES = {
@@ -27,18 +26,19 @@ class PromptManager:
     def __init__(self) -> None:
         """Initialize the prompt manager."""
         self._prompts = self._initialize_prompts()
+        self._system_prompts = self._initialize_system_prompts()
 
     def get_prompt(
         self, prompt_type: str, language: LanguageCode = LanguageCode.EN
     ) -> str:
-        """Get a prompt template by type and language.
+        """Get a user prompt template by type and language.
 
         Args:
             prompt_type: The type of prompt needed (e.g., 'section_summary', 'document_summary').
             language: The target language for the prompt.
 
         Returns:
-            The prompt template string formatted with the target language.
+            The user prompt template string formatted with the target language.
 
         Raises:
             ValueError: If the prompt type or language is not supported.
@@ -48,6 +48,31 @@ class PromptManager:
 
         # Get the unified template and format with target language
         template = self._prompts[prompt_type]
+        language_name = self.LANGUAGE_NAMES.get(language, "English")
+
+        # Replace the language placeholder
+        return template.replace("{{language}}", language_name)
+
+    def get_system_prompt(
+        self, prompt_type: str, language: LanguageCode = LanguageCode.EN
+    ) -> str:
+        """Get a system prompt template by type and language.
+
+        Args:
+            prompt_type: The type of system prompt needed.
+            language: The target language for the prompt.
+
+        Returns:
+            The system prompt template string formatted with the target language.
+
+        Raises:
+            ValueError: If the prompt type or language is not supported.
+        """
+        if prompt_type not in self._system_prompts:
+            raise ValueError(f"Unsupported system prompt type: {prompt_type}")
+
+        # Get the system prompt template and format with target language
+        template = self._system_prompts[prompt_type]
         language_name = self.LANGUAGE_NAMES.get(language, "English")
 
         # Replace the language placeholder
@@ -173,189 +198,199 @@ class PromptManager:
         return template.format(concept_name=concept_name, context=context)
 
     def _initialize_prompts(self) -> dict[str, str]:
-        """Initialize all prompt templates.
+        """Initialize all user prompt templates.
 
         Returns:
-            Dictionary of unified prompt templates by type.
+            Dictionary of user prompt templates by type.
         """
         return {
-            "section_summary": self._get_section_summary_prompt(),
-            "document_summary": self._get_document_summary_prompt(),
-            "concept_extraction": self._get_concept_extraction_prompt(),
-            "concept_definition": self._get_concept_definition_prompt(),
+            "section_summary": self._get_section_summary_user_prompt(),
+            "document_summary": self._get_document_summary_user_prompt(),
+            "concept_extraction": self._get_concept_extraction_user_prompt(),
+            "concept_definition": self._get_concept_definition_user_prompt(),
         }
 
-    def _get_section_summary_prompt(self) -> str:
-        """Unified prompt for section summarization."""
-        return """You are an expert document analyst performing cognitive reading. Your task is to create a faithful, accurate summary that represents the source text with maximum fidelity.
+    def _initialize_system_prompts(self) -> dict[str, str]:
+        """Initialize all system prompt templates.
 
-SECTION TO SUMMARIZE:
+        Returns:
+            Dictionary of system prompt templates by type.
+        """
+        return {
+            "section_summary": self._get_section_summary_system_prompt(),
+            "document_summary": self._get_document_summary_system_prompt(),
+            "concept_extraction": self._get_concept_extraction_system_prompt(),
+            "concept_definition": self._get_concept_definition_system_prompt(),
+        }
+
+    def _get_section_summary_system_prompt(self) -> str:
+        """System prompt for section summarization - defines role and behavior."""
+        return """You are an expert document analyst specialized in cognitive reading and faithful summarization.
+
+CORE PRINCIPLES:
+- Source text fidelity is paramount - the source content is your PRIMARY and ULTIMATE truth
+- Use direct synthesis style: present information as factual knowledge, never as meta-descriptions
+- Preserve technical terms, proper nouns, and specific details exactly as stated
+- NEVER add information, interpretations, or inferences not explicitly present in the source
+- Provide structured, comprehensive summaries optimized for RAG applications and AI fine-tuning
+
+RESPONSE STYLE:
+- Write in direct synthesis style: state facts directly from the source
+- AVOID meta-references like "The document states...", "The section explains...", "The author says..."
+- Use the source text's own words and phrasing when possible
+- Count words carefully to meet specified target ranges
+- Always respond in {{language}} when specified
+
+QUALITY STANDARDS:
+- Comprehensive coverage of source content within word limits
+- Clear identification of 3-5 key concepts explicitly mentioned in source
+- Accurate representation without external interpretation
+- Consistent format with Summary and Key Concepts sections"""
+
+    def _get_section_summary_user_prompt(self) -> str:
+        """User prompt for section summarization - provides context and task."""
+        return """SECTION TO SUMMARIZE:
 Title: {section_title}
 Content: {section_content}
 
 ACCUMULATED CONTEXT FROM PREVIOUS SECTIONS:
 {accumulated_context}
 
-CRITICAL FIDELITY REQUIREMENTS:
-1. The SOURCE TEXT (section content) is your PRIMARY source of truth and takes precedence over all other information
-2. Quote, paraphrase, or directly reference the original text whenever possible
-3. Preserve technical terms, proper nouns, specific numbers, and details exactly as stated
-4. NEVER add information, interpretations, or inferences not explicitly present in the source
-5. If accumulated context conflicts with the source text, the SOURCE TEXT is always correct
-6. Stay strictly within the boundaries of what the source explicitly states
-7. When summarizing, use the original text's own words and phrasing when possible
-
-SUMMARY INSTRUCTIONS:
-1. Create a comprehensive summary targeting approximately {target_words} words
-2. Minimum {min_words} words for sufficient detail - Maximum {max_words} words to maintain focus
-3. Count words as you write to stay within the {min_words}-{max_words} word range
-4. Provide enough detail for RAG context and AI fine-tuning applications
-5. Write in DIRECT SYNTHESIS style - present the content as facts, not meta-descriptions
-6. AVOID meta-references like "The section explains...", "The document states...", "The author says..."
-7. Consider how this section relates to the previous context only for coherent flow
-8. Identify 3-5 key concepts that are explicitly mentioned in the SOURCE TEXT
-9. Maintain consistency with accumulated understanding, but SOURCE TEXT overrides any conflicts
-10. Focus on accurate representation of what the source actually says
-
-STYLE EXAMPLES:
-❌ BAD: "In this section, the document explains that [topic] is more than just [simple definition]..."
-✅ GOOD: "[Topic] is more than just [simple definition] but represents [deeper understanding]..."
-
-❌ BAD: "The author describes how [subject] functioned in [context]..."
-✅ GOOD: "Throughout [time period], [subject] functioned as [specific role], establishing [key patterns]..."
+TASK:
+Create a comprehensive summary of approximately {target_words} words ({min_words}-{max_words} range).
+If accumulated context conflicts with the source text, the source text is always correct.
+Identify 3-5 key concepts explicitly mentioned in the source text.
 
 RESPONSE FORMAT:
 Summary: [Your comprehensive ~{target_words} word summary here]
 Key Concepts: [concept1, concept2, concept3, concept4, concept5]
 
-**IMPORTANT: Respond in {{language}}. Target approximately {target_words} words for optimal RAG context.**
-
 Provide only the summary and key concepts, no additional commentary."""
 
-    def _get_document_summary_prompt(self) -> str:
-        """Unified prompt for document-level summarization."""
-        return """You are an expert document analyst creating a comprehensive document summary. Your task is to faithfully synthesize the section summaries without adding information not present in them.
+    def _get_document_summary_system_prompt(self) -> str:
+        """System prompt for document summarization - defines role and behavior."""
+        return """You are an expert document analyst specialized in synthesizing comprehensive document summaries from section summaries.
 
-DOCUMENT TITLE: {document_title}
+CORE PRINCIPLES:
+- Section summaries are your PRIMARY and ULTIMATE source of truth
+- Use direct synthesis style: present content as unified knowledge, never as meta-descriptions
+- Preserve technical terms, proper nouns, and specific details exactly as they appear
+- ONLY use information explicitly stated in the provided section summaries
+- Create coherent document-level narratives that maintain logical flow
+
+RESPONSE STYLE:
+- Write in direct synthesis style: present information as factual knowledge
+- AVOID meta-references like "The document discusses...", "This text covers...", "The sections explain..."
+- Connect related concepts only when connections are evident from the summaries
+- Count words carefully to meet specified target ranges
+- Always respond in {{language}} when specified
+
+QUALITY STANDARDS:
+- Comprehensive coverage within word limits
+- Logical flow and narrative structure
+- Valuable for both human reading and AI applications
+- Faithful synthesis without external interpretation"""
+
+    def _get_document_summary_user_prompt(self) -> str:
+        """User prompt for document summarization - provides context and task."""
+        return """DOCUMENT TITLE: {document_title}
 
 SECTION SUMMARIES:
 {section_summaries}
 
-CRITICAL FIDELITY REQUIREMENTS:
-1. The SECTION SUMMARIES are your PRIMARY and ULTIMATE source of truth
-2. ONLY use information explicitly stated in the provided section summaries
-3. NEVER add interpretations, conclusions, or information not present in the summaries
-4. Preserve technical terms, proper nouns, and specific details exactly as they appear
-5. If you need to connect concepts, do so only based on what's explicitly stated
-6. Stay strictly within the boundaries of what the section summaries contain
-7. Maintain the logical relationships as presented in the original summaries
-
-SYNTHESIS INSTRUCTIONS:
-1. Create a comprehensive document summary targeting approximately {target_words} words
-2. Minimum {min_words} words for sufficient coverage - Maximum {max_words} words to maintain focus
-3. Count words as you write to stay within the {min_words}-{max_words} word range
-4. Provide enough detail for RAG context and comprehensive understanding
-5. Write in DIRECT SYNTHESIS style - present the content as unified knowledge, not meta-descriptions
-6. AVOID meta-references like "The document discusses...", "This text covers...", "The sections explain..."
-7. Maintain the logical flow and narrative structure of the document
-8. Highlight the most important insights and conclusions that are explicitly present in the sections
-9. Ensure the summary is valuable for human reading and AI applications
-10. Connect related concepts and themes only when these connections are evident from the sections
-
-STYLE EXAMPLES:
-❌ BAD: "This document explores the concept of [topic] and explains how..."
-✅ GOOD: "[Main concept] represents more than [surface description] - it reflects [deeper implications] that [broader context]..."
-
-❌ BAD: "The text describes various movement patterns and discusses..."
-✅ GOOD: "Human ancestors engaged in diverse movement patterns including walking, climbing, and carrying objects..."
+TASK:
+Create a comprehensive document summary of approximately {target_words} words ({min_words}-{max_words} range).
+Synthesize the section summaries into a coherent document-level narrative.
+Highlight the most important insights and conclusions explicitly present in the sections.
 
 RESPONSE FORMAT:
 Document Summary: [Your comprehensive ~{target_words} word document synthesis here]
 
-**IMPORTANT: Respond in {{language}}. Target approximately {target_words} words for comprehensive coverage.**
-
 Provide only the document summary, no additional commentary."""
 
-    def _get_concept_extraction_prompt(self) -> str:
-        """Unified prompt for concept extraction."""
-        return """You are an expert at identifying key concepts for glossary creation. Extract concepts that represent specialized knowledge, methodologies, or domain-specific terms that would benefit from definition.
+    def _get_concept_extraction_system_prompt(self) -> str:
+        """System prompt for concept extraction - defines role and behavior."""
+        return """You are an expert at identifying key concepts for glossary creation and knowledge management.
 
-SECTION TO ANALYZE:
+CORE PRINCIPLES:
+- Focus on specialized knowledge, methodologies, and domain-specific terms
+- Prioritize concepts that would benefit from definition or explanation
+- Consider semantic importance over word frequency
+- Extract precise, meaningful terms that represent unified ideas
+
+SELECTION CRITERIA:
+PRIORITIZE:
+- Technical terms and specialized vocabulary
+- Processes, methodologies, or systematic approaches
+- Domain-specific concepts requiring context to understand
+- Ideas that are defined, explained, or developed in detail
+- Multi-word concepts representing unified ideas
+
+AVOID:
+- Common words without specialized meaning
+- Generic actions or states without specific context
+- Overly broad categories lacking precision
+- Single words that are self-explanatory
+
+RESPONSE STYLE:
+- Present concepts as precise terms (1-3 words typically)
+- Always respond in {{language}} when specified
+- Focus on concepts that would be valuable in a glossary"""
+
+    def _get_concept_extraction_user_prompt(self) -> str:
+        """User prompt for concept extraction - provides context and task."""
+        return """SECTION TO ANALYZE:
 Title: {section_title}
 Content: {section_content}
 
-INSTRUCTIONS:
-1. Identify 3-5 key concepts that are central to this section's meaning
-2. PRIORITIZE concepts that are:
-   - Technical terms or specialized vocabulary
-   - Processes, methodologies, or systematic approaches
-   - Domain-specific concepts that require context to understand
-   - Ideas that are defined, explained, or developed in detail
-   - Multi-word concepts that represent unified ideas
-3. AVOID concepts that are:
-   - Common words (unless they have specialized meaning here)
-   - Generic actions or states without specific context
-   - Overly broad categories that lack precision
-   - Single words that are self-explanatory
-4. Consider SEMANTIC IMPORTANCE over word frequency
-5. Present concepts as precise, meaningful terms (can be 1-3 words)
-
-CONCEPT SELECTION EXAMPLES:
-✅ GOOD TYPES: [technical terms], [specialized methodologies], [domain-specific processes], [compound concepts]
-❌ BAD TYPES: [common nouns], [generic verbs], [overly broad terms], [everyday words], [basic concepts]
-
-EXAMPLE PATTERNS (adapt to your document's domain):
-✅ For health/fitness: [specific conditions], [exercise techniques], [medical terms], [therapeutic approaches]
-✅ For technology: [technical algorithms], [system architectures], [specialized tools], [domain frameworks]
-❌ AVOID: generic words like "time", "people", "important", "system", "process" unless domain-specific
+TASK:
+Identify 3-5 key concepts that are central to this section's meaning.
+Focus on concepts that represent specialized knowledge or would benefit from definition.
 
 RESPONSE FORMAT:
 Key Concepts: [concept1, concept2, concept3, concept4, concept5]
 
-**IMPORTANT: Respond in {{language}}.**
-
 Provide only the key concepts list, no additional commentary."""
 
-    def _get_concept_definition_prompt(self) -> str:
-        """Unified prompt for concept definition generation."""
-        return """You are an expert at creating clear, concise definitions for key concepts. Generate a precise definition that is faithful to how the concept appears and is used in the document context.
+    def _get_concept_definition_system_prompt(self) -> str:
+        """System prompt for concept definition - defines role and behavior."""
+        return """You are an expert at creating clear, precise definitions for key concepts based on document context.
 
-CONCEPT TO DEFINE: {concept_name}
+CORE PRINCIPLES:
+- Document context is your PRIMARY source of truth
+- Use explicit definitions from the document when available
+- If no explicit definition exists, define based on contextual usage
+- Stay faithful to the specific meaning the document assigns
+- Avoid imposing external definitions that contradict document usage
+
+DEFINITION QUALITY:
+- Create comprehensive definitions (2-4 sentences typically)
+- Focus on how the concept is used in this specific document context
+- Include key characteristics, relationships, or applications when relevant
+- Be context-specific and accurate rather than generic
+
+RESPONSE STYLE:
+- Write in direct definition style: state what the concept IS
+- AVOID meta-references like "According to the text...", "The document defines this as..."
+- Always respond in {{language}} when specified
+- Provide only the definition text without prefixes or additional commentary"""
+
+    def _get_concept_definition_user_prompt(self) -> str:
+        """User prompt for concept definition - provides context and task."""
+        return """CONCEPT TO DEFINE: {concept_name}
 
 CONTEXT FROM DOCUMENT:
 {context}
 
-FIDELITY GUIDELINES:
-1. PRIMARY SOURCE: Use explicit definitions or descriptions from the document context first
-2. CONTEXTUAL USAGE: If no explicit definition exists, define based on how the concept is used in context
-3. PRESERVE MEANING: Stay true to the specific meaning the document assigns to this concept
-4. AVOID EXTERNAL KNOWLEDGE: Don't impose standard definitions that contradict the document's usage
-5. FLEXIBLE INFERENCE: When concepts aren't explicitly defined, make reasonable inferences from context
-6. DOMAIN SENSITIVITY: Consider the document's domain and how terms might have specialized meanings
-
-DEFINITION INSTRUCTIONS:
-1. CAREFULLY READ the concept name and context to understand what you're defining
-2. Create a comprehensive definition (2-4 sentences) that captures the concept's full meaning and significance
-3. Provide sufficient detail for understanding without being verbose - aim for clarity and completeness
-4. Write in DIRECT DEFINITION style - state what the concept IS, not what "the document says it is"
-5. Focus on how this concept is used specifically in this document context
-6. Include key characteristics, relationships, or applications when relevant to understanding
-7. Ensure the definition matches the CONCEPT NAME - do not confuse it with other concepts
-8. Avoid generic dictionary definitions - be context-specific and accurate
-9. AVOID meta-references like "According to the text...", "The document defines this as..."
-10. Do not include reasoning process or thinking steps
-11. Provide only the definition, no prefixes or additional commentary
-
-**IMPORTANT: Respond in {{language}}.**
+TASK:
+Generate a precise definition that captures how this concept is used in the document context.
+If the document provides an explicit definition, use that as your primary source.
+Otherwise, define based on contextual usage and reasonable inference.
 
 RESPONSE FORMAT:
 Provide ONLY the definition text. Do not include "Definition:", "Summary:", or any other prefixes.
 
-STYLE EXAMPLES:
-❌ BAD: "According to the document, [concept] is defined as..."
-✅ GOOD: "A [category] characterized by [key attributes] and [distinguishing features]."
-
-Example: "A systematic approach to processing information that mimics human cognitive patterns for enhanced understanding."
+Example format: "A [category] characterized by [key attributes] and [distinguishing features]."
 
 Generate the definition now:"""
 

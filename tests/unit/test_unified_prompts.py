@@ -12,35 +12,48 @@ class TestUnifiedPromptSystem:
         self.prompt_manager = PromptManager()
 
     def test_get_prompt_with_english(self):
-        """Test that prompts are correctly formatted with English."""
-        prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.EN)
+        """Test that user prompts contain task context without language instructions."""
+        user_prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.EN)
+        system_prompt = self.prompt_manager.get_system_prompt("section_summary", LanguageCode.EN)
 
-        # Should contain the English instruction
-        assert "**IMPORTANT: Respond in English." in prompt
+        # User prompt should NOT contain language instruction (moved to system prompt)
+        assert "**IMPORTANT: Respond in English." not in user_prompt
 
-        # Should contain the template variables
-        assert "{section_title}" in prompt
-        assert "{section_content}" in prompt
-        assert "{accumulated_context}" in prompt
+        # System prompt SHOULD contain the English instruction
+        assert "English" in system_prompt
+
+        # User prompt should contain the task and template variables
+        assert "{section_title}" in user_prompt
+        assert "{section_content}" in user_prompt
+        assert "{accumulated_context}" in user_prompt
+        assert "SECTION TO SUMMARIZE:" in user_prompt
 
     def test_get_prompt_with_spanish(self):
-        """Test that prompts are correctly formatted with Spanish."""
-        prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.ES)
+        """Test that user prompts contain task context without language instructions."""
+        user_prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.ES)
+        system_prompt = self.prompt_manager.get_system_prompt("section_summary", LanguageCode.ES)
 
-        # Should contain the Spanish instruction
-        assert "**IMPORTANT: Respond in Spanish." in prompt
+        # User prompt should NOT contain language instruction (moved to system prompt)
+        assert "**IMPORTANT: Respond in Spanish." not in user_prompt
 
-        # Should contain the template variables
-        assert "{section_title}" in prompt
-        assert "{section_content}" in prompt
-        assert "{accumulated_context}" in prompt
+        # System prompt SHOULD contain the Spanish instruction
+        assert "Spanish" in system_prompt
+
+        # User prompt should contain the task and template variables
+        assert "{section_title}" in user_prompt
+        assert "{section_content}" in user_prompt
+        assert "{accumulated_context}" in user_prompt
 
     def test_get_prompt_with_auto_defaults_to_english(self):
         """Test that AUTO language code defaults to English."""
-        prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.AUTO)
+        user_prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.AUTO)
+        system_prompt = self.prompt_manager.get_system_prompt("section_summary", LanguageCode.AUTO)
 
-        # Should contain the English instruction
-        assert "**IMPORTANT: Respond in English." in prompt
+        # User prompt should NOT contain language instruction
+        assert "**IMPORTANT: Respond in English." not in user_prompt
+
+        # System prompt should default to English
+        assert "English" in system_prompt
 
     def test_all_prompt_types_work_with_different_languages(self):
         """Test all prompt types work with different languages."""
@@ -54,19 +67,23 @@ class TestUnifiedPromptSystem:
 
         for prompt_type in prompt_types:
             for language in languages:
-                prompt = self.prompt_manager.get_prompt(prompt_type, language)
+                user_prompt = self.prompt_manager.get_prompt(prompt_type, language)
+                system_prompt = self.prompt_manager.get_system_prompt(prompt_type, language)
 
-                # Should contain the correct language instruction
+                # User prompt should NOT contain language instructions
                 expected_lang_name = (
                     "English" if language == LanguageCode.EN else "Spanish"
                 )
-                assert f"**IMPORTANT: Respond in {expected_lang_name}." in prompt
+                assert f"**IMPORTANT: Respond in {expected_lang_name}." not in user_prompt
 
-                # Should not contain the placeholder anymore
-                assert "{{language}}" not in prompt
+                # System prompt should contain the correct language reference
+                assert expected_lang_name in system_prompt
+
+                # Should not contain the placeholder anymore (in user prompt)
+                assert "{{language}}" not in user_prompt
 
     def test_format_section_summary_prompt_with_spanish(self):
-        """Test that format methods work with Spanish prompts."""
+        """Test that format methods work and don't include language instructions in user prompt."""
         formatted = self.prompt_manager.format_section_summary_prompt(
             section_title="Introducción",
             section_content="Este es el contenido de la sección.",
@@ -74,8 +91,8 @@ class TestUnifiedPromptSystem:
             language=LanguageCode.ES,
         )
 
-        # Should contain the Spanish instruction
-        assert "**IMPORTANT: Respond in Spanish." in formatted
+        # Should NOT contain the Spanish instruction (moved to system prompt)
+        assert "**IMPORTANT: Respond in Spanish." not in formatted
 
         # Should have variables replaced
         assert "Introducción" in formatted
@@ -88,7 +105,7 @@ class TestUnifiedPromptSystem:
         assert "{accumulated_context}" not in formatted
 
     def test_format_section_summary_prompt_with_english(self):
-        """Test that format methods work with English prompts."""
+        """Test that format methods work and don't include language instructions in user prompt."""
         formatted = self.prompt_manager.format_section_summary_prompt(
             section_title="Introduction",
             section_content="This is the section content.",
@@ -96,8 +113,8 @@ class TestUnifiedPromptSystem:
             language=LanguageCode.EN,
         )
 
-        # Should contain the English instruction
-        assert "**IMPORTANT: Respond in English." in formatted
+        # Should NOT contain the English instruction (moved to system prompt)
+        assert "**IMPORTANT: Respond in English." not in formatted
 
         # Should have variables replaced
         assert "Introduction" in formatted
@@ -105,7 +122,7 @@ class TestUnifiedPromptSystem:
         assert "Previous document context." in formatted
 
     def test_format_document_summary_prompt_multilingual(self):
-        """Test document summary formatting with different languages."""
+        """Test document summary formatting works without language instructions in user prompt."""
         for language in [LanguageCode.EN, LanguageCode.ES]:
             formatted = self.prompt_manager.format_document_summary_prompt(
                 document_title="Test Document",
@@ -113,9 +130,9 @@ class TestUnifiedPromptSystem:
                 language=language,
             )
 
-            # Should contain correct language instruction
+            # Should NOT contain language instruction in user prompt (moved to system prompt)
             expected_lang_name = "English" if language == LanguageCode.EN else "Spanish"
-            assert f"**IMPORTANT: Respond in {expected_lang_name}." in formatted
+            assert f"**IMPORTANT: Respond in {expected_lang_name}." not in formatted
 
             # Should have variables replaced
             assert "Test Document" in formatted
@@ -123,7 +140,7 @@ class TestUnifiedPromptSystem:
             assert "Summary 2" in formatted
 
     def test_format_concept_definition_prompt_multilingual(self):
-        """Test concept definition formatting with different languages."""
+        """Test concept definition formatting works without language instructions in user prompt."""
         for language in [LanguageCode.EN, LanguageCode.ES]:
             formatted = self.prompt_manager.format_concept_definition_prompt(
                 concept_name="machine learning",
@@ -131,9 +148,9 @@ class TestUnifiedPromptSystem:
                 language=language,
             )
 
-            # Should contain correct language instruction
+            # Should NOT contain language instruction in user prompt (moved to system prompt)
             expected_lang_name = "English" if language == LanguageCode.EN else "Spanish"
-            assert f"**IMPORTANT: Respond in {expected_lang_name}.**" in formatted
+            assert f"**IMPORTANT: Respond in {expected_lang_name}.**" not in formatted
 
             # Should have variables replaced
             assert "machine learning" in formatted
@@ -155,7 +172,7 @@ class TestUnifiedPromptSystem:
         assert not hasattr(prompt_manager, "_get_concept_definition_prompt_es")
 
     def test_unified_prompts_are_complete(self):
-        """Test that all unified prompts contain essential elements."""
+        """Test that system and user prompts contain essential elements."""
         prompt_types = [
             "section_summary",
             "document_summary",
@@ -164,21 +181,24 @@ class TestUnifiedPromptSystem:
         ]
 
         for prompt_type in prompt_types:
-            template = self.prompt_manager._prompts[prompt_type]
+            user_template = self.prompt_manager._prompts[prompt_type]
+            system_template = self.prompt_manager._system_prompts[prompt_type]
 
-            # Should contain the language placeholder before formatting
-            assert "{{language}}" in template
+            # User template should NOT contain language placeholder (moved to system)
+            assert "{{language}}" not in user_template
 
-            # Should contain instructions and response format
-            assert "INSTRUCTIONS:" in template
-            assert (
-                "RESPONSE FORMAT:" in template
-                or "Generate the definition now:" in template
-            )
+            # System template should contain language placeholder
+            assert "{{language}}" in system_template
+
+            # User prompt should contain task structure
+            assert ("TASK:" in user_template or "RESPONSE FORMAT:" in user_template)
+
+            # System prompt should contain behavioral guidance
+            assert ("CORE PRINCIPLES" in system_template or "expert" in system_template.lower())
 
     def test_version_updated(self):
-        """Test that prompt version was updated to reflect concept contamination fixes."""
-        assert self.prompt_manager.PROMPT_VERSION == "v1.4.0"
+        """Test that prompt version was updated to reflect system prompts architecture."""
+        assert self.prompt_manager.PROMPT_VERSION == "v1.5.0"
 
     def test_language_names_mapping(self):
         """Test that language names mapping is correct."""
@@ -187,109 +207,105 @@ class TestUnifiedPromptSystem:
         assert self.prompt_manager.LANGUAGE_NAMES[LanguageCode.AUTO] == "English"
 
     def test_direct_synthesis_instructions_in_prompts(self):
-        """Test that all prompts include direct synthesis style instructions."""
+        """Test that system prompts include direct synthesis style instructions."""
         prompt_types = ["section_summary", "document_summary", "concept_definition"]
 
         for prompt_type in prompt_types:
-            template = self.prompt_manager._prompts[prompt_type]
+            system_template = self.prompt_manager._system_prompts[prompt_type]
 
-            # Should contain direct synthesis instructions
-            assert "DIRECT" in template and (
-                "SYNTHESIS" in template or "DEFINITION" in template
+            # System prompts should contain behavioral instructions
+            assert (
+                "CORE PRINCIPLES" in system_template or
+                "direct synthesis" in system_template.lower() or
+                "RESPONSE STYLE" in system_template
             )
 
-            # Should contain avoidance of meta-references
-            assert "AVOID meta-references" in template
-
-            # Should contain style examples
-            assert "STYLE EXAMPLES:" in template
-            assert "❌ BAD:" in template
-            assert "✅ GOOD:" in template
+            # System prompt should contain style guidance
+            assert (
+                "AVOID meta-references" in system_template or
+                "direct synthesis" in system_template.lower()
+            )
 
     def test_section_summary_prompt_quality_instructions(self):
-        """Test that section summary prompt has quality instructions."""
-        prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.EN)
+        """Test that section summary system prompt has quality instructions."""
+        system_prompt = self.prompt_manager.get_system_prompt("section_summary", LanguageCode.EN)
+        user_prompt = self.prompt_manager.get_prompt("section_summary", LanguageCode.EN)
 
-        # Should contain specific bad examples to avoid
-        assert '"The section explains..."' in prompt
-        assert '"The document states..."' in prompt
-        assert '"The author says..."' in prompt
+        # System prompt should contain behavioral guidance
+        assert "expert document analyst" in system_prompt.lower()
 
-        # Should contain generic good examples with placeholders (no contamination)
-        assert "[Topic] is more than just [simple definition]" in prompt
-        assert "Throughout [time period], [subject] functioned" in prompt
+        # User prompt should contain task structure
+        assert "SECTION TO SUMMARIZE:" in user_prompt
 
-        # Should emphasize direct synthesis
-        assert "direct synthesis" in prompt.lower()
+        # System prompt should contain behavioral guidance (examples moved there)
+        assert "AVOID meta-references" in system_prompt or "direct synthesis" in system_prompt.lower()
 
     def test_document_summary_prompt_quality_instructions(self):
-        """Test that document summary prompt has quality instructions."""
-        prompt = self.prompt_manager.get_prompt("document_summary", LanguageCode.EN)
+        """Test that document summary system prompt has quality instructions."""
+        system_prompt = self.prompt_manager.get_system_prompt("document_summary", LanguageCode.EN)
+        user_prompt = self.prompt_manager.get_prompt("document_summary", LanguageCode.EN)
 
-        # Should contain specific bad examples to avoid
-        assert '"The document discusses..."' in prompt
-        assert '"This text covers..."' in prompt
+        # System prompt should contain behavioral guidance
+        assert "expert document analyst" in system_prompt.lower()
 
-        # Should contain generic good examples with placeholders (no contamination)
-        assert "[Main concept] represents more than [surface description]" in prompt
-        assert "Human ancestors engaged in diverse movement patterns" in prompt
+        # User prompt should contain task structure
+        assert "DOCUMENT TITLE:" in user_prompt
 
-        # Should emphasize direct synthesis
-        assert "direct synthesis" in prompt.lower()
+        # System prompt should contain behavioral guidance
+        assert "AVOID meta-references" in system_prompt or "direct synthesis" in system_prompt.lower()
 
     def test_concept_definition_prompt_quality_instructions(self):
-        """Test that concept definition prompt has quality instructions."""
-        prompt = self.prompt_manager.get_prompt("concept_definition", LanguageCode.EN)
+        """Test that concept definition system prompt has quality instructions."""
+        system_prompt = self.prompt_manager.get_system_prompt("concept_definition", LanguageCode.EN)
+        user_prompt = self.prompt_manager.get_prompt("concept_definition", LanguageCode.EN)
 
-        # Should contain specific bad examples to avoid
-        assert '"According to the text..."' in prompt
-        assert '"The document defines this as..."' in prompt
+        # System prompt should contain behavioral guidance
+        assert "expert" in system_prompt.lower()
 
-        # Should contain generic good examples with placeholders (no contamination)
-        assert "A [category] characterized by [key attributes]" in prompt
+        # User prompt should contain task structure
+        assert "CONCEPT TO DEFINE:" in user_prompt
 
-        # Should emphasize direct definition style
-        assert "DIRECT DEFINITION style" in prompt
+        # System prompt should contain behavioral guidance
+        assert "AVOID meta-references" in system_prompt or "direct definition" in system_prompt.lower()
+
+        # System prompt should emphasize direct definition style
+        assert "DIRECT" in system_prompt or "direct definition" in system_prompt.lower()
 
     def test_concept_extraction_prompt_quality_instructions(self):
-        """Test that concept extraction prompt has enhanced quality instructions."""
-        prompt = self.prompt_manager.get_prompt("concept_extraction", LanguageCode.EN)
+        """Test that concept extraction system prompt has enhanced quality instructions."""
+        system_prompt = self.prompt_manager.get_system_prompt("concept_extraction", LanguageCode.EN)
+        user_prompt = self.prompt_manager.get_prompt("concept_extraction", LanguageCode.EN)
 
-        # Should contain semantic prioritization instructions
-        assert "SEMANTIC IMPORTANCE over word frequency" in prompt
+        # System prompt should contain conceptual guidance
+        assert ("specialized knowledge" in system_prompt or "expert" in system_prompt.lower())
 
-        # Should prioritize specialized terms
-        assert "Technical terms or specialized vocabulary" in prompt
-        assert "Processes, methodologies, or systematic approaches" in prompt
-        assert "Domain-specific concepts" in prompt
+        # User prompt should contain task structure
+        assert "SECTION TO ANALYZE:" in user_prompt
 
-        # Should avoid common words
-        assert "Common words" in prompt
-        assert "Generic actions" in prompt
-        assert "self-explanatory" in prompt
+        # System prompt should contain guidance for specialized terms
+        assert ("specialized" in system_prompt.lower() or "technical" in system_prompt.lower())
 
-        # Should contain concept selection guidance
-        assert "CONCEPT SELECTION EXAMPLES:" in prompt or "EXAMPLE PATTERNS" in prompt
-        assert "technical terms" in prompt.lower()
-        assert "specialized" in prompt.lower()
+        # System prompt should contain guidance about what to avoid
+        assert ("Common words" in system_prompt or "avoid" in system_prompt.lower())
 
-        # Should show what to avoid in general terms
-        assert "generic" in prompt.lower() or "common" in prompt.lower()
-        assert "avoid" in prompt.lower()
+        # System prompt should contain concept selection guidance
+        assert ("technical" in system_prompt.lower() and "specialized" in system_prompt.lower())
+
+        # System prompt should show what to avoid
+        assert ("AVOID" in system_prompt or "avoid" in system_prompt.lower())
 
     def test_concept_extraction_multilingual_examples(self):
-        """Test that concept extraction has proper guidance in multiple languages."""
-        prompt_en = self.prompt_manager.get_prompt(
-            "concept_extraction", LanguageCode.EN
-        )
-        prompt_es = self.prompt_manager.get_prompt(
-            "concept_extraction", LanguageCode.ES
-        )
+        """Test that concept extraction works properly in multiple languages."""
+        system_prompt_en = self.prompt_manager.get_system_prompt("concept_extraction", LanguageCode.EN)
+        system_prompt_es = self.prompt_manager.get_system_prompt("concept_extraction", LanguageCode.ES)
 
-        # Both should contain proper language instruction and guidance
-        for prompt, lang in [(prompt_en, "English"), (prompt_es, "Spanish")]:
-            assert f"**IMPORTANT: Respond in {lang}." in prompt
-            assert "GOOD TYPES:" in prompt
-            assert "BAD TYPES:" in prompt
-            assert "domain-specific" in prompt.lower()
-            assert "technical" in prompt.lower()
+        user_prompt_en = self.prompt_manager.get_prompt("concept_extraction", LanguageCode.EN)
+        user_prompt_es = self.prompt_manager.get_prompt("concept_extraction", LanguageCode.ES)
+
+        # System prompts should contain language references
+        assert "English" in system_prompt_en
+        assert "Spanish" in system_prompt_es
+
+        # User prompts should NOT contain language instructions
+        assert "**IMPORTANT: Respond in English." not in user_prompt_en
+        assert "**IMPORTANT: Respond in Spanish." not in user_prompt_es

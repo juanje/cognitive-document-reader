@@ -8,6 +8,7 @@ from typing import Any, TypeVar
 
 import aiohttp
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel
 
@@ -55,7 +56,8 @@ class LLMClient:
         """Create LangChain Chat Model provider based on configuration.
 
         Returns:
-            Configured LangChain Chat Model instance.
+            Configured LangChain Chat Model instance without system prompt.
+            System prompts will be set dynamically per operation type.
 
         Raises:
             ValueError: If unsupported provider is specified.
@@ -81,7 +83,8 @@ class LLMClient:
         """Create fast pass LLM provider if configured.
 
         Returns:
-            Configured fast LangChain LLM instance or None.
+            Configured fast LangChain LLM instance or None without system prompt.
+            System prompts will be set dynamically per operation type.
         """
         if not self.config.fast_pass_model:
             return None
@@ -172,9 +175,9 @@ class LLMClient:
                 self.metrics.llm_metrics.add_summary_call(estimated_tokens)
             return self._get_mock_summary(content, prompt_type, language)
 
-        # Format the appropriate prompt
+        # Format the appropriate user prompt (system prompt will be set automatically)
         if prompt_type == "section_summary":
-            prompt = self.prompt_manager.format_section_summary_prompt(
+            user_prompt = self.prompt_manager.format_section_summary_prompt(
                 section_title=section_title,
                 section_content=content,
                 accumulated_context=context,
@@ -185,7 +188,7 @@ class LLMClient:
             )
         elif prompt_type == "document_summary":
             # For document summary, content should be section summaries
-            prompt = self.prompt_manager.format_document_summary_prompt(
+            user_prompt = self.prompt_manager.format_document_summary_prompt(
                 document_title=section_title,
                 section_summaries=[content],  # Expecting formatted summaries
                 language=language,
@@ -196,9 +199,13 @@ class LLMClient:
         else:
             raise ValueError(f"Unsupported prompt type: {prompt_type}")
 
-        # Generate with retry logic
+        # Generate with retry logic using appropriate system prompt
         return await self._generate_with_retries(
-            prompt, model=model, temperature=temperature
+            user_prompt,
+            prompt_type=prompt_type,
+            language=language,
+            model=model,
+            temperature=temperature,
         )
 
     async def extract_concepts(
@@ -231,14 +238,18 @@ class LLMClient:
                 self.metrics.llm_metrics.add_concept_call(estimated_tokens)
             return self._get_mock_concepts(section_content)
 
-        prompt = self.prompt_manager.format_concept_extraction_prompt(
+        user_prompt = self.prompt_manager.format_concept_extraction_prompt(
             section_title=section_title,
             section_content=section_content,
             language=language,
         )
 
         response = await self._generate_with_retries(
-            prompt, model=model, temperature=temperature
+            user_prompt,
+            prompt_type="concept_extraction",
+            language=language,
+            model=model,
+            temperature=temperature,
         )
 
         # Parse concepts from response
@@ -279,8 +290,8 @@ class LLMClient:
                 summary=mock_summary, key_concepts=mock_concepts
             )
 
-        # Format the prompt for section summary
-        prompt = self.prompt_manager.format_section_summary_prompt(
+        # Format the user prompt for section summary (system prompt handled automatically)
+        user_prompt = self.prompt_manager.format_section_summary_prompt(
             section_title=section_title,
             section_content=content,
             accumulated_context=context,
@@ -289,8 +300,10 @@ class LLMClient:
 
         # Generate with structured output
         return await self._generate_structured_with_retries(
-            prompt,
+            user_prompt,
             response_model=SectionSummaryResponse,
+            prompt_type="section_summary",
+            language=language,
             model=model,
             temperature=temperature,
         )
@@ -331,8 +344,8 @@ class LLMClient:
 
             return ConceptDefinitionResponse(definition=mock_definition)
 
-        # Format the prompt for concept definition
-        prompt = self.prompt_manager.format_concept_definition_prompt(
+        # Format the user prompt for concept definition (system prompt handled automatically)
+        user_prompt = self.prompt_manager.format_concept_definition_prompt(
             concept_name=concept,
             context=context,
             language=language,
@@ -340,19 +353,28 @@ class LLMClient:
 
         # Generate with structured output
         return await self._generate_structured_with_retries(
-            prompt,
+            user_prompt,
             response_model=ConceptDefinitionResponse,
+            prompt_type="concept_definition",
+            language=language,
             model=model,
             temperature=temperature,
         )
 
     async def _generate_with_retries(
-        self, prompt: str, model: str | None = None, temperature: float | None = None
+        self,
+        prompt: str,
+        prompt_type: str = "section_summary",
+        language: LanguageCode = LanguageCode.EN,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> str:
         """Generate response with retry logic using LangChain.
 
         Args:
-            prompt: The prompt to send to the LLM.
+            prompt: The user prompt to send to the LLM.
+            prompt_type: Type of operation for system prompt selection.
+            language: Language for the system prompt.
             model: Optional model hint (selects fast vs main LLM).
             temperature: Optional temperature to use (overrides config).
 
@@ -366,8 +388,12 @@ class LLMClient:
 
         for attempt in range(self.config.max_retries + 1):
             try:
-                return await self._call_langchain_llm(
-                    prompt, model=model, temperature=temperature
+                return await self._call_langchain_llm_with_system_prompt(
+                    prompt,
+                    prompt_type=prompt_type,
+                    language=language,
+                    model=model,
+                    temperature=temperature,
                 )
             except Exception as e:
                 last_error = e
@@ -387,14 +413,18 @@ class LLMClient:
         self,
         prompt: str,
         response_model: type[T],  # Pydantic BaseModel class
+        prompt_type: str = "section_summary",
+        language: LanguageCode = LanguageCode.EN,
         model: str | None = None,
         temperature: float | None = None,
     ) -> T:  # Returns instance of response_model
         """Generate structured response with retry logic using LangChain.
 
         Args:
-            prompt: The prompt to send to the LLM.
+            prompt: The user prompt to send to the LLM.
             response_model: Pydantic model class to structure the response.
+            prompt_type: Type of operation for system prompt selection.
+            language: Language for the system prompt.
             model: Optional model hint (selects fast vs main LLM).
             temperature: Optional temperature to use (overrides config).
 
@@ -408,8 +438,13 @@ class LLMClient:
 
         for attempt in range(self.config.max_retries + 1):
             try:
-                return await self._call_structured_langchain_llm(
-                    prompt, response_model, model=model, temperature=temperature
+                return await self._call_structured_langchain_llm_with_system_prompt(
+                    prompt,
+                    response_model,
+                    prompt_type=prompt_type,
+                    language=language,
+                    model=model,
+                    temperature=temperature,
                 )
             except Exception as e:
                 last_error = e
@@ -425,10 +460,134 @@ class LLMClient:
             f"Structured LLM generation failed after {self.config.max_retries + 1} attempts: {last_error}"
         )
 
+    def _create_llm_with_system_prompt(
+        self,
+        prompt_type: str,
+        language: LanguageCode = LanguageCode.EN,
+        model: str | None = None,
+        temperature: float | None = None,
+    ) -> BaseChatModel:
+        """Create LLM instance for operation type.
+
+        Note: System prompts are handled via SystemMessage in the messages,
+        not during LLM initialization.
+
+        Args:
+            prompt_type: Type of operation (section_summary, document_summary, etc.)
+            language: Language for the system prompt (used for logging/context)
+            model: Optional model hint (selects fast vs main LLM)
+            temperature: Optional temperature override
+
+        Returns:
+            Configured LLM instance.
+        """
+
+        # Select base model configuration
+        if (
+            model
+            and self._fast_llm
+            and self.config.fast_pass_model
+            and model == self.config.fast_pass_model
+        ):
+            model_name = self.config.fast_pass_model
+            base_temperature = (
+                self.config.fast_pass_temperature or self.config.temperature
+            )
+        else:
+            model_name = self.config.main_model or self.config.model_name
+            base_temperature = (
+                self.config.main_pass_temperature or self.config.temperature
+            )
+
+        # Use provided temperature or default
+        effective_temperature = (
+            temperature if temperature is not None else base_temperature
+        )
+
+        # Configure reasoning parameter for reasoning models
+        reasoning_param = None if not self.config.disable_reasoning else False
+
+        if self.config.llm_provider == "ollama":
+            return ChatOllama(
+                model=model_name,
+                base_url=self.config.ollama_base_url,
+                temperature=effective_temperature,
+                num_ctx=self.config.context_window,
+                reasoning=reasoning_param,
+            )
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.config.llm_provider}")
+
+    async def _call_langchain_llm_with_system_prompt(
+        self,
+        prompt: str,
+        prompt_type: str = "section_summary",
+        language: LanguageCode = LanguageCode.EN,
+        model: str | None = None,
+        temperature: float | None = None,
+    ) -> str:
+        """Make actual call to LLM using LangChain with specific system prompt.
+
+        Args:
+            prompt: The user prompt to send.
+            prompt_type: Type of operation for system prompt selection.
+            language: Language for the system prompt.
+            model: Optional model hint (selects fast vs main LLM).
+            temperature: Optional temperature to use (overrides LLM config).
+
+        Returns:
+            Response text from LLM.
+        """
+        # Create LLM instance and system prompt
+        selected_llm = self._create_llm_with_system_prompt(
+            prompt_type, language, model, temperature
+        )
+        system_prompt = self.prompt_manager.get_system_prompt(prompt_type, language)
+
+        # Create messages with system and user prompts
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=prompt)
+        ]
+
+        # Show context usage if requested
+        if self.config.show_context_usage:
+            # Combine system and user prompt for token estimation
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+            estimated_tokens, usage_percentage = get_context_usage_info(
+                full_prompt, self.config.context_window
+            )
+            logger.info(
+                f"→ Context size: {estimated_tokens:,} tokens "
+                f"({usage_percentage:.1f}% of {self.config.context_window:,} window)"
+            )
+
+        # Track metrics if available
+        if self.metrics:
+            # Combine system and user prompt for token estimation
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+            estimated_tokens, _ = get_context_usage_info(
+                full_prompt, self.config.context_window
+            )
+            self.metrics.llm_metrics.add_summary_call(estimated_tokens)
+
+        # Make the call using LangChain with messages
+        try:
+            response = await selected_llm.ainvoke(messages)
+            # ChatOllama returns AIMessage objects, extract content
+            if hasattr(response, "content"):
+                return str(response.content).strip()
+            else:
+                return str(response).strip()
+        except Exception as e:
+            raise ValueError(f"LangChain LLM call failed: {e}") from e
+
     async def _call_langchain_llm(
         self, prompt: str, model: str | None = None, temperature: float | None = None
     ) -> str:
-        """Make actual call to LLM using LangChain.
+        """Legacy method - make actual call to LLM using LangChain without system prompt.
+
+        This method is kept for backward compatibility but should be deprecated.
 
         Args:
             prompt: The prompt to send.
@@ -502,6 +661,74 @@ class LLMClient:
         except Exception as e:
             raise ValueError(f"LangChain LLM call failed: {e}") from e
 
+    async def _call_structured_langchain_llm_with_system_prompt(
+        self,
+        prompt: str,
+        response_model: type[T],  # Pydantic BaseModel class
+        prompt_type: str = "section_summary",
+        language: LanguageCode = LanguageCode.EN,
+        model: str | None = None,
+        temperature: float | None = None,
+    ) -> T:  # Returns instance of response_model
+        """Make structured call to LLM using LangChain's with_structured_output with specific system prompt.
+
+        Args:
+            prompt: The user prompt to send.
+            response_model: Pydantic model class to structure the response.
+            prompt_type: Type of operation for system prompt selection.
+            language: Language for the system prompt.
+            model: Optional model hint (selects fast vs main LLM).
+            temperature: Optional temperature to use (overrides LLM config).
+
+        Returns:
+            Structured response as an instance of response_model.
+        """
+        # Create LLM instance and system prompt
+        selected_llm = self._create_llm_with_system_prompt(
+            prompt_type, language, model, temperature
+        )
+        system_prompt = self.prompt_manager.get_system_prompt(prompt_type, language)
+
+        # Create messages with system and user prompts
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=prompt)
+        ]
+
+        # Show context usage if requested
+        if self.config.show_context_usage:
+            # Combine system and user prompt for token estimation
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+            estimated_tokens, usage_percentage = get_context_usage_info(
+                full_prompt, self.config.context_window
+            )
+            logger.info(
+                f"→ Context size: {estimated_tokens:,} tokens "
+                f"({usage_percentage:.1f}% of {self.config.context_window:,} window)"
+            )
+
+        # Track metrics if available
+        if self.metrics:
+            # Combine system and user prompt for token estimation
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+            estimated_tokens, _ = get_context_usage_info(
+                full_prompt, self.config.context_window
+            )
+            # Determine call type based on response model
+            if "Summary" in response_model.__name__:
+                self.metrics.llm_metrics.add_summary_call(estimated_tokens)
+            else:
+                self.metrics.llm_metrics.add_concept_call(estimated_tokens)
+
+        # Create structured LLM with Pydantic output
+        try:
+            structured_llm = selected_llm.with_structured_output(response_model)
+            response = await structured_llm.ainvoke(messages)
+            # The response should be an instance of the response_model
+            return response  # type: ignore[return-value]
+        except Exception as e:
+            raise ValueError(f"Structured LangChain LLM call failed: {e}") from e
+
     async def _call_structured_langchain_llm(
         self,
         prompt: str,
@@ -509,7 +736,9 @@ class LLMClient:
         model: str | None = None,
         temperature: float | None = None,
     ) -> T:  # Returns instance of response_model
-        """Make structured call to LLM using LangChain's with_structured_output.
+        """Legacy method - Make structured call to LLM using LangChain's with_structured_output.
+
+        This method is kept for backward compatibility but should be deprecated.
 
         Args:
             prompt: The prompt to send.
