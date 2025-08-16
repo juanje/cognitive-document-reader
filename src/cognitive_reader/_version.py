@@ -12,6 +12,7 @@ __all__ = [
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+
     VERSION_TUPLE = tuple[int | str, ...]
     COMMIT_ID = str | None
 else:
@@ -25,7 +26,7 @@ version_tuple: VERSION_TUPLE
 commit_id: COMMIT_ID
 __commit_id__: COMMIT_ID
 
-__version__ = version = "0.2.7.dev7+g803b2283b.d20250816"
-__version_tuple__ = version_tuple = (0, 2, 7, "dev7", "g803b2283b.d20250816")
+__version__ = version = '0.2.7.dev12+g6aa4eaa96.d20250816'
+__version_tuple__ = version_tuple = (0, 2, 7, 'dev12', 'g6aa4eaa96.d20250816')
 
 __commit_id__ = commit_id = None

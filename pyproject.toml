@@ -45,6 +45,7 @@ dev = [
 
 [project.scripts]
 cognitive-reader = "cognitive_reader.cli.main:cli"
+cognitive-reader-eval = "cognitive_reader.cli.semantic_eval:semantic_eval"
 
 # Dynamic automatic versioning
 [tool.hatch.version]
