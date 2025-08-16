@@ -58,8 +58,8 @@ class TestIncrementalSynthesis:
         """Test basic concept deduplication."""
         concepts = {
             "Cognitive": "Definition of cognitive",  # 21 chars - longest
-            "cognitive": "Another definition",       # 18 chars
-            "COGNITIVE": "Third definition",         # 16 chars
+            "cognitive": "Another definition",  # 18 chars
+            "COGNITIVE": "Third definition",  # 16 chars
             "Reading": "Reading definition",
         }
 
@@ -81,15 +81,17 @@ class TestIncrementalSynthesis:
         assert "Definition of cognitive" in cognitive_kept[1]
         assert cognitive_kept[0] == "Cognitive"  # Should keep the original case
 
-    def test_deduplicate_concepts_with_separators(self, reader: CognitiveReader) -> None:
+    def test_deduplicate_concepts_with_separators(
+        self, reader: CognitiveReader
+    ) -> None:
         """Test deduplication with spaces, underscores, and hyphens."""
         concepts = {
-            "cognitive reading": "Spaces version definition",          # 25 chars - longest
-            "cognitive_reading": "Underscores version",                # 19 chars
-            "cognitive-reading": "Hyphens version",                   # 15 chars
-            "COGNITIVE_READING": "Uppercase underscores",             # 21 chars
-            "document processing": "Different concept",               # 17 chars
-            "document_processing": "Same concept with underscores",   # 31 chars - longest
+            "cognitive reading": "Spaces version definition",  # 25 chars - longest
+            "cognitive_reading": "Underscores version",  # 19 chars
+            "cognitive-reading": "Hyphens version",  # 15 chars
+            "COGNITIVE_READING": "Uppercase underscores",  # 21 chars
+            "document processing": "Different concept",  # 17 chars
+            "document_processing": "Same concept with underscores",  # 31 chars - longest
         }
 
         result = reader._deduplicate_concepts(concepts)
@@ -102,8 +104,8 @@ class TestIncrementalSynthesis:
         document_processing_kept = None
 
         for name, definition in result.items():
-            normalized = name.lower().replace('_', ' ').replace('-', ' ')
-            normalized = ' '.join(normalized.split())
+            normalized = name.lower().replace("_", " ").replace("-", " ")
+            normalized = " ".join(normalized.split())
 
             if normalized == "cognitive reading":
                 cognitive_reading_kept = (name, definition)
@@ -119,12 +121,26 @@ class TestIncrementalSynthesis:
 
     def test_normalize_concept_name(self, reader: CognitiveReader) -> None:
         """Test concept name normalization helper function."""
-        assert reader._normalize_concept_name("Cognitive Reading") == "cognitive reading"
-        assert reader._normalize_concept_name("cognitive_reading") == "cognitive reading"
-        assert reader._normalize_concept_name("cognitive-reading") == "cognitive reading"
-        assert reader._normalize_concept_name("COGNITIVE_READING") == "cognitive reading"
-        assert reader._normalize_concept_name("  Document__Processing  ") == "document processing"
-        assert reader._normalize_concept_name("technical-terms_preservation") == "technical terms preservation"
+        assert (
+            reader._normalize_concept_name("Cognitive Reading") == "cognitive reading"
+        )
+        assert (
+            reader._normalize_concept_name("cognitive_reading") == "cognitive reading"
+        )
+        assert (
+            reader._normalize_concept_name("cognitive-reading") == "cognitive reading"
+        )
+        assert (
+            reader._normalize_concept_name("COGNITIVE_READING") == "cognitive reading"
+        )
+        assert (
+            reader._normalize_concept_name("  Document__Processing  ")
+            == "document processing"
+        )
+        assert (
+            reader._normalize_concept_name("technical-terms_preservation")
+            == "technical terms preservation"
+        )
 
     def test_concept_to_sections_mapping_with_separators(
         self, reader: CognitiveReader
@@ -246,7 +262,9 @@ class TestIncrementalSynthesis:
         assert "section_1" in result["document processing"]
         assert "section_2" in result["methods"]
 
-    def test_build_concept_to_sections_mapping_empty(self, reader: CognitiveReader) -> None:
+    def test_build_concept_to_sections_mapping_empty(
+        self, reader: CognitiveReader
+    ) -> None:
         """Test mapping with empty summaries."""
         result = reader._build_concept_to_sections_mapping({})
         assert result == {}
@@ -255,7 +273,9 @@ class TestIncrementalSynthesis:
         self, reader: CognitiveReader, sample_summaries: dict[str, SectionSummary]
     ) -> None:
         """Test concept-specific context building."""
-        concept_to_sections = reader._build_concept_to_sections_mapping(sample_summaries)
+        concept_to_sections = reader._build_concept_to_sections_mapping(
+            sample_summaries
+        )
 
         # Test context for concept that appears in both sections
         context = reader._build_concept_specific_context(
@@ -269,7 +289,9 @@ class TestIncrementalSynthesis:
         self, reader: CognitiveReader, sample_summaries: dict[str, SectionSummary]
     ) -> None:
         """Test context building for concept in single section."""
-        concept_to_sections = reader._build_concept_to_sections_mapping(sample_summaries)
+        concept_to_sections = reader._build_concept_to_sections_mapping(
+            sample_summaries
+        )
 
         context = reader._build_concept_specific_context(
             "reading", sample_summaries, concept_to_sections
@@ -283,7 +305,9 @@ class TestIncrementalSynthesis:
         self, reader: CognitiveReader, sample_summaries: dict[str, SectionSummary]
     ) -> None:
         """Test context building for unknown concept (fallback)."""
-        concept_to_sections = reader._build_concept_to_sections_mapping(sample_summaries)
+        concept_to_sections = reader._build_concept_to_sections_mapping(
+            sample_summaries
+        )
 
         context = reader._build_concept_specific_context(
             "unknown_concept", sample_summaries, concept_to_sections
@@ -368,7 +392,9 @@ class TestIncrementalSynthesis:
         assert knowledge.detected_language == LanguageCode.EN
         assert len(knowledge.hierarchical_summaries) == 2
         assert len(knowledge.concepts) == 2
-        assert knowledge.total_sections == 2  # Should match processed sections (section_summaries)
+        assert (
+            knowledge.total_sections == 2
+        )  # Should match processed sections (section_summaries)
         assert knowledge.total_concepts == 2
 
         # Check hierarchy index
@@ -400,13 +426,17 @@ class TestIncrementalSynthesis:
         }
 
         # Test the update method - this will create its own LLMClient internally in dry_run mode
-        await reader._update_existing_concept_definitions(sample_summaries, LanguageCode.EN)
+        await reader._update_existing_concept_definitions(
+            sample_summaries, LanguageCode.EN
+        )
 
         # Should have deduplicated concepts
         assert len(reader.current_pass_glossary) == 2
 
         # Should keep concepts with case variations handled
-        concept_names_lower = [name.lower() for name in reader.current_pass_glossary.keys()]
+        concept_names_lower = [
+            name.lower() for name in reader.current_pass_glossary.keys()
+        ]
         assert "cognitive" in concept_names_lower
         assert "reading" in concept_names_lower
 
@@ -416,11 +446,16 @@ class TestIncrementalSynthesis:
     ) -> None:
         """Test update when no existing glossary exists."""
         # Ensure no glossary exists
-        if hasattr(reader, 'current_pass_glossary'):
-            delattr(reader, 'current_pass_glossary')
+        if hasattr(reader, "current_pass_glossary"):
+            delattr(reader, "current_pass_glossary")
 
         # Should not raise error and should exit gracefully
-        await reader._update_existing_concept_definitions(sample_summaries, LanguageCode.EN)
+        await reader._update_existing_concept_definitions(
+            sample_summaries, LanguageCode.EN
+        )
 
         # Should still not have glossary
-        assert not hasattr(reader, 'current_pass_glossary') or not reader.current_pass_glossary
+        assert (
+            not hasattr(reader, "current_pass_glossary")
+            or not reader.current_pass_glossary
+        )

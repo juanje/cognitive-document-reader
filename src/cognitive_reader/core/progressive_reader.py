@@ -1483,8 +1483,10 @@ Subsection summaries:
             summaries: Updated section summaries from current pass
             language: Document language
         """
-        if not hasattr(self, 'current_pass_glossary') or not self.current_pass_glossary:
-            logger.info("📚 No existing glossary found, skipping concept definition updates")
+        if not hasattr(self, "current_pass_glossary") or not self.current_pass_glossary:
+            logger.info(
+                "📚 No existing glossary found, skipping concept definition updates"
+            )
             return
 
         # Deduplicate concepts (case-insensitive) first
@@ -1501,12 +1503,17 @@ Subsection summaries:
         updated_concepts = {}
         concept_count = len(deduplicated_concepts)
 
-        logger.info(f"📚 Updating {concept_count} existing concept definitions with enriched context")
+        logger.info(
+            f"📚 Updating {concept_count} existing concept definitions with enriched context"
+        )
 
         # Create LLM client for concept definition updates
         from ..llm.client import LLMClient
+
         async with LLMClient(self.config) as llm_client:
-            for i, (concept_name, current_definition) in enumerate(deduplicated_concepts.items(), 1):
+            for i, (concept_name, current_definition) in enumerate(
+                deduplicated_concepts.items(), 1
+            ):
                 try:
                     # Build specific context for this concept
                     concept_context = self._build_concept_specific_context(
@@ -1515,17 +1522,19 @@ Subsection summaries:
 
                     # Generate enhanced definition using concept-specific context
                     enhanced_response = await llm_client.generate_concept_definition(
-                        concept=concept_name,
-                        context=concept_context,
-                        language=language
+                        concept=concept_name, context=concept_context, language=language
                     )
 
                     updated_concepts[concept_name] = enhanced_response.definition
 
-                    logger.debug(f"📚 Updated definition for '{concept_name}' ({i}/{concept_count})")
+                    logger.debug(
+                        f"📚 Updated definition for '{concept_name}' ({i}/{concept_count})"
+                    )
 
                 except Exception as e:
-                    logger.warning(f"📚 Failed to update definition for '{concept_name}': {e}")
+                    logger.warning(
+                        f"📚 Failed to update definition for '{concept_name}': {e}"
+                    )
                     # Keep original definition if update fails
                     updated_concepts[concept_name] = current_definition
 
@@ -1555,9 +1564,9 @@ Subsection summaries:
             "document processing"
         """
         # Comprehensive normalization: lowercase, strip, and normalize separators
-        normalized = concept_name.lower().strip().replace('_', ' ').replace('-', ' ')
+        normalized = concept_name.lower().strip().replace("_", " ").replace("-", " ")
         # Clean up multiple spaces
-        return ' '.join(normalized.split())
+        return " ".join(normalized.split())
 
     def _deduplicate_concepts(self, concepts: dict[str, str]) -> dict[str, str]:
         """Remove duplicate concepts using comprehensive normalization.
@@ -1598,11 +1607,15 @@ Subsection summaries:
 
                 # Log deduplication for debugging
                 duplicate_names = [name for name, _ in group if name != best_name]
-                logger.debug(f"📚 Deduplicated '{normalized_name}': kept '{best_name}', removed {duplicate_names}")
+                logger.debug(
+                    f"📚 Deduplicated '{normalized_name}': kept '{best_name}', removed {duplicate_names}"
+                )
 
         return deduplicated
 
-    def _build_concept_to_sections_mapping(self, summaries: dict[str, SectionSummary]) -> dict[str, list[str]]:
+    def _build_concept_to_sections_mapping(
+        self, summaries: dict[str, SectionSummary]
+    ) -> dict[str, list[str]]:
         """Build mapping of concepts to sections where they appear.
 
         Uses the same normalization as _deduplicate_concepts for consistency.
@@ -1629,7 +1642,7 @@ Subsection summaries:
         self,
         concept_name: str,
         summaries: dict[str, SectionSummary],
-        concept_to_sections: dict[str, list[str]]
+        concept_to_sections: dict[str, list[str]],
     ) -> str:
         """Build context specific to a concept by including relevant sections.
 
@@ -1660,7 +1673,9 @@ Subsection summaries:
         max_context_parts = 5  # Reasonable limit for concept-specific context
         if len(context_parts) > max_context_parts:
             context_parts = context_parts[:max_context_parts]
-            logger.debug(f"📚 Limited context for '{concept_name}' to {max_context_parts} most relevant sections")
+            logger.debug(
+                f"📚 Limited context for '{concept_name}' to {max_context_parts} most relevant sections"
+            )
 
         return "\n".join(context_parts)
 
@@ -1706,23 +1721,32 @@ Subsection summaries:
             relevant_section_ids = concept_to_sections.get(normalized_concept, [])
 
             # Use first occurrence as "first mentioned"
-            first_mentioned = relevant_section_ids[0] if relevant_section_ids else (
-                list(section_summaries.keys())[0] if section_summaries else "unknown"
+            first_mentioned = (
+                relevant_section_ids[0]
+                if relevant_section_ids
+                else (
+                    list(section_summaries.keys())[0]
+                    if section_summaries
+                    else "unknown"
+                )
             )
 
             concept_def = ConceptDefinition(
-                concept_id=concept_name.lower().replace(' ', '_').replace('-', '_'),
+                concept_id=concept_name.lower().replace(" ", "_").replace("-", "_"),
                 name=concept_name,
                 definition=definition,
                 first_mentioned_in=first_mentioned,
-                relevant_sections=relevant_section_ids or list(section_summaries.keys())
+                relevant_sections=relevant_section_ids
+                or list(section_summaries.keys()),
             )
             concepts.append(concept_def)
 
         # Calculate statistics
         avg_summary_length = (
-            sum(len(summary.summary) for summary in section_summaries.values()) / len(section_summaries)
-            if section_summaries else 0.0
+            sum(len(summary.summary) for summary in section_summaries.values())
+            / len(section_summaries)
+            if section_summaries
+            else 0.0
         )
 
         # Build hierarchy index and parent-child map
@@ -2127,7 +2151,7 @@ Remember: SOURCE TEXT has supreme authority over all enriched context informatio
                         c.concept_id for c in (concepts[:5] if concepts else [])
                     ],
                     "full_definitions": concept_details,  # Complete definitions for debugging
-            }
+                }
 
             # Save to JSON file with zero-padded numbering
             filename = f"partial_{section_index:03d}_of_{total_sections:03d}.json"

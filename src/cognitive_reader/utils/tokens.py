@@ -64,6 +64,8 @@ def get_context_usage_info(prompt: str, context_window: int) -> tuple[int, float
     """
     word_count = len(prompt.split())
     estimated_tokens = estimate_tokens_from_words(word_count)
-    usage_percentage = (estimated_tokens / context_window) * 100 if context_window > 0 else 0
+    usage_percentage = (
+        (estimated_tokens / context_window) * 100 if context_window > 0 else 0
+    )
 
     return estimated_tokens, usage_percentage

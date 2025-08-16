@@ -51,10 +51,16 @@ class CognitiveConfig(BaseModel):
 
     # Temperature settings - optimized for maximum fidelity to source text
     fast_pass_temperature: float | None = Field(
-        default=0.05, ge=0.0, le=2.0, description="Temperature for fast scan (very conservative for fidelity)"
+        default=0.05,
+        ge=0.0,
+        le=2.0,
+        description="Temperature for fast scan (very conservative for fidelity)",
     )
     main_pass_temperature: float | None = Field(
-        default=0.05, ge=0.0, le=2.0, description="Temperature for quality processing (very conservative for fidelity)"
+        default=0.05,
+        ge=0.0,
+        le=2.0,
+        description="Temperature for quality processing (very conservative for fidelity)",
     )
 
     # Cognitive Features
@@ -79,7 +85,9 @@ class CognitiveConfig(BaseModel):
     )
     chunk_overlap: int = Field(default=200, ge=0, description="Overlap between chunks")
     context_window: int = Field(
-        default=16384, gt=0, description="LLM context window limit (safe for enriched context)"
+        default=16384,
+        gt=0,
+        description="LLM context window limit (safe for enriched context)",
     )
 
     # Performance Settings
@@ -111,13 +119,19 @@ class CognitiveConfig(BaseModel):
 
     # Document-level summaries (longer for comprehensive understanding)
     target_document_summary_words: int = Field(
-        default=400, gt=50, description="Target document summary length in words (~500 tokens)"
+        default=400,
+        gt=50,
+        description="Target document summary length in words (~500 tokens)",
     )
     min_document_summary_words: int = Field(
-        default=250, gt=20, description="Minimum document summary length in words (~320 tokens)"
+        default=250,
+        gt=20,
+        description="Minimum document summary length in words (~320 tokens)",
     )
     max_document_summary_words: int = Field(
-        default=600, gt=80, description="Maximum document summary length in words (~750 tokens)"
+        default=600,
+        gt=80,
+        description="Maximum document summary length in words (~750 tokens)",
     )
     max_hierarchy_depth: int = Field(
         default=10,
@@ -196,9 +210,12 @@ class CognitiveConfig(BaseModel):
         """Load environment variables from .env file if it exists."""
         try:
             from dotenv import load_dotenv
-            env_file = Path.cwd() / '.env'
+
+            env_file = Path.cwd() / ".env"
             if env_file.exists():
-                load_dotenv(env_file, override=False)  # Don't override existing env vars
+                load_dotenv(
+                    env_file, override=False
+                )  # Don't override existing env vars
         except ImportError:
             # python-dotenv not installed, skip loading
             pass
@@ -293,7 +310,9 @@ class CognitiveConfig(BaseModel):
             dry_run=os.getenv("COGNITIVE_READER_DRY_RUN", "false").lower() == "true",
             mock_responses=os.getenv("COGNITIVE_READER_MOCK_RESPONSES", "false").lower()
             == "true",
-            show_context_usage=os.getenv("COGNITIVE_READER_SHOW_CONTEXT_USAGE", "false").lower()
+            show_context_usage=os.getenv(
+                "COGNITIVE_READER_SHOW_CONTEXT_USAGE", "false"
+            ).lower()
             == "true",
             validate_config_only=os.getenv(
                 "COGNITIVE_READER_VALIDATE_CONFIG_ONLY", "false"
