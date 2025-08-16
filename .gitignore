@@ -57,3 +57,4 @@ temp/
 # Development features
 partial_results/
 debug_output/
+intermediate_passes/
