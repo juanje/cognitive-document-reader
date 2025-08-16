@@ -16,22 +16,13 @@ from ..models.config import CognitiveConfig
 from ..models.document import CognitiveKnowledge
 from ..models.knowledge import LanguageCode
 from ..models.metrics import ProcessingMetrics
+from ..utils.logging_config import configure_logging
 from ..utils.structure_formatter import (
     filter_sections_by_depth,
     format_structure_as_text,
     validate_structure_integrity,
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-
-# Suppress noisy HTTP logs by default (only show in verbose mode)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("langsmith").setLevel(logging.WARNING)
-logging.getLogger("langchain").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
@@ -82,6 +73,11 @@ logger = logging.getLogger(__name__)
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all output except results")
+@click.option(
+    "--log",
+    type=click.Path(path_type=Path),
+    help="Write logs to specified file instead of stderr",
+)
 @click.option(
     "--save-partials",
     is_flag=True,
@@ -167,6 +163,7 @@ def cli(
     output_file: Path | None,
     verbose: bool,
     quiet: bool,
+    log: Path | None,
     save_partials: bool,
     partials_dir: Path | None,
     max_sections: int | None,
@@ -224,19 +221,8 @@ def cli(
 
         cognitive-reader document.md --temperature 0.2
     """
-    # Configure logging based on verbosity
-    if quiet:
-        logging.getLogger().setLevel(logging.ERROR)
-    elif verbose:
-        # Enable DEBUG for cognitive_reader logs only, keep HTTP libs minimal
-        logging.getLogger().setLevel(logging.INFO)  # Keep root at INFO
-        logging.getLogger("cognitive_reader").setLevel(logging.DEBUG)
-
-        # In verbose mode, allow some HTTP logs but not the noisy DEBUG ones
-        logging.getLogger("httpcore").setLevel(logging.WARNING)  # Still quiet
-        logging.getLogger("httpx").setLevel(logging.INFO)  # Show HTTP requests
-        logging.getLogger("langsmith").setLevel(logging.WARNING)  # Still quiet
-        logging.getLogger("langchain").setLevel(logging.INFO)
+    # Configure logging based on verbosity and log file
+    configure_logging(verbose=verbose, quiet=quiet, log_file=log)
 
     try:
         # Run the async main function

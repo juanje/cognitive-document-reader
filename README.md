@@ -72,11 +72,16 @@ cognitive-reader examples/sample_document.md --stats
 #### Python Library
 
 ```python
+from pathlib import Path
 from cognitive_reader import CognitiveReader
-from cognitive_reader.models import ReadingConfig
+from cognitive_reader.models import CognitiveConfig
+from cognitive_reader.utils.logging_config import configure_logging
+
+# Configure logging to file (optional)
+configure_logging(verbose=True, log_file=Path("processing.log"))
 
 # Basic usage with auto-configuration
-config = ReadingConfig.from_env()
+config = CognitiveConfig.from_env()  # Can set COGNITIVE_READER_LOG_FILE env var
 reader = CognitiveReader(config)
 
 # Process a document
@@ -86,7 +91,7 @@ print(f"Title: {knowledge.document_title}")
 print(f"Summary: {knowledge.document_summary}")
 
 # Access section summaries
-for section_id, summary in knowledge.section_summaries.items():
+for section_id, summary in knowledge.hierarchical_summaries.items():
     print(f"Section: {summary.title}")
     print(f"Summary: {summary.summary}")
     print(f"Concepts: {summary.key_concepts}")
@@ -139,6 +144,7 @@ COGNITIVE_READER_INTERMEDIATE_DIR=./intermediate_passes  # Directory for interme
 # Development modes
 COGNITIVE_READER_DRY_RUN=false                  # Use mock responses for testing
 COGNITIVE_READER_LANGUAGE=auto                  # auto, en, es
+COGNITIVE_READER_LOG_FILE=./logs/processing.log # Redirect logs to file (optional)
 ```
 
 ### Python Configuration
@@ -362,6 +368,36 @@ cognitive-reader complex_doc.md --max-depth 2
 # Combined: fast testing with partials
 cognitive-reader document.md --fast-mode --max-sections 3 --save-partials
 ```
+
+### Log File Output
+
+Redirect logs to files instead of terminal output for better debugging and analysis:
+
+```bash
+# Basic log file output
+cognitive-reader document.md --log processing.log
+
+# Verbose logs to file for debugging
+cognitive-reader document.md --log debug.log --verbose
+
+# Quiet processing with logs saved to file
+cognitive-reader document.md --log background.log --quiet
+
+# Environment variable configuration
+export COGNITIVE_READER_LOG_FILE="./logs/app.log"
+cognitive-reader document.md  # Logs automatically saved to file
+
+# Development workflow with comprehensive logging
+cognitive-reader document.md --log analysis.log --save-partials --stats --verbose
+```
+
+**Use cases:**
+- 🔍 **Debugging**: Keep detailed processing logs while maintaining clean terminal output
+- 📊 **Analysis**: Separate application logs from results for easier data analysis
+- 🤖 **CI/CD**: Capture logs in automated testing and deployment pipelines
+- 📚 **Library Usage**: Configure logging when using cognitive-reader as a Python library
+
+**Note**: The `--log` flag redirects *all* application logs to the specified file. Output results (summaries, JSON) still go to stdout unless `--output-file` is also used.
 
 ### Development Workflow Examples
 

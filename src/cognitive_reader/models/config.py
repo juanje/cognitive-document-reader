@@ -182,6 +182,10 @@ class CognitiveConfig(BaseModel):
         default=False,
         description="Skip concept definitions generation (faster processing, summaries only)",
     )
+    log_file: Path | None = Field(
+        default=None,
+        description="File path to write logs to instead of stderr (None = use stderr)",
+    )
 
     # Concept filtering parameters for glossary quality
     max_glossary_concepts: int = Field(
@@ -343,6 +347,7 @@ class CognitiveConfig(BaseModel):
             == "true",
             skip_glossary=os.getenv("COGNITIVE_READER_SKIP_GLOSSARY", "false").lower()
             == "true",
+            log_file=Path(log_path) if (log_path := os.getenv("COGNITIVE_READER_LOG_FILE")) else None,
             # Concept filtering parameters
             max_glossary_concepts=int(
                 os.getenv("COGNITIVE_READER_MAX_GLOSSARY_CONCEPTS", "50")
