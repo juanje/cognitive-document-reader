@@ -10,6 +10,7 @@ from ..llm.client import LLMClient
 from ..models.config import CognitiveConfig
 from ..models.document import CognitiveKnowledge, DocumentSection, SectionSummary
 from ..models.knowledge import ConceptDefinition, LanguageCode
+from ..models.metrics import ProcessingMetrics
 from ..utils.text_cleaning import clean_section_title
 
 logger = logging.getLogger(__name__)
@@ -26,15 +27,18 @@ class Synthesizer:
         self,
         config: CognitiveConfig,
         save_partial_result_fn: Callable[..., Any] | None = None,
+        metrics: ProcessingMetrics | None = None,
     ) -> None:
         """Initialize the synthesizer.
 
         Args:
             config: Reading configuration with synthesis settings.
             save_partial_result_fn: Optional function to save partial results for debugging.
+            metrics: Optional metrics collector for tracking LLM call statistics.
         """
         self.config = config
         self.save_partial_result_fn = save_partial_result_fn
+        self.metrics = metrics
 
     async def synthesize_document(
         self,
@@ -200,7 +204,7 @@ class Synthesizer:
         # Sort by level (deepest first) to ensure children are processed before parents
         container_sections.sort(key=lambda s: s.level, reverse=True)
 
-        async with LLMClient(self.config) as llm_client:
+        async with LLMClient(self.config, self.metrics) as llm_client:
             for section in container_sections:
                 if section.id not in existing_summaries:
                     summary = await self._synthesize_container_section(
@@ -246,7 +250,7 @@ class Synthesizer:
         concept_definitions = []
 
         # Use LLM to generate real definitions
-        async with LLMClient(self.config) as llm_client:
+        async with LLMClient(self.config, self.metrics) as llm_client:
             for concept in concepts:
                 try:
                     # Build comprehensive context for concept definition
@@ -552,7 +556,7 @@ class Synthesizer:
         combined_summaries = "\n\n".join(top_level_summaries)
 
         try:
-            async with LLMClient(self.config) as llm_client:
+            async with LLMClient(self.config, self.metrics) as llm_client:
                 summary_response = await llm_client.generate_summary(
                     content=combined_summaries,
                     context="",

@@ -64,6 +64,9 @@ cognitive-reader examples/sample_document.md --single-pass
 
 # Save intermediate results between passes (debugging)
 cognitive-reader examples/sample_document.md --save-intermediate
+
+# Show processing statistics (performance monitoring)
+cognitive-reader examples/sample_document.md --stats
 ```
 
 #### Python Library
@@ -378,6 +381,49 @@ cognitive-reader document.md --dry-run --save-partials --max-sections 5
 - 🔍 **Quality evaluation** of summaries without full processing
 - 🐛 **Debugging** processing issues at specific sections
 - ⚡ **Performance testing** with controlled scope
+
+### Processing Statistics
+
+Monitor performance and resource usage with detailed statistics:
+
+```bash
+# Basic statistics
+cognitive-reader document.md --stats
+
+# Statistics with development modes
+cognitive-reader document.md --stats --dry-run
+cognitive-reader document.md --stats --fast-mode
+
+# Combined with other features
+cognitive-reader large_doc.md --stats --max-sections 10 --save-partials
+```
+
+**Statistics include:**
+- 📊 **LLM Calls**: Total calls, breakdown by type (summary/concepts)
+- 🔢 **Token Usage**: Total tokens sent, averages per call type
+- ⏱️ **Timing**: Duration per processing pass, total processing time
+- 📄 **Content**: Sections processed, concepts generated
+- 🧮 **Efficiency**: Average tokens per section processed
+
+**Example output:**
+```
+      Processing Statistics
+ LLM Calls                5 calls
+   Summary Calls          2 calls
+   Concept Calls          3 calls
+
+ Total Tokens Sent   5,162 tokens
+   Avg Summary         530 tokens
+   Avg Concepts       1368 tokens
+   Avg per Section    1721 tokens
+
+ Pass 1 Duration         1m 55s
+ Pass 2 Duration         1m 45s
+ Total Duration          3m 40s
+
+ Sections Processed  3 sections
+ Concepts Generated  3 concepts
+```
 
 ## 📊 Output Formats
 

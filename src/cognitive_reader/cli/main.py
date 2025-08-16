@@ -15,6 +15,7 @@ from ..core.progressive_reader import CognitiveReader
 from ..models.config import CognitiveConfig
 from ..models.document import CognitiveKnowledge
 from ..models.knowledge import LanguageCode
+from ..models.metrics import ProcessingMetrics
 from ..utils.structure_formatter import (
     filter_sections_by_depth,
     format_structure_as_text,
@@ -62,6 +63,7 @@ logger = logging.getLogger(__name__)
     "--dry-run", is_flag=True, help="Run in dry-run mode (no actual LLM calls)"
 )
 @click.option("--mock-responses", is_flag=True, help="Use mock responses for testing")
+@click.option("--stats", is_flag=True, help="Show processing statistics at the end")
 @click.option(
     "--show-context-usage",
     is_flag=True,
@@ -159,6 +161,7 @@ def cli(
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
+    stats: bool,
     show_context_usage: bool,
     validate_config: bool,
     output_file: Path | None,
@@ -246,6 +249,7 @@ def cli(
                 temperature=temperature,
                 dry_run=dry_run,
                 mock_responses=mock_responses,
+                stats=stats,
                 show_context_usage=show_context_usage,
                 validate_config=validate_config,
                 output_file=output_file,
@@ -289,6 +293,7 @@ async def _async_main(
     temperature: float | None,
     dry_run: bool,
     mock_responses: bool,
+    stats: bool,
     show_context_usage: bool,
     validate_config: bool,
     output_file: Path | None,
@@ -342,8 +347,11 @@ async def _async_main(
         extended_context=extended_context,
     )
 
+    # Initialize metrics collection if stats are requested
+    metrics = ProcessingMetrics() if stats else None
+
     # Initialize reader (only when we actually need it)
-    reader = CognitiveReader(config)
+    reader = CognitiveReader(config, metrics)
 
     # Handle validation-only mode
     if validate_config:
@@ -459,6 +467,15 @@ async def _async_main(
         _save_output(output_text, output_file, quiet)
     else:
         click.echo(output_text)
+
+    # Update metrics with final counts if metrics are enabled
+    if metrics:
+        metrics.sections_processed = knowledge.total_sections
+        metrics.concepts_generated = knowledge.total_concepts
+
+    # Show processing statistics if requested
+    if stats and metrics:
+        click.echo("\n" + metrics.format_stats_table(), err=True)
 
     if not quiet:
         total_sections = knowledge.total_sections

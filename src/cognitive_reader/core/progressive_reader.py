@@ -11,6 +11,7 @@ from ..llm.client import LLMClient
 from ..models.config import CognitiveConfig
 from ..models.document import CognitiveKnowledge, DocumentSection, SectionSummary
 from ..models.knowledge import LanguageCode
+from ..models.metrics import ProcessingMetrics
 from ..parsers.docling_parser import DoclingParser
 from ..utils.language import LanguageDetector
 from .synthesizer import Synthesizer
@@ -26,16 +27,24 @@ class CognitiveReader:
     entire cognitive reading process.
     """
 
-    def __init__(self, config: CognitiveConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: CognitiveConfig | None = None,
+        metrics: ProcessingMetrics | None = None,
+    ) -> None:
         """Initialize the cognitive reader.
 
         Args:
             config: Reading configuration. If None, will load from environment.
+            metrics: Optional metrics collector for tracking processing statistics.
         """
         self.config = config or CognitiveConfig.from_env()
+        self.metrics = metrics
         self.parser = DoclingParser()
         self.synthesizer = Synthesizer(
-            self.config, save_partial_result_fn=self._save_partial_result
+            self.config,
+            save_partial_result_fn=self._save_partial_result,
+            metrics=self.metrics,
         )
         self.language_detector = LanguageDetector()
 
@@ -270,7 +279,10 @@ class CognitiveReader:
         """
         # Pass 1: Initial sequential processing
         logger.info("🔄 PASS 1: Sequential processing with cumulative context")
+        pass1_start = self.metrics.start_pass(1) if self.metrics else 0
         pass1_summaries = await self._sequential_processing(sections, language)
+        if self.metrics:
+            self.metrics.end_pass(1, pass1_start)
 
         # Save intermediate results after Pass 1
         if self.config.save_intermediate:
@@ -287,9 +299,12 @@ class CognitiveReader:
 
         # Pass 2: Sequential processing with enriched context
         logger.info("🔄 PASS 2: Sequential processing with enriched context")
+        pass2_start = self.metrics.start_pass(2) if self.metrics else 0
         pass2_summaries = await self._sequential_processing_with_enriched_context(
             sections=sections, previous_summaries=pass1_summaries, language=language
         )
+        if self.metrics:
+            self.metrics.end_pass(2, pass2_start)
 
         # Save intermediate results after Pass 2
         if self.config.save_intermediate:
@@ -458,7 +473,7 @@ class CognitiveReader:
 
         logger.info(f"{pass_name.title()}: Using model '{effective_model}'")
 
-        async with LLMClient(self.config) as llm_client:
+        async with LLMClient(self.config, self.metrics) as llm_client:
             for i, section in enumerate(content_sections):
                 logger.debug(
                     f"[{pass_name}] Processing section {i + 1}/{len(content_sections)}: {section.title}"
@@ -482,6 +497,10 @@ class CognitiveReader:
 
                 if summary:
                     section_summaries[section.id] = summary
+
+                    # Update metrics if available
+                    if self.metrics:
+                        self.metrics.add_section()
 
                     # Update accumulated context for next sections
                     accumulated_context = self._update_accumulated_context(
@@ -1510,7 +1529,7 @@ Subsection summaries:
         # Create LLM client for concept definition updates
         from ..llm.client import LLMClient
 
-        async with LLMClient(self.config) as llm_client:
+        async with LLMClient(self.config, self.metrics) as llm_client:
             for i, (concept_name, current_definition) in enumerate(
                 deduplicated_concepts.items(), 1
             ):
@@ -1891,7 +1910,7 @@ Remember: SOURCE TEXT has supreme authority over all enriched context informatio
         model = self.config.main_model or self.config.model_name
         temperature = self.config.main_pass_temperature or self.config.temperature
 
-        async with LLMClient(self.config) as llm_client:
+        async with LLMClient(self.config, self.metrics) as llm_client:
             # Create a temporary section with the authority-aware content
             temp_section = DocumentSection(
                 id=section.id,
@@ -1994,7 +2013,7 @@ Remember: SOURCE TEXT has supreme authority over all enriched context informatio
         model = self.config.fast_pass_model or self.config.model_name
         temperature = self.config.fast_pass_temperature or self.config.temperature
 
-        async with LLMClient(self.config) as llm_client:
+        async with LLMClient(self.config, self.metrics) as llm_client:
             return await self._process_section(
                 section,
                 "",  # No accumulated context for hierarchical processing
@@ -2203,7 +2222,7 @@ Remember: SOURCE TEXT has supreme authority over all enriched context informatio
 
         try:
             # Validate LLM configuration
-            async with LLMClient(self.config) as llm_client:
+            async with LLMClient(self.config, self.metrics) as llm_client:
                 llm_valid = await llm_client.validate_configuration()
 
             if not llm_valid:

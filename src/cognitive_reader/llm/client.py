@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from ..models.config import CognitiveConfig
 from ..models.knowledge import LanguageCode
 from ..models.llm_responses import ConceptDefinitionResponse, SectionSummaryResponse
+from ..models.metrics import ProcessingMetrics
 from ..utils.tokens import get_context_usage_info
 from .prompts import PromptManager
 
@@ -30,13 +31,17 @@ class LLMClient:
     with built-in retry logic, error handling, and development modes (dry-run, mocking).
     """
 
-    def __init__(self, config: CognitiveConfig) -> None:
+    def __init__(
+        self, config: CognitiveConfig, metrics: ProcessingMetrics | None = None
+    ) -> None:
         """Initialize the LLM client.
 
         Args:
             config: Reading configuration with LLM settings.
+            metrics: Optional metrics collector for tracking LLM call statistics.
         """
         self.config = config
+        self.metrics = metrics
         self.prompt_manager = PromptManager()
         self._session: aiohttp.ClientSession | None = None
 
@@ -159,6 +164,12 @@ class LLMClient:
 
         # Handle development modes
         if self.config.dry_run or self.config.mock_responses:
+            # Still track metrics in development mode for testing purposes
+            if self.metrics:
+                estimated_tokens, _ = get_context_usage_info(
+                    content, self.config.context_window
+                )
+                self.metrics.llm_metrics.add_summary_call(estimated_tokens)
             return self._get_mock_summary(content, prompt_type, language)
 
         # Format the appropriate prompt
@@ -212,6 +223,12 @@ class LLMClient:
         """
         # Handle development modes
         if self.config.dry_run or self.config.mock_responses:
+            # Still track metrics in development mode for testing purposes
+            if self.metrics:
+                estimated_tokens, _ = get_context_usage_info(
+                    section_content, self.config.context_window
+                )
+                self.metrics.llm_metrics.add_concept_call(estimated_tokens)
             return self._get_mock_concepts(section_content)
 
         prompt = self.prompt_manager.format_concept_extraction_prompt(
@@ -467,6 +484,13 @@ class LLMClient:
                 f"({usage_percentage:.1f}% of {self.config.context_window:,} window)"
             )
 
+        # Track metrics if available
+        if self.metrics:
+            estimated_tokens, _ = get_context_usage_info(
+                prompt, self.config.context_window
+            )
+            self.metrics.llm_metrics.add_summary_call(estimated_tokens)
+
         # Make the call using LangChain
         try:
             response = await selected_llm.ainvoke(prompt)
@@ -540,6 +564,17 @@ class LLMClient:
                 f"→ Context size: {estimated_tokens:,} tokens "
                 f"({usage_percentage:.1f}% of {self.config.context_window:,} window)"
             )
+
+        # Track metrics if available
+        if self.metrics:
+            estimated_tokens, _ = get_context_usage_info(
+                prompt, self.config.context_window
+            )
+            # Determine call type based on response model
+            if "Summary" in response_model.__name__:
+                self.metrics.llm_metrics.add_summary_call(estimated_tokens)
+            else:
+                self.metrics.llm_metrics.add_concept_call(estimated_tokens)
 
         # Create structured LLM with Pydantic output
         try:

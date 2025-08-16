@@ -28,6 +28,7 @@ dependencies = [
     "python-dotenv>=1.0,<2.0", # .env file support
     "langchain-core>=0.3,<1.0", # LangChain core functionality
     "langchain-ollama>=0.2,<1.0", # Ollama integration for LangChain
+    "rich>=13.0,<14.0", # Beautiful terminal output and tables
 ]
 
 # Configure package discovery for src layout
