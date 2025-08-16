@@ -31,8 +31,9 @@ logger = logging.getLogger(__name__)
     "document", type=click.Path(exists=True, path_type=Path), required=False
 )
 @click.option(
-    "--output",
-    "-o",
+    "--format",
+    "-f",
+    "output_format",
     type=click.Choice(["json", "markdown"], case_sensitive=False),
     default="markdown",
     help="Output format for results (default: markdown)",
@@ -67,7 +68,7 @@ logger = logging.getLogger(__name__)
 )
 @click.option(
     "--output-file",
-    "-f",
+    "-o",
     type=click.Path(path_type=Path),
     help="Save output to file instead of stdout",
 )
@@ -151,7 +152,7 @@ logger = logging.getLogger(__name__)
 @click.version_option()
 def cli(
     document: Path | None,
-    output: str,
+    output_format: str,
     language: str,
     model: str | None,
     temperature: float | None,
@@ -193,7 +194,7 @@ def cli(
 
         # JSON output to file
 
-        cognitive-reader document.md --output json -f analysis.json
+        cognitive-reader document.md -f json -o analysis.json
 
         # Spanish document with specific model
 
@@ -229,7 +230,7 @@ def cli(
         asyncio.run(
             _async_main(
                 document=document,
-                output=output,
+                output=output_format,
                 language=language,
                 model=model,
                 temperature=temperature,

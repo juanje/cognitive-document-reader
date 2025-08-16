@@ -48,7 +48,7 @@ def test_cli_help(runner):
     assert result.exit_code == 0
     assert "Cognitive Document Reader" in result.output
     assert "Human-like document understanding" in result.output
-    assert "--output" in result.output
+    assert "--format" in result.output
     assert "--language" in result.output
     assert "--dry-run" in result.output
 
@@ -100,7 +100,7 @@ def test_cli_dry_run_mode(runner, sample_md_file):
 
 def test_cli_json_output(runner, sample_md_file):
     """Test CLI with JSON output format."""
-    result = runner.invoke(cli, [str(sample_md_file), "--output", "json", "--dry-run"])
+    result = runner.invoke(cli, [str(sample_md_file), "--format", "json", "--dry-run"])
 
     assert result.exit_code == 0
 
@@ -122,7 +122,7 @@ def test_cli_json_output(runner, sample_md_file):
 def test_cli_markdown_output(runner, sample_md_file):
     """Test CLI with Markdown output format."""
     result = runner.invoke(
-        cli, [str(sample_md_file), "--output", "markdown", "--dry-run"]
+        cli, [str(sample_md_file), "--format", "markdown", "--dry-run"]
     )
 
     assert result.exit_code == 0
@@ -138,9 +138,9 @@ def test_cli_output_to_file(runner, sample_md_file, tmp_path):
         cli,
         [
             str(sample_md_file),
-            "--output",
+            "--format",
             "markdown",
-            "--output-file",
+            "-o",
             str(output_path),
             "--dry-run",
         ],

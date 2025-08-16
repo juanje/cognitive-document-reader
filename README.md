@@ -48,7 +48,10 @@ pip install cognitive-document-reader
 cognitive-reader examples/sample_document.md
 
 # JSON output for integration
-cognitive-reader examples/sample_document.md --output json
+cognitive-reader examples/sample_document.md --format json
+
+# Save JSON output to file
+cognitive-reader examples/sample_document.md --format json --output-file analysis.json
 
 # Development mode (no LLM calls)
 cognitive-reader examples/sample_document.md --dry-run
@@ -71,6 +74,23 @@ cognitive-reader examples/sample_document.md --stats
 # Spanish document processing
 cognitive-reader examples/sample_document_es.md --language es
 ```
+
+#### Key CLI Options
+
+**Output Control:**
+- `-f, --format [json|markdown]`: Output format (default: markdown)
+- `-o, --output-file PATH`: Save output to file instead of stdout
+- `--log PATH`: Redirect logs to file (separate from results)
+
+**Processing Modes:**
+- `--dry-run`: No actual LLM calls (for testing)
+- `--fast-mode`: Single pass with fast model (speed over quality)
+- `--stats`: Show processing statistics after completion
+
+**Document Control:**
+- `-l, --language [auto|en|es]`: Document language (default: auto-detect)
+- `--max-sections N`: Limit number of sections processed
+- `--max-depth N`: Limit section depth processed
 
 #### Python Library
 
@@ -232,8 +252,8 @@ cognitive-reader your_document.html --dry-run              # HTML processing
 cognitive-reader examples/sample_document.md --dry-run     # Markdown processing
 
 # Automatic format detection and processing
-cognitive-reader your_document.pdf --output json              # JSON output for any format
-cognitive-reader examples/sample_document.md --output json    # Consistent processing
+cognitive-reader your_document.pdf --format json              # JSON output for any format
+cognitive-reader examples/sample_document.md --format json    # Consistent processing
 ```
 
 ## 🧪 Testing
@@ -445,6 +465,9 @@ cognitive-reader document.md --stats --fast-mode
 
 # Combined with other features
 cognitive-reader large_doc.md --stats --max-sections 10 --save-partials
+
+# JSON output with stats
+cognitive-reader document.md --format json --stats --output-file results.json
 ```
 
 **Statistics include:**
