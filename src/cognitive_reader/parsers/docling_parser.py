@@ -208,11 +208,14 @@ class DoclingParser:
             result = conv_results[0]
 
             if result.status == ConversionStatus.SUCCESS:
-                # Extract title (use filename as fallback)
-                document_title = result.document.name or file_path.stem
-
                 # Export to markdown for consistent processing
                 markdown_content = result.document.export_to_markdown()
+
+                # Try to extract title from markdown content (H1 header) or use filename as fallback
+                document_title = self._extract_title_from_markdown(markdown_content)
+                if not document_title:
+                    # Fallback to document name or filename
+                    document_title = result.document.name or file_path.stem
 
                 # Parse the markdown content using our existing parser
                 return await self.parse_text(markdown_content, document_title)

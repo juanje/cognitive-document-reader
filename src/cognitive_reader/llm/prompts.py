@@ -197,13 +197,13 @@ ACCUMULATED CONTEXT FROM PREVIOUS SECTIONS:
 {accumulated_context}
 
 CRITICAL FIDELITY REQUIREMENTS:
-1. The SOURCE TEXT (section content) is your PRIMARY and ULTIMATE authority
+1. The SOURCE TEXT (section content) is your PRIMARY source of truth and takes precedence over all other information
 2. Quote, paraphrase, or directly reference the original text whenever possible
 3. Preserve technical terms, proper nouns, specific numbers, and details exactly as stated
 4. NEVER add information, interpretations, or inferences not explicitly present in the source
 5. If accumulated context conflicts with the source text, the SOURCE TEXT is always correct
 6. Stay strictly within the boundaries of what the source explicitly states
-7. When summarizing, use the author's own words and phrasing when possible
+7. When summarizing, use the original text's own words and phrasing when possible
 
 SUMMARY INSTRUCTIONS:
 1. Create a comprehensive summary targeting approximately {target_words} words
@@ -335,14 +335,16 @@ FIDELITY GUIDELINES:
 
 DEFINITION INSTRUCTIONS:
 1. CAREFULLY READ the concept name and context to understand what you're defining
-2. Create a clear, precise definition (1-2 sentences maximum) that accurately reflects the concept
-3. Write in DIRECT DEFINITION style - state what the concept IS, not what "the document says it is"
-4. Focus on how this concept is used specifically in this document context
-5. Ensure the definition matches the CONCEPT NAME - do not confuse it with other concepts
-6. Avoid generic dictionary definitions - be context-specific and accurate
-7. AVOID meta-references like "According to the text...", "The document defines this as..."
-8. Do not include reasoning process or thinking steps
-9. Provide only the definition, no prefixes or additional commentary
+2. Create a comprehensive definition (2-4 sentences) that captures the concept's full meaning and significance
+3. Provide sufficient detail for understanding without being verbose - aim for clarity and completeness
+4. Write in DIRECT DEFINITION style - state what the concept IS, not what "the document says it is"
+5. Focus on how this concept is used specifically in this document context
+6. Include key characteristics, relationships, or applications when relevant to understanding
+7. Ensure the definition matches the CONCEPT NAME - do not confuse it with other concepts
+8. Avoid generic dictionary definitions - be context-specific and accurate
+9. AVOID meta-references like "According to the text...", "The document defines this as..."
+10. Do not include reasoning process or thinking steps
+11. Provide only the definition, no prefixes or additional commentary
 
 **IMPORTANT: Respond in {{language}}.**
 
