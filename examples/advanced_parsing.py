@@ -6,7 +6,7 @@ import asyncio
 from pathlib import Path
 
 from cognitive_reader import CognitiveReader
-from cognitive_reader.models import ReadingConfig
+from cognitive_reader.models.config import CognitiveConfig
 from cognitive_reader.parsers.docling_parser import DoclingParser
 
 
@@ -83,7 +83,7 @@ with intelligent format detection and fallback mechanisms.
 """
 
     # Test with cognitive reader
-    config = ReadingConfig(dry_run=True, mock_responses=True)
+    config = CognitiveConfig(dry_run=True, mock_responses=True)
     reader = CognitiveReader(config)
 
     print("Processing test document...")
@@ -94,17 +94,27 @@ with intelligent format detection and fallback mechanisms.
     print("✅ Document processed successfully")
     print(f"   Title: {knowledge.document_title}")
     print(f"   Language: {knowledge.detected_language.value}")
-    print(f"   Sections: {len(knowledge.sections)}")
-    print(f"   Summaries: {len(knowledge.section_summaries)}")
+    print(f"   Total sections: {knowledge.total_sections}")
+    print(f"   Summaries: {len(knowledge.hierarchical_summaries)}")
+    print(f"   Concepts: {knowledge.total_concepts}")
 
-    # Show hierarchy
+    # Show hierarchy using hierarchy_index
     print("\n📋 Document Structure:")
-    top_sections = knowledge.get_top_level_sections()
-    for section in top_sections:
-        print(f"   - {section.title} (Level {section.level})")
-        children = knowledge.get_children_of_section(section.id)
-        for child in children:
-            print(f"     - {child.title} (Level {child.level})")
+    for level, section_ids in knowledge.hierarchy_index.items():
+        level_num = int(level)
+        indent = "   " + "  " * level_num
+        for section_id in section_ids:
+            summary = knowledge.get_summary_by_id(section_id)
+            if summary:
+                print(f"{indent}- {summary.title} (Level {level_num})")
+
+                # Show children if any
+                children = knowledge.get_children_of_section(section_id)
+                child_indent = "   " + "  " * (level_num + 1)
+                for child_id in children:
+                    child_summary = knowledge.get_summary_by_id(child_id)
+                    if child_summary:
+                        print(f"{child_indent}- {child_summary.title} (Level {child_summary.level})")
 
 
 async def test_enhanced_parsing():
